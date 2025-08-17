@@ -2,6 +2,8 @@
     Enhanced Modular UI Library with Distinct Component Styles
     Place this script in: StarterPlayer > StarterPlayerScripts
     This is the main library module with improved visual differentiation.
+
+    Corrected version: Emojis removed and bugs fixed.
 ]]
 
 --// Services
@@ -101,7 +103,7 @@ bottomFix.Parent = Header
 local Title = Instance.new("TextLabel")
 Title.Name = "Title"
 Title.Size = UDim2.new(1, -100, 1, 0)
-Title.Position = UDim2.new(0, 5, 0, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
 Title.BackgroundTransparency = 1
 Title.Font = Enum.Font.SourceSansBold
 Title.Text = "My Awesome Game UI"
@@ -226,6 +228,7 @@ ContentContainer.Parent = MainFrame
 
 local activeTab = nil
 local tabs = {}
+local activeKeybindConnection = nil -- BUG FIX: Global variable to track the active keybind connection
 
 --// Dragging Logic
 local dragging = false
@@ -274,10 +277,10 @@ MainGui.Parent = playerGui
 function GUI:CreateWindow(title)
     Title.Text = title or "Roblox UI"
     local Window = {}
-    
+        
     function Window:CreateTab(name)
         local Tab = {}
-        
+            
         local contentFrame = Instance.new("ScrollingFrame")
         contentFrame.Name = name
         contentFrame.Size = UDim2.new(1, -10, 1, -10)
@@ -294,11 +297,11 @@ function GUI:CreateWindow(title)
         contentLayout.Padding = UDim.new(0, 15)  -- Increased padding for better separation
         contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
         contentLayout.Parent = contentFrame
-        
+            
         local function updateCanvasSize()
             contentFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 20)
         end
-        
+            
         contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvasSize)
 
         local tabButton = Instance.new("TextButton")
@@ -311,7 +314,7 @@ function GUI:CreateWindow(title)
         tabButton.TextColor3 = Color3.fromRGB(220, 220, 220)
         tabButton.TextSize = 14
         tabButton.Parent = TabContainer
-        
+            
         local btnCorner = Instance.new("UICorner")
         btnCorner.CornerRadius = UDim.new(0, 4)
         btnCorner.Parent = tabButton
@@ -325,13 +328,13 @@ function GUI:CreateWindow(title)
             tabButton.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
             activeTab = contentFrame
         end)
-        
+            
         tabs[name] = {
             Frame = contentFrame,
             Button = tabButton,
             Layout = contentLayout
         }
-        
+            
         if not activeTab then
             contentFrame.Visible = true
             tabButton.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
@@ -351,7 +354,7 @@ function GUI:CreateWindow(title)
             btn.Size = UDim2.new(1, -10, 1, -5)
             btn.Position = UDim2.new(0, 5, 0, 0)
             btn.BackgroundColor3 = Colors.Button.Background
-            btn.Text = "🔘 " .. options.Name  -- Button icon
+            btn.Text = options.Name -- Emoji removed
             btn.Font = Enum.Font.SourceSansBold
             btn.TextColor3 = Colors.Button.Text
             btn.TextSize = 16
@@ -369,7 +372,7 @@ function GUI:CreateWindow(title)
             }
             gradient.Rotation = 90
             gradient.Parent = btn
-            
+                
             local corner = Instance.new("UICorner")
             corner.CornerRadius = UDim.new(0, 8)
             corner.Parent = btn
@@ -390,41 +393,31 @@ function GUI:CreateWindow(title)
             btn.MouseButton1Up:Connect(function()
                 TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = Colors.Button.Hover}):Play()
             end)
-            
+                
             btn.MouseButton1Click:Connect(function() 
                 if options.Callback then 
                     options.Callback() 
                 end 
             end)
         end
-        
+            
         --// ENHANCED TOGGLE COMPONENT
         function Tab:Toggle(options)
             local state = options.StartingState or false
-            
+                
             local container = Instance.new("Frame")
             container.Name = "ToggleContainer_" .. options.Name
             container.Size = UDim2.new(1, 0, 0, 40)
             container.BackgroundColor3 = Colors.Toggle.Background
             container.Parent = contentFrame
-            
+                
             local containerCorner = Instance.new("UICorner")
             containerCorner.CornerRadius = UDim.new(0, 8)
             containerCorner.Parent = container
-            
-            local toggleIcon = Instance.new("TextLabel")
-            toggleIcon.Size = UDim2.new(0, 30, 0, 30)
-            toggleIcon.Position = UDim2.new(0, 8, 0.5, -15)
-            toggleIcon.BackgroundTransparency = 1
-            toggleIcon.Text = "⚡"  -- Toggle icon
-            toggleIcon.Font = Enum.Font.SourceSansBold
-            toggleIcon.TextColor3 = Color3.fromRGB(255, 215, 0)
-            toggleIcon.TextSize = 20
-            toggleIcon.Parent = container
-            
+                
             local label = Instance.new("TextLabel")
-            label.Size = UDim2.new(1, -120, 1, 0)
-            label.Position = UDim2.new(0, 45, 0, 0)
+            label.Size = UDim2.new(1, -80, 1, 0) -- Adjusted size
+            label.Position = UDim2.new(0, 15, 0, 0) -- Adjusted position
             label.BackgroundTransparency = 1
             label.Font = Enum.Font.SourceSans
             label.Text = options.Name
@@ -432,7 +425,7 @@ function GUI:CreateWindow(title)
             label.TextSize = 16
             label.TextXAlignment = Enum.TextXAlignment.Left
             label.Parent = container
-            
+                
             local switchTrack = Instance.new("Frame")
             switchTrack.Size = UDim2.new(0, 55, 0, 26)
             switchTrack.Position = UDim2.new(1, -65, 0.5, -13)
@@ -441,14 +434,14 @@ function GUI:CreateWindow(title)
             local trackCorner = Instance.new("UICorner")
             trackCorner.CornerRadius = UDim.new(1, 0)
             trackCorner.Parent = switchTrack
-            
+                
             -- Track glow effect when on
             local trackStroke = Instance.new("UIStroke")
             trackStroke.Color = Colors.Toggle.TrackOn
             trackStroke.Thickness = state and 2 or 0
             trackStroke.Transparency = 0.3
             trackStroke.Parent = switchTrack
-            
+                
             local switchKnob = Instance.new("Frame")
             switchKnob.Size = UDim2.new(0, 22, 0, 22)
             switchKnob.Position = state and UDim2.new(1, -24, 0.5, -11) or UDim2.new(0, 2, 0.5, -11)
@@ -457,7 +450,7 @@ function GUI:CreateWindow(title)
             local knobCorner = Instance.new("UICorner")
             knobCorner.CornerRadius = UDim.new(1, 0)
             knobCorner.Parent = switchKnob
-            
+                
             -- Knob shadow effect
             local knobShadow = Instance.new("UIStroke")
             knobShadow.Color = Color3.fromRGB(0, 0, 0)
@@ -470,13 +463,13 @@ function GUI:CreateWindow(title)
             clickDetector.BackgroundTransparency = 1
             clickDetector.Text = ""
             clickDetector.Parent = switchTrack
-            
+                
             clickDetector.MouseButton1Click:Connect(function()
                 state = not state
                 local trackColor = state and Colors.Toggle.TrackOn or Colors.Toggle.TrackOff
                 local knobPos = state and UDim2.new(1, -24, 0.5, -11) or UDim2.new(0, 2, 0.5, -11)
                 local strokeThickness = state and 2 or 0
-                
+                    
                 TweenService:Create(switchTrack, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {BackgroundColor3 = trackColor}):Play()
                 TweenService:Create(switchKnob, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = knobPos}):Play()
                 TweenService:Create(trackStroke, TweenInfo.new(0.3), {Thickness = strokeThickness}):Play()
@@ -486,7 +479,7 @@ function GUI:CreateWindow(title)
                 end
             end)
         end
-        
+            
         --// ENHANCED TEXTBOX COMPONENT
         function Tab:Textbox(options)
             local container = Instance.new("Frame")
@@ -494,20 +487,10 @@ function GUI:CreateWindow(title)
             container.Size = UDim2.new(1, 0, 0, 50)
             container.BackgroundTransparency = 1
             container.Parent = contentFrame
-            
-            local textboxIcon = Instance.new("TextLabel")
-            textboxIcon.Size = UDim2.new(0, 30, 0, 30)
-            textboxIcon.Position = UDim2.new(0, 8, 0, 10)
-            textboxIcon.BackgroundTransparency = 1
-            textboxIcon.Text = "📝"  -- Textbox icon
-            textboxIcon.Font = Enum.Font.SourceSansBold
-            textboxIcon.TextColor3 = Color3.fromRGB(135, 206, 235)
-            textboxIcon.TextSize = 18
-            textboxIcon.Parent = container
-            
+                
             local textbox = Instance.new("TextBox")
-            textbox.Size = UDim2.new(1, -50, 0, 35)
-            textbox.Position = UDim2.new(0, 45, 0, 8)
+            textbox.Size = UDim2.new(1, -10, 0, 35) -- Adjusted size
+            textbox.Position = UDim2.new(0, 5, 0, 8) -- Adjusted position
             textbox.BackgroundColor3 = Colors.Textbox.Background
             textbox.PlaceholderText = options.Name
             textbox.Font = Enum.Font.SourceSans
@@ -516,28 +499,29 @@ function GUI:CreateWindow(title)
             textbox.TextSize = 14
             textbox.ClearTextOnFocus = false
             textbox.Parent = container
-            
+                
             local corner = Instance.new("UICorner")
             corner.CornerRadius = UDim.new(0, 6)
             corner.Parent = textbox
-            
+                
             local border = Instance.new("UIStroke")
             border.Color = Colors.Textbox.Border
             border.Thickness = 1
             border.Parent = textbox
-            
+                
             textbox.Focused:Connect(function()
                 TweenService:Create(border, TweenInfo.new(0.2), {Color = Colors.Textbox.Focus, Thickness = 2}):Play()
             end)
-            
-            textbox.FocusLost:Connect(function(enterPressed) 
+                
+            textbox.FocusLost:Connect(function(enterPressed)
                 TweenService:Create(border, TweenInfo.new(0.2), {Color = Colors.Textbox.Border, Thickness = 1}):Play()
-                if enterPressed and options.Callback then 
-                    options.Callback(textbox.Text) 
-                end 
+                -- BUG FIX: Callback now fires on any focus loss and passes the `enterPressed` state
+                if options.Callback then
+                    options.Callback(textbox.Text, enterPressed)
+                end
             end)
         end
-        
+            
         --// ENHANCED SLIDER COMPONENT
         function Tab:Slider(options)
             local container = Instance.new("Frame")
@@ -545,24 +529,14 @@ function GUI:CreateWindow(title)
             container.Size = UDim2.new(1, 0, 0, 55)
             container.BackgroundColor3 = Colors.Slider.Background
             container.Parent = contentFrame
-            
+                
             local containerCorner = Instance.new("UICorner")
             containerCorner.CornerRadius = UDim.new(0, 8)
             containerCorner.Parent = container
-            
-            local sliderIcon = Instance.new("TextLabel")
-            sliderIcon.Size = UDim2.new(0, 25, 0, 25)
-            sliderIcon.Position = UDim2.new(0, 8, 0, 5)
-            sliderIcon.BackgroundTransparency = 1
-            sliderIcon.Text = "🎚️"  -- Slider icon
-            sliderIcon.Font = Enum.Font.SourceSansBold
-            sliderIcon.TextColor3 = Colors.Slider.Fill
-            sliderIcon.TextSize = 16
-            sliderIcon.Parent = container
-            
+                
             local label = Instance.new("TextLabel")
-            label.Size = UDim2.new(1, -40, 0, 25)
-            label.Position = UDim2.new(0, 35, 0, 5)
+            label.Size = UDim2.new(1, -20, 0, 25) -- Adjusted size
+            label.Position = UDim2.new(0, 10, 0, 5) -- Adjusted position
             label.BackgroundTransparency = 1
             label.Font = Enum.Font.SourceSansBold
             label.TextColor3 = Color3.fromRGB(220, 220, 220)
@@ -578,7 +552,7 @@ function GUI:CreateWindow(title)
             local sCorner = Instance.new("UICorner")
             sCorner.CornerRadius = UDim.new(0, 6)
             sCorner.Parent = sliderFrame
-            
+                
             local fill = Instance.new("Frame")
             fill.BackgroundColor3 = Colors.Slider.Fill
             fill.BorderSizePixel = 0
@@ -586,14 +560,14 @@ function GUI:CreateWindow(title)
             local fCorner = Instance.new("UICorner")
             fCorner.CornerRadius = UDim.new(0, 6)
             fCorner.Parent = fill
-            
+                
             -- Glow effect for fill
             local fillGlow = Instance.new("UIStroke")
             fillGlow.Color = Colors.Slider.Fill
             fillGlow.Thickness = 1
             fillGlow.Transparency = 0.6
             fillGlow.Parent = fill
-            
+                
             local handle = Instance.new("TextButton")
             handle.Size = UDim2.new(0, 20, 0, 20)
             handle.Position = UDim2.new(0, -10, 0.5, -10)
@@ -604,17 +578,17 @@ function GUI:CreateWindow(title)
             local hCorner = Instance.new("UICorner")
             hCorner.CornerRadius = UDim.new(1, 0)
             hCorner.Parent = handle
-            
+                
             -- Handle shadow
             local handleShadow = Instance.new("UIStroke")
             handleShadow.Color = Color3.fromRGB(0, 0, 0)
             handleShadow.Thickness = 2
             handleShadow.Transparency = 0.4
             handleShadow.Parent = handle
-            
+                
             local min, max, default = options.Min or 0, options.Max or 100, options.Default or 50
             local value = default
-            
+                
             local function updateSlider(percent)
                 percent = math.clamp(percent, 0, 1)
                 value = min + (max - min) * percent
@@ -624,9 +598,9 @@ function GUI:CreateWindow(title)
                     options.Callback(value)
                 end
             end
-            
+                
             updateSlider((default - min) / (max - min))
-            
+                
             local dragConnection
             handle.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -641,7 +615,7 @@ function GUI:CreateWindow(title)
                     end)
                 end
             end)
-            
+                
             handle.InputEnded:Connect(function()
                 TweenService:Create(handle, TweenInfo.new(0.1), {Size = UDim2.new(0, 20, 0, 20)}):Play()
                 if dragConnection then
@@ -649,7 +623,7 @@ function GUI:CreateWindow(title)
                 end
             end)
         end
-        
+            
         --// ENHANCED KEYBIND COMPONENT
         function Tab:Keybind(options)
             local container = Instance.new("Frame")
@@ -657,24 +631,14 @@ function GUI:CreateWindow(title)
             container.Size = UDim2.new(1, 0, 0, 40)
             container.BackgroundColor3 = Colors.Keybind.Background
             container.Parent = contentFrame
-            
+                
             local containerCorner = Instance.new("UICorner")
             containerCorner.CornerRadius = UDim.new(0, 8)
             containerCorner.Parent = container
-            
-            local keybindIcon = Instance.new("TextLabel")
-            keybindIcon.Size = UDim2.new(0, 30, 0, 30)
-            keybindIcon.Position = UDim2.new(0, 8, 0.5, -15)
-            keybindIcon.BackgroundTransparency = 1
-            keybindIcon.Text = "⌨️"  -- Keyboard icon
-            keybindIcon.Font = Enum.Font.SourceSansBold
-            keybindIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
-            keybindIcon.TextSize = 18
-            keybindIcon.Parent = container
-            
+                
             local label = Instance.new("TextLabel")
-            label.Size = UDim2.new(0.6, -45, 1, 0)
-            label.Position = UDim2.new(0, 45, 0, 0)
+            label.Size = UDim2.new(0.6, -15, 1, 0) -- Adjusted size
+            label.Position = UDim2.new(0, 15, 0, 0) -- Adjusted position
             label.BackgroundTransparency = 1
             label.Font = Enum.Font.SourceSansBold
             label.Text = options.Name
@@ -682,28 +646,28 @@ function GUI:CreateWindow(title)
             label.TextSize = 16
             label.TextXAlignment = Enum.TextXAlignment.Left
             label.Parent = container
-            
+                
             local keybindButton = Instance.new("TextButton")
             keybindButton.Size = UDim2.new(0.4, -10, 0, 28)
             keybindButton.Position = UDim2.new(0.6, 5, 0.5, -14)
-            keybindButton.BackgroundColor3 = Color3.fromRGB(139, 69, 19)  -- Different from other components
+            keybindButton.BackgroundColor3 = Color3.fromRGB(139, 69, 19)
             keybindButton.Text = options.Keybind or "Click to bind"
             keybindButton.Font = Enum.Font.SourceSansBold
             keybindButton.TextColor3 = Colors.Keybind.Text
             keybindButton.TextSize = 12
             keybindButton.Parent = container
-            
+                
             local corner = Instance.new("UICorner")
             corner.CornerRadius = UDim.new(0, 6)
             corner.Parent = keybindButton
-            
+                
             local border = Instance.new("UIStroke")
             border.Color = Color3.fromRGB(160, 82, 45)
             border.Thickness = 1
             border.Parent = keybindButton
-            
+                
             local isBinding = false
-            
+                
             keybindButton.MouseEnter:Connect(function()
                 if not isBinding then
                     TweenService:Create(keybindButton, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Keybind.Hover}):Play()
@@ -715,20 +679,30 @@ function GUI:CreateWindow(title)
                     TweenService:Create(keybindButton, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Keybind.Background}):Play()
                 end
             end)
-            
+                
             keybindButton.MouseButton1Click:Connect(function()
                 if isBinding then return end
                 isBinding = true
                 keybindButton.Text = "Press any key..."
                 keybindButton.BackgroundColor3 = Colors.Keybind.Active
-                local connection
-                connection = UserInputService.InputBegan:Connect(function(input, gp)
+                
+                -- BUG FIX: Disconnect any previously active keybind connection to prevent conflicts
+                if activeKeybindConnection then
+                    activeKeybindConnection:Disconnect()
+                end
+                
+                activeKeybindConnection = UserInputService.InputBegan:Connect(function(input, gp)
                     if gp then return end
                     if input.UserInputType == Enum.UserInputType.Keyboard then
                         keybindButton.Text = input.KeyCode.Name
                         keybindButton.BackgroundColor3 = Colors.Keybind.Background
                         isBinding = false
-                        connection:Disconnect()
+                        
+                        if activeKeybindConnection then
+                            activeKeybindConnection:Disconnect()
+                            activeKeybindConnection = nil
+                        end
+                        
                         if options.Callback then
                             options.Callback(input.KeyCode)
                         end
@@ -736,12 +710,12 @@ function GUI:CreateWindow(title)
                 end)
             end)
         end
-        
+            
         --// ENHANCED DROPDOWN COMPONENT
         function Tab:Dropdown(options)
             local Dropdown = {}
             Dropdown.SelectedOptions = {}
-            
+                
             -- Populate initial selections
             for _, opt in ipairs(options.CurrentOptions or {}) do
                 Dropdown.SelectedOptions[opt] = true
@@ -756,36 +730,26 @@ function GUI:CreateWindow(title)
             container.ZIndex = 2
             container.Parent = contentFrame
 
-            local dropdownIcon = Instance.new("TextLabel")
-            dropdownIcon.Size = UDim2.new(0, 30, 0, 30)
-            dropdownIcon.Position = UDim2.new(0, 8, 0, 8)
-            dropdownIcon.BackgroundTransparency = 1
-            dropdownIcon.Text = "📋"  -- Dropdown icon
-            dropdownIcon.Font = Enum.Font.SourceSansBold
-            dropdownIcon.TextColor3 = Color3.fromRGB(138, 43, 226)
-            dropdownIcon.TextSize = 18
-            dropdownIcon.Parent = container
-
             local mainButton = Instance.new("TextButton")
             mainButton.Name = "MainButton"
-            mainButton.Size = UDim2.new(1, -50, 0, 35)
-            mainButton.Position = UDim2.new(0, 45, 0, 5)
+            mainButton.Size = UDim2.new(1, -10, 0, 35) -- Adjusted size
+            mainButton.Position = UDim2.new(0, 5, 0, 5) -- Adjusted position
             mainButton.BackgroundColor3 = Colors.Dropdown.Background
             mainButton.Font = Enum.Font.SourceSansBold
             mainButton.TextColor3 = Color3.fromRGB(220, 220, 220)
             mainButton.TextSize = 14
             mainButton.TextXAlignment = Enum.TextXAlignment.Left
             mainButton.Parent = container
-            
+                
             local corner = Instance.new("UICorner")
             corner.CornerRadius = UDim.new(0, 6)
             corner.Parent = mainButton
-            
+                
             local border = Instance.new("UIStroke")
             border.Color = Colors.Dropdown.Border
             border.Thickness = 1
             border.Parent = mainButton
-            
+                
             -- Dropdown arrow
             local arrow = Instance.new("TextLabel")
             arrow.Size = UDim2.new(0, 20, 1, 0)
@@ -796,7 +760,7 @@ function GUI:CreateWindow(title)
             arrow.TextColor3 = Colors.Dropdown.Arrow
             arrow.TextSize = 12
             arrow.Parent = mainButton
-            
+                
             -- Left padding for text
             local textPadding = Instance.new("UIPadding")
             textPadding.PaddingLeft = UDim.new(0, 8)
@@ -804,8 +768,8 @@ function GUI:CreateWindow(title)
 
             local dropdownFrame = Instance.new("ScrollingFrame")
             dropdownFrame.Name = "DropdownFrame"
-            dropdownFrame.Size = UDim2.new(1, -45, 0, 120)
-            dropdownFrame.Position = UDim2.new(0, 45, 1, 5)
+            dropdownFrame.Size = UDim2.new(1, -10, 0, 120)
+            dropdownFrame.Position = UDim2.new(0, 5, 1, 5)
             dropdownFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
             dropdownFrame.BorderSizePixel = 0
             dropdownFrame.Visible = false
@@ -814,16 +778,16 @@ function GUI:CreateWindow(title)
             dropdownFrame.ScrollBarImageColor3 = Colors.Dropdown.Arrow
             dropdownFrame.ScrollBarThickness = 4
             dropdownFrame.Parent = container
-            
+                
             local dCorner = Instance.new("UICorner")
             dCorner.CornerRadius = UDim.new(0, 6)
             dCorner.Parent = dropdownFrame
-            
+                
             local dropdownBorder = Instance.new("UIStroke")
             dropdownBorder.Color = Colors.Dropdown.Border
             dropdownBorder.Thickness = 1
             dropdownBorder.Parent = dropdownFrame
-            
+                
             local dropdownLayout = Instance.new("UIListLayout")
             dropdownLayout.SortOrder = Enum.SortOrder.LayoutOrder
             dropdownLayout.Padding = UDim.new(0, 2)
@@ -844,11 +808,15 @@ function GUI:CreateWindow(title)
                     mainButton.Text = count .. " items selected"
                 end
             end
-            
+                
             local function refreshOptions(newOptions)
+                -- Clear previous options safely
                 for _, child in ipairs(dropdownFrame:GetChildren()) do
-                    if child:IsA("Frame") then child:Destroy() end
+                    if child:IsA("GuiObject") and not (child:IsA("UIListLayout") or child:IsA("UICorner") or child:IsA("UIStroke")) then
+                        child:Destroy()
+                    end
                 end
+                
                 for _, optionName in ipairs(newOptions) do
                     local optionFrame = Instance.new("Frame")
                     optionFrame.Size = UDim2.new(1, 0, 0, 32)
@@ -860,11 +828,11 @@ function GUI:CreateWindow(title)
                     checkbox.Position = UDim2.new(0, 8, 0.5, -9)
                     checkbox.BackgroundColor3 = Dropdown.SelectedOptions[optionName] and Colors.Dropdown.Selected or Color3.fromRGB(70, 70, 70)
                     checkbox.Parent = optionFrame
-                    
+                        
                     local checkCorner = Instance.new("UICorner")
                     checkCorner.CornerRadius = UDim.new(0, 3)
                     checkCorner.Parent = checkbox
-                    
+                        
                     local checkmark = Instance.new("TextLabel")
                     checkmark.Size = UDim2.new(1, 0, 1, 0)
                     checkmark.BackgroundTransparency = 1
@@ -873,7 +841,7 @@ function GUI:CreateWindow(title)
                     checkmark.TextColor3 = Color3.fromRGB(255, 255, 255)
                     checkmark.TextSize = 12
                     checkmark.Parent = checkbox
-                    
+                        
                     local optionLabel = Instance.new("TextLabel")
                     optionLabel.Size = UDim2.new(1, -40, 1, 0)
                     optionLabel.Position = UDim2.new(0, 35, 0, 0)
@@ -884,36 +852,36 @@ function GUI:CreateWindow(title)
                     optionLabel.TextSize = 14
                     optionLabel.TextXAlignment = Enum.TextXAlignment.Left
                     optionLabel.Parent = optionFrame
-                    
+                        
                     local clickBtn = Instance.new("TextButton")
                     clickBtn.Size = UDim2.new(1,0,1,0)
                     clickBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
                     clickBtn.BackgroundTransparency = 1
                     clickBtn.Text = ""
                     clickBtn.Parent = optionFrame
-                    
+                        
                     local clickCorner = Instance.new("UICorner")
                     clickCorner.CornerRadius = UDim.new(0, 4)
                     clickCorner.Parent = clickBtn
-                    
+                        
                     clickBtn.MouseEnter:Connect(function()
                         TweenService:Create(clickBtn, TweenInfo.new(0.2), {BackgroundTransparency = 0.8}):Play()
                     end)
-                    
+                        
                     clickBtn.MouseLeave:Connect(function()
                         TweenService:Create(clickBtn, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
                     end)
-                    
+                        
                     clickBtn.MouseButton1Click:Connect(function()
                         if Dropdown.SelectedOptions[optionName] then
                             Dropdown.SelectedOptions[optionName] = nil
                         else
                             Dropdown.SelectedOptions[optionName] = true
                         end
-                        
+                            
                         local newColor = Dropdown.SelectedOptions[optionName] and Colors.Dropdown.Selected or Color3.fromRGB(70, 70, 70)
                         local newText = Dropdown.SelectedOptions[optionName] and "✓" or ""
-                        
+                            
                         TweenService:Create(checkbox, TweenInfo.new(0.2), {BackgroundColor3 = newColor}):Play()
                         checkmark.Text = newText
                         updateMainButtonText()
@@ -935,27 +903,29 @@ function GUI:CreateWindow(title)
 
             mainButton.MouseButton1Click:Connect(function()
                 isOpen = not isOpen
-                dropdownFrame.Visible = isOpen
                 container.ZIndex = isOpen and 6 or 2
-                
+                    
                 -- Animate arrow rotation
                 local rotation = isOpen and 180 or 0
                 TweenService:Create(arrow, TweenInfo.new(0.2), {Rotation = rotation}):Play()
-                
+                    
                 -- Animate dropdown appearance
                 if isOpen then
-                    dropdownFrame.Size = UDim2.new(1, -45, 0, 0)
+                    dropdownFrame.Size = UDim2.new(1, -10, 0, 0)
                     dropdownFrame.Visible = true
-                    TweenService:Create(dropdownFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {Size = UDim2.new(1, -45, 0, 120)}):Play()
+                    TweenService:Create(dropdownFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {Size = UDim2.new(1, -10, 0, 120)}):Play()
                 else
-                    TweenService:Create(dropdownFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {Size = UDim2.new(1, -45, 0, 0)}):Play()
-                    wait(0.2)
-                    if not isOpen then
-                        dropdownFrame.Visible = false
-                    end
+                    -- BUG FIX: Use Tween.Completed to reliably hide the frame after animation
+                    local closeTween = TweenService:Create(dropdownFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {Size = UDim2.new(1, -10, 0, 0)})
+                    closeTween.Completed:Connect(function()
+                        if not isOpen then -- Check again in case the user re-opened it
+                            dropdownFrame.Visible = false
+                        end
+                    end)
+                    closeTween:Play()
                 end
             end)
-            
+                
             function Dropdown:Refresh(newOptions, newCurrent)
                 options.Options = newOptions
                 Dropdown.SelectedOptions = {}
@@ -963,7 +933,7 @@ function GUI:CreateWindow(title)
                 refreshOptions(newOptions)
                 updateMainButtonText()
             end
-            
+                
             function Dropdown:Set(selections)
                 Dropdown.SelectedOptions = {}
                 for _, opt in ipairs(selections) do
@@ -974,7 +944,7 @@ function GUI:CreateWindow(title)
                 refreshOptions(options.Options)
                 updateMainButtonText()
             end
-            
+                
             refreshOptions(options.Options)
             updateMainButtonText()
             return Dropdown
@@ -982,7 +952,7 @@ function GUI:CreateWindow(title)
 
         return Tab
     end
-    
+        
     return Window
 end
 
