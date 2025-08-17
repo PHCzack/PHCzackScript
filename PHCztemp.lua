@@ -203,7 +203,10 @@ function GUI:CreateWindow(title)
         
         --// Set first tab as active
         if not activeTab then
-            tabButton:FireServer() -- A trick to simulate a click
+            --// FIX: Directly activate the first tab instead of firing a server event.
+            contentFrame.Visible = true
+            tabButton.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
+            activeTab = contentFrame
         end
 
         --// Component Functions
