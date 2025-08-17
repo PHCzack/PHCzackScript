@@ -2,9 +2,7 @@
     UITemplate ModuleScript
     Description: A comprehensive, modular, and mobile-friendly UI library.
     Author: YourNameHere
-    Instructions: 
-    1. Place this script as a ModuleScript in your game (e.g., in ReplicatedStorage).
-    2. Require it from a LocalScript to build and control the UI.
+    Last Updated: Dropdown converted to a multi-select with a search bar.
 ]]
 
 --//=========================================================================\\
@@ -387,8 +385,9 @@ function UITemplate:CreateTab(name)
 
     function tabObject:Dropdown(options)
         local dropdownObject = {}
-        local items = {} -- Internal storage for {Name, Value} pairs
+        local selectedItems = {} -- Table to store {Name, Value} of selected items
         local isOpen = false
+        local allItemButtons = {}
 
         local dropdownFrame = Instance.new("Frame")
         dropdownFrame.Name = options.Name or "Dropdown"
@@ -420,13 +419,41 @@ function UITemplate:CreateTab(name)
         arrow.TextSize = 14
         arrow.Parent = mainButton
 
+        local itemHolder = Instance.new("Frame")
+        itemHolder.Size = UDim2.new(1, 0, 0, 150)
+        itemHolder.Position = UDim2.new(0, 0, 1, 0)
+        itemHolder.BackgroundColor3 = Config.ForegroundColor
+        itemHolder.BorderSizePixel = 0
+        itemHolder.Visible = false
+        itemHolder.ClipsDescendants = true
+        itemHolder.Parent = dropdownFrame
+
+        local searchBar = Instance.new("TextBox")
+        searchBar.Name = "SearchBar"
+        searchBar.Size = UDim2.new(1, -10, 0, 25)
+        searchBar.Position = UDim2.new(0.5, 0, 0, 5)
+        searchBar.AnchorPoint = Vector2.new(0.5, 0)
+        searchBar.BackgroundColor3 = Config.BackgroundColor
+        searchBar.PlaceholderText = "Search..."
+        searchBar.Font = Config.Font
+        searchBar.TextColor3 = Config.TextColor
+        searchBar.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
+        searchBar.TextSize = 12
+        searchBar.ClearTextOnFocus = false
+        searchBar.Parent = itemHolder
+        local searchCorner = Instance.new("UICorner")
+        searchCorner.CornerRadius = UDim.new(0,4)
+        searchCorner.Parent = searchBar
+        local searchPadding = Instance.new("UIPadding")
+        searchPadding.PaddingLeft = UDim.new(0, 5)
+        searchPadding.Parent = searchBar
+
         local itemContainer = Instance.new("ScrollingFrame")
-        itemContainer.Size = UDim2.new(1, 0, 0, 120)
-        itemContainer.Position = UDim2.new(0, 0, 1, 0)
+        itemContainer.Size = UDim2.new(1, 0, 1, -35)
+        itemContainer.Position = UDim2.new(0, 0, 0, 35)
         itemContainer.BackgroundColor3 = Config.ForegroundColor
         itemContainer.BorderSizePixel = 0
-        itemContainer.Visible = false
-        itemContainer.Parent = dropdownFrame
+        itemContainer.Parent = itemHolder
         itemContainer.CanvasSize = UDim2.new(0,0,0,0)
         itemContainer.ScrollBarImageColor3 = Config.AccentColor
         itemContainer.ScrollBarThickness = 4
@@ -438,29 +465,70 @@ function UITemplate:CreateTab(name)
         local function updateDropdownCanvas()
             itemContainer.CanvasSize = UDim2.new(0, 0, 0, itemLayout.AbsoluteContentSize.Y)
         end
+        
+        local function updateMainButtonText()
+            local count = #selectedItems
+            if count == 0 then
+                mainButton.Text = options.StartingText or "Select..."
+            elseif count == 1 then
+                 mainButton.Text = selectedItems[1].Name
+            else
+                mainButton.Text = tostring(count) .. " items selected"
+            end
+        end
 
         local function createItemButton(itemData)
             local itemButton = Instance.new("TextButton")
             itemButton.Name = itemData.Name
             itemButton.Size = UDim2.new(1, 0, 0, 30)
             itemButton.BackgroundColor3 = Config.ForegroundColor
-            itemButton.Text = itemData.Name
-            itemButton.Font = Config.Font
-            itemButton.TextColor3 = Config.TextColor
-            itemButton.TextSize = 14
+            itemButton.Text = "" -- Text is handled by a label for alignment
             itemButton.Parent = itemContainer
             
-            itemButton.MouseEnter:Connect(function() itemButton.BackgroundColor3 = Config.AccentColor end)
-            itemButton.MouseLeave:Connect(function() itemButton.BackgroundColor3 = Config.ForegroundColor end)
+            local checkbox = Instance.new("Frame")
+            checkbox.Size = UDim2.new(0, 14, 0, 14)
+            checkbox.Position = UDim2.new(0, 10, 0.5, 0)
+            checkbox.AnchorPoint = Vector2.new(0, 0.5)
+            checkbox.BackgroundColor3 = Config.BackgroundColor
+            checkbox.BorderSizePixel = 1
+            checkbox.BorderColor3 = Config.AccentColor
+            checkbox.Parent = itemButton
+            local checkCorner = Instance.new("UICorner")
+            checkCorner.CornerRadius = UDim.new(0,2)
+            checkCorner.Parent = checkbox
+            
+            local itemLabel = Instance.new("TextLabel")
+            itemLabel.Size = UDim2.new(1, -30, 1, 0)
+            itemLabel.Position = UDim2.new(0, 30, 0, 0)
+            itemLabel.BackgroundTransparency = 1
+            itemLabel.Text = itemData.Name
+            itemLabel.Font = Config.Font
+            itemLabel.TextColor3 = Config.TextColor
+            itemLabel.TextSize = 14
+            itemLabel.TextXAlignment = Enum.TextXAlignment.Left
+            itemLabel.Parent = itemButton
+
+            table.insert(allItemButtons, itemButton)
 
             itemButton.MouseButton1Click:Connect(function()
-                mainButton.Text = itemData.Name
-                isOpen = false
-                itemContainer.Visible = false
-                arrow.Text = "▼"
-                dropdownFrame.Size = UDim2.new(1, -20, 0, 35)
-                updateCanvasSize()
-                if options.Callback then options.Callback(itemData) end
+                local foundIndex
+                for i, selected in ipairs(selectedItems) do
+                    if selected.Value == itemData.Value then
+                        foundIndex = i
+                        break
+                    end
+                end
+
+                if foundIndex then
+                    table.remove(selectedItems, foundIndex)
+                    checkbox.BackgroundColor3 = Config.BackgroundColor
+                else
+                    table.insert(selectedItems, itemData)
+                    checkbox.BackgroundColor3 = Config.AccentColor
+                end
+                
+                updateMainButtonText()
+                if options.Callback then options.Callback(selectedItems) end
             end)
             updateDropdownCanvas()
         end
@@ -472,30 +540,20 @@ function UITemplate:CreateTab(name)
             else
                 parsedItem.Name, parsedItem.Value = tostring(itemData), itemData
             end
-            table.insert(items, parsedItem)
             createItemButton(parsedItem)
         end
-
-        function dropdownObject:AddItems(newItems)
-            for _, itemData in ipairs(newItems) do
-                parseAndAddItem(itemData)
-            end
-        end
-
-        function dropdownObject:RemoveItems(namesToRemove)
-            local children = itemContainer:GetChildren()
-            for i = #children, 1, -1 do
-                local child = children[i]
-                if child:IsA("TextButton") then
-                    for _, name in ipairs(namesToRemove) do
-                        if string.lower(child.Name) == string.lower(name) then
-                            child:Destroy()
-                        end
-                    end
+        
+        searchBar:GetPropertyChangedSignal("Text"):Connect(function()
+            local searchText = string.lower(searchBar.Text)
+            for _, button in ipairs(allItemButtons) do
+                if searchText == "" then
+                    button.Visible = true
+                else
+                    button.Visible = string.find(string.lower(button.Name), searchText)
                 end
             end
             updateDropdownCanvas()
-        end
+        end)
         
         -- Initial population
         if options.Items then
@@ -506,9 +564,9 @@ function UITemplate:CreateTab(name)
 
         mainButton.MouseButton1Click:Connect(function()
             isOpen = not isOpen
-            itemContainer.Visible = isOpen
+            itemHolder.Visible = isOpen
             arrow.Text = isOpen and "▲" or "▼"
-            dropdownFrame.Size = UDim2.new(1, -20, 0, isOpen and 155 or 35)
+            dropdownFrame.Size = UDim2.new(1, -20, 0, isOpen and 185 or 35)
             updateCanvasSize()
         end)
         
@@ -587,225 +645,7 @@ function UITemplate:CreateTab(name)
         end)
         updateCanvasSize()
     end
-
-    function tabObject:MultiDropdown(options)
-        local multiDropdownObject = {}
-        local items = {} -- Internal storage for {Name, Value, Button, IsSelected}
-        local selectedItems = {}
-        local isOpen = false
     
-        -- Main container frame
-        local dropdownFrame = Instance.new("Frame")
-        dropdownFrame.Name = options.Name or "MultiDropdown"
-        dropdownFrame.Size = UDim2.new(1, -20, 0, 35) -- Start closed
-        dropdownFrame.BackgroundColor3 = Config.ForegroundColor
-        dropdownFrame.ClipsDescendants = true
-        dropdownFrame.Parent = contentPage
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 4)
-        corner.Parent = dropdownFrame
-    
-        -- Button to open/close and display selection
-        local mainButton = Instance.new("TextButton")
-        mainButton.Name = "MainButton"
-        mainButton.Size = UDim2.new(1, 0, 0, 35)
-        mainButton.BackgroundColor3 = Config.ForegroundColor
-        mainButton.Text = options.StartingText or "Select items..."
-        mainButton.Font = Config.Font
-        mainButton.TextColor3 = Config.TextColor
-        mainButton.TextSize = 14
-        mainButton.Parent = dropdownFrame
-    
-        local arrow = Instance.new("TextLabel")
-        arrow.Size = UDim2.new(0, 20, 1, 0)
-        arrow.Position = UDim2.new(1, -20, 0, 0)
-        arrow.BackgroundTransparency = 1
-        arrow.Font = Enum.Font.SourceSansBold
-        arrow.Text = "▼"
-        arrow.TextColor3 = Config.TextColor
-        arrow.TextSize = 14
-        arrow.Parent = mainButton
-    
-        -- Container for search and items
-        local listContainer = Instance.new("Frame")
-        listContainer.Name = "ListContainer"
-        listContainer.Size = UDim2.new(1, 0, 1, -35) -- Fill the rest of the frame
-        listContainer.Position = UDim2.new(0, 0, 0, 35)
-        listContainer.BackgroundTransparency = 1
-        listContainer.Parent = dropdownFrame
-        listContainer.Visible = false
-    
-        -- Search Bar
-        local searchBar = Instance.new("TextBox")
-        searchBar.Name = "SearchBar"
-        searchBar.Size = UDim2.new(1, -10, 0, 30)
-        searchBar.Position = UDim2.new(0.5, 0, 0, 5)
-        searchBar.AnchorPoint = Vector2.new(0.5, 0)
-        searchBar.BackgroundColor3 = Config.BackgroundColor
-        searchBar.PlaceholderText = "Search..."
-        searchBar.Font = Config.Font
-        searchBar.TextColor3 = Config.TextColor
-        searchBar.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
-        searchBar.TextSize = 13
-        searchBar.ClearTextOnFocus = false
-        searchBar.Parent = listContainer
-        local searchCorner = Instance.new("UICorner")
-        searchCorner.CornerRadius = UDim.new(0, 4)
-        searchCorner.Parent = searchBar
-        local searchPadding = Instance.new("UIPadding")
-        searchPadding.PaddingLeft = UDim.new(0, 10)
-        searchPadding.Parent = searchBar
-    
-        -- Scrolling frame for items
-        local itemContainer = Instance.new("ScrollingFrame")
-        itemContainer.Name = "ItemContainer"
-        itemContainer.Size = UDim2.new(1, 0, 1, -40)
-        itemContainer.Position = UDim2.new(0, 0, 0, 40)
-        itemContainer.BackgroundColor3 = Config.ForegroundColor
-        itemContainer.BorderSizePixel = 0
-        itemContainer.Parent = listContainer
-        itemContainer.CanvasSize = UDim2.new(0,0,0,0)
-        itemContainer.ScrollBarImageColor3 = Config.AccentColor
-        itemContainer.ScrollBarThickness = 4
-    
-        local itemLayout = Instance.new("UIListLayout")
-        itemLayout.Padding = UDim.new(0, 2)
-        itemLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        itemLayout.Parent = itemContainer
-        
-        local function updateDropdownCanvas()
-            itemContainer.CanvasSize = UDim2.new(0, 0, 0, itemLayout.AbsoluteContentSize.Y)
-        end
-    
-        local function updateMainButtonText()
-            if #selectedItems == 0 then
-                mainButton.Text = options.StartingText or "Select items..."
-            elseif #selectedItems == 1 then
-                 mainButton.Text = selectedItems[1].Name
-            else
-                mainButton.Text = #selectedItems .. " items selected"
-            end
-        end
-        
-        -- Function to create a single item button
-        local function createItemButton(itemData)
-            local itemButton = Instance.new("TextButton")
-            itemButton.Name = itemData.Name
-            itemButton.Size = UDim2.new(1, 0, 0, 30)
-            itemButton.BackgroundColor3 = Config.ForegroundColor
-            itemButton.Text = "" -- Text is handled by a label to allow for checkbox
-            itemButton.Font = Config.Font
-            itemButton.TextColor3 = Config.TextColor
-            itemButton.TextSize = 14
-            itemButton.Parent = itemContainer
-            
-            local checkbox = Instance.new("Frame")
-            checkbox.Size = UDim2.new(0, 16, 0, 16)
-            checkbox.Position = UDim2.new(0, 10, 0.5, 0)
-            checkbox.AnchorPoint = Vector2.new(0, 0.5)
-            checkbox.BackgroundColor3 = Config.BackgroundColor
-            checkbox.BorderSizePixel = 1
-            checkbox.BorderColor3 = Config.AccentColor
-            checkbox.Parent = itemButton
-            local checkCorner = Instance.new("UICorner")
-            checkCorner.CornerRadius = UDim.new(0, 4)
-            checkCorner.Parent = checkbox
-    
-            local checkmark = Instance.new("Frame")
-            checkmark.Size = UDim2.new(1, -4, 1, -4)
-            checkmark.Position = UDim2.new(0.5, 0, 0.5, 0)
-            checkmark.AnchorPoint = Vector2.new(0.5, 0.5)
-            checkmark.BackgroundColor3 = Config.AccentColor
-            checkmark.Visible = false -- Start unchecked
-            checkmark.Parent = checkbox
-            local checkmarkCorner = Instance.new("UICorner")
-            checkmarkCorner.CornerRadius = UDim.new(0, 2)
-            checkmarkCorner.Parent = checkmark
-    
-            local itemLabel = Instance.new("TextLabel")
-            itemLabel.Size = UDim2.new(1, -35, 1, 0)
-            itemLabel.Position = UDim2.new(0, 35, 0, 0)
-            itemLabel.BackgroundTransparency = 1
-            itemLabel.Text = itemData.Name
-            itemLabel.Font = Config.Font
-            itemLabel.TextColor3 = Config.TextColor
-            itemLabel.TextSize = 14
-            itemLabel.TextXAlignment = Enum.TextXAlignment.Left
-            itemLabel.Parent = itemButton
-    
-            itemData.Button = itemButton
-            itemData.IsSelected = false
-    
-            itemButton.MouseEnter:Connect(function() itemButton.BackgroundColor3 = Config.AccentColor end)
-            itemButton.MouseLeave:Connect(function() itemButton.BackgroundColor3 = Config.ForegroundColor end)
-    
-            itemButton.MouseButton1Click:Connect(function()
-                itemData.IsSelected = not itemData.IsSelected
-                checkmark.Visible = itemData.IsSelected
-                
-                if itemData.IsSelected then
-                    table.insert(selectedItems, {Name = itemData.Name, Value = itemData.Value})
-                else
-                    for i, selected in ipairs(selectedItems) do
-                        if selected.Value == itemData.Value then
-                            table.remove(selectedItems, i)
-                            break
-                        end
-                    end
-                end
-                
-                updateMainButtonText()
-                if options.Callback then options.Callback(selectedItems) end
-            end)
-            updateDropdownCanvas()
-        end
-        
-        local function parseAndAddItem(itemData)
-            local parsedItem = {}
-            if type(itemData) == "table" then
-                parsedItem.Name, parsedItem.Value = itemData[1], itemData[2]
-            else
-                parsedItem.Name, parsedItem.Value = tostring(itemData), itemData
-            end
-            table.insert(items, parsedItem)
-            createItemButton(parsedItem)
-        end
-        
-        -- Search functionality
-        searchBar.TextChanged:Connect(function()
-            local searchText = string.lower(searchBar.Text)
-            for _, itemData in ipairs(items) do
-                if itemData.Button then
-                    local itemName = string.lower(itemData.Name)
-                    itemData.Button.Visible = (searchText == "" or string.find(itemName, searchText, 1, true))
-                end
-            end
-            updateDropdownCanvas()
-        end)
-        
-        -- Initial population
-        if options.Items then
-            for _, itemData in ipairs(options.Items) do
-                parseAndAddItem(itemData)
-            end
-        end
-    
-        -- Toggle open/close
-        mainButton.MouseButton1Click:Connect(function()
-            isOpen = not isOpen
-            listContainer.Visible = isOpen
-            arrow.Text = isOpen and "▲" or "▼"
-            
-            local dropdownHeight = isOpen and 200 or 35 -- Expanded height
-            dropdownFrame.Size = UDim2.new(1, -20, 0, dropdownHeight)
-            
-            updateCanvasSize()
-        end)
-        
-        updateCanvasSize()
-        return multiDropdownObject
-    end
-
     return tabObject
 end
 
