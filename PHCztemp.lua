@@ -626,3 +626,364 @@ function GUI:CreateWindow(title)
             end
             
             updateSlider((default - min) / (max - min))
+            
+            local dragConnection
+            handle.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    TweenService:Create(handle, TweenInfo.new(0.1), {Size = UDim2.new(0, 24, 0, 24)}):Play()
+                    dragConnection = UserInputService.InputChanged:Connect(function(input)
+                        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                            local mousePos = UserInputService:GetMouseLocation()
+                            local relativePos = mousePos.X - sliderFrame.AbsolutePosition.X
+                            local percent = math.clamp(relativePos / sliderFrame.AbsoluteSize.X, 0, 1)
+                            updateSlider(percent)
+                        end
+                    end)
+                end
+            end)
+            
+            handle.InputEnded:Connect(function()
+                TweenService:Create(handle, TweenInfo.new(0.1), {Size = UDim2.new(0, 20, 0, 20)}):Play()
+                if dragConnection then
+                    dragConnection:Disconnect()
+                end
+            end)
+        end
+        
+        --// ENHANCED KEYBIND COMPONENT
+        function Tab:Keybind(options)
+            local container = Instance.new("Frame")
+            container.Name = "KeybindContainer_" .. options.Name
+            container.Size = UDim2.new(1, 0, 0, 40)
+            container.BackgroundColor3 = Colors.Keybind.Background
+            container.Parent = contentFrame
+            
+            local containerCorner = Instance.new("UICorner")
+            containerCorner.CornerRadius = UDim.new(0, 8)
+            containerCorner.Parent = container
+            
+            local keybindIcon = Instance.new("TextLabel")
+            keybindIcon.Size = UDim2.new(0, 30, 0, 30)
+            keybindIcon.Position = UDim2.new(0, 8, 0.5, -15)
+            keybindIcon.BackgroundTransparency = 1
+            keybindIcon.Text = "⌨️"  -- Keyboard icon
+            keybindIcon.Font = Enum.Font.SourceSansBold
+            keybindIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+            keybindIcon.TextSize = 18
+            keybindIcon.Parent = container
+            
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(0.6, -45, 1, 0)
+            label.Position = UDim2.new(0, 45, 0, 0)
+            label.BackgroundTransparency = 1
+            label.Font = Enum.Font.SourceSansBold
+            label.Text = options.Name
+            label.TextColor3 = Colors.Keybind.Text
+            label.TextSize = 16
+            label.TextXAlignment = Enum.TextXAlignment.Left
+            label.Parent = container
+            
+            local keybindButton = Instance.new("TextButton")
+            keybindButton.Size = UDim2.new(0.4, -10, 0, 28)
+            keybindButton.Position = UDim2.new(0.6, 5, 0.5, -14)
+            keybindButton.BackgroundColor3 = Color3.fromRGB(139, 69, 19)  -- Different from other components
+            keybindButton.Text = options.Keybind or "Click to bind"
+            keybindButton.Font = Enum.Font.SourceSansBold
+            keybindButton.TextColor3 = Colors.Keybind.Text
+            keybindButton.TextSize = 12
+            keybindButton.Parent = container
+            
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 6)
+            corner.Parent = keybindButton
+            
+            local border = Instance.new("UIStroke")
+            border.Color = Color3.fromRGB(160, 82, 45)
+            border.Thickness = 1
+            border.Parent = keybindButton
+            
+            local isBinding = false
+            
+            keybindButton.MouseEnter:Connect(function()
+                if not isBinding then
+                    TweenService:Create(keybindButton, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Keybind.Hover}):Play()
+                end
+            end)
+
+            keybindButton.MouseLeave:Connect(function()
+                if not isBinding then
+                    TweenService:Create(keybindButton, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Keybind.Background}):Play()
+                end
+            end)
+            
+            keybindButton.MouseButton1Click:Connect(function()
+                if isBinding then return end
+                isBinding = true
+                keybindButton.Text = "Press any key..."
+                keybindButton.BackgroundColor3 = Colors.Keybind.Active
+                local connection
+                connection = UserInputService.InputBegan:Connect(function(input, gp)
+                    if gp then return end
+                    if input.UserInputType == Enum.UserInputType.Keyboard then
+                        keybindButton.Text = input.KeyCode.Name
+                        keybindButton.BackgroundColor3 = Colors.Keybind.Background
+                        isBinding = false
+                        connection:Disconnect()
+                        if options.Callback then
+                            options.Callback(input.KeyCode)
+                        end
+                    end
+                end)
+            end)
+        end
+        
+        --// ENHANCED DROPDOWN COMPONENT
+        function Tab:Dropdown(options)
+            local Dropdown = {}
+            Dropdown.SelectedOptions = {}
+            
+            -- Populate initial selections
+            for _, opt in ipairs(options.CurrentOptions or {}) do
+                Dropdown.SelectedOptions[opt] = true
+            end
+
+            local isOpen = false
+
+            local container = Instance.new("Frame")
+            container.Name = "DropdownContainer_" .. options.Name
+            container.Size = UDim2.new(1, 0, 0, 45)
+            container.BackgroundTransparency = 1
+            container.ZIndex = 2
+            container.Parent = contentFrame
+
+            local dropdownIcon = Instance.new("TextLabel")
+            dropdownIcon.Size = UDim2.new(0, 30, 0, 30)
+            dropdownIcon.Position = UDim2.new(0, 8, 0, 8)
+            dropdownIcon.BackgroundTransparency = 1
+            dropdownIcon.Text = "📋"  -- Dropdown icon
+            dropdownIcon.Font = Enum.Font.SourceSansBold
+            dropdownIcon.TextColor3 = Color3.fromRGB(138, 43, 226)
+            dropdownIcon.TextSize = 18
+            dropdownIcon.Parent = container
+
+            local mainButton = Instance.new("TextButton")
+            mainButton.Name = "MainButton"
+            mainButton.Size = UDim2.new(1, -50, 0, 35)
+            mainButton.Position = UDim2.new(0, 45, 0, 5)
+            mainButton.BackgroundColor3 = Colors.Dropdown.Background
+            mainButton.Font = Enum.Font.SourceSansBold
+            mainButton.TextColor3 = Color3.fromRGB(220, 220, 220)
+            mainButton.TextSize = 14
+            mainButton.TextXAlignment = Enum.TextXAlignment.Left
+            mainButton.Parent = container
+            
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 6)
+            corner.Parent = mainButton
+            
+            local border = Instance.new("UIStroke")
+            border.Color = Colors.Dropdown.Border
+            border.Thickness = 1
+            border.Parent = mainButton
+            
+            -- Dropdown arrow
+            local arrow = Instance.new("TextLabel")
+            arrow.Size = UDim2.new(0, 20, 1, 0)
+            arrow.Position = UDim2.new(1, -25, 0, 0)
+            arrow.BackgroundTransparency = 1
+            arrow.Text = "▼"
+            arrow.Font = Enum.Font.SourceSansBold
+            arrow.TextColor3 = Colors.Dropdown.Arrow
+            arrow.TextSize = 12
+            arrow.Parent = mainButton
+            
+            -- Left padding for text
+            local textPadding = Instance.new("UIPadding")
+            textPadding.PaddingLeft = UDim.new(0, 8)
+            textPadding.Parent = mainButton
+
+            local dropdownFrame = Instance.new("ScrollingFrame")
+            dropdownFrame.Name = "DropdownFrame"
+            dropdownFrame.Size = UDim2.new(1, -45, 0, 120)
+            dropdownFrame.Position = UDim2.new(0, 45, 1, 5)
+            dropdownFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            dropdownFrame.BorderSizePixel = 0
+            dropdownFrame.Visible = false
+            dropdownFrame.ZIndex = 5
+            dropdownFrame.ClipsDescendants = true
+            dropdownFrame.ScrollBarImageColor3 = Colors.Dropdown.Arrow
+            dropdownFrame.ScrollBarThickness = 4
+            dropdownFrame.Parent = container
+            
+            local dCorner = Instance.new("UICorner")
+            dCorner.CornerRadius = UDim.new(0, 6)
+            dCorner.Parent = dropdownFrame
+            
+            local dropdownBorder = Instance.new("UIStroke")
+            dropdownBorder.Color = Colors.Dropdown.Border
+            dropdownBorder.Thickness = 1
+            dropdownBorder.Parent = dropdownFrame
+            
+            local dropdownLayout = Instance.new("UIListLayout")
+            dropdownLayout.SortOrder = Enum.SortOrder.LayoutOrder
+            dropdownLayout.Padding = UDim.new(0, 2)
+            dropdownLayout.Parent = dropdownFrame
+
+            local function updateMainButtonText()
+                local count = 0
+                local selectedItems = {}
+                for opt, _ in pairs(Dropdown.SelectedOptions) do 
+                    count += 1 
+                    table.insert(selectedItems, opt)
+                end
+                if count == 0 then
+                    mainButton.Text = options.Name
+                elseif count == 1 then
+                    mainButton.Text = selectedItems[1]
+                else
+                    mainButton.Text = count .. " items selected"
+                end
+            end
+            
+            local function refreshOptions(newOptions)
+                for _, child in ipairs(dropdownFrame:GetChildren()) do
+                    if child:IsA("Frame") then child:Destroy() end
+                end
+                for _, optionName in ipairs(newOptions) do
+                    local optionFrame = Instance.new("Frame")
+                    optionFrame.Size = UDim2.new(1, 0, 0, 32)
+                    optionFrame.BackgroundTransparency = 1
+                    optionFrame.Parent = dropdownFrame
+
+                    local checkbox = Instance.new("Frame")
+                    checkbox.Size = UDim2.new(0, 18, 0, 18)
+                    checkbox.Position = UDim2.new(0, 8, 0.5, -9)
+                    checkbox.BackgroundColor3 = Dropdown.SelectedOptions[optionName] and Colors.Dropdown.Selected or Color3.fromRGB(70, 70, 70)
+                    checkbox.Parent = optionFrame
+                    
+                    local checkCorner = Instance.new("UICorner")
+                    checkCorner.CornerRadius = UDim.new(0, 3)
+                    checkCorner.Parent = checkbox
+                    
+                    local checkmark = Instance.new("TextLabel")
+                    checkmark.Size = UDim2.new(1, 0, 1, 0)
+                    checkmark.BackgroundTransparency = 1
+                    checkmark.Text = Dropdown.SelectedOptions[optionName] and "✓" or ""
+                    checkmark.Font = Enum.Font.SourceSansBold
+                    checkmark.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    checkmark.TextSize = 12
+                    checkmark.Parent = checkbox
+                    
+                    local optionLabel = Instance.new("TextLabel")
+                    optionLabel.Size = UDim2.new(1, -40, 1, 0)
+                    optionLabel.Position = UDim2.new(0, 35, 0, 0)
+                    optionLabel.BackgroundTransparency = 1
+                    optionLabel.Text = optionName
+                    optionLabel.Font = Enum.Font.SourceSans
+                    optionLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+                    optionLabel.TextSize = 14
+                    optionLabel.TextXAlignment = Enum.TextXAlignment.Left
+                    optionLabel.Parent = optionFrame
+                    
+                    local clickBtn = Instance.new("TextButton")
+                    clickBtn.Size = UDim2.new(1,0,1,0)
+                    clickBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+                    clickBtn.BackgroundTransparency = 1
+                    clickBtn.Text = ""
+                    clickBtn.Parent = optionFrame
+                    
+                    local clickCorner = Instance.new("UICorner")
+                    clickCorner.CornerRadius = UDim.new(0, 4)
+                    clickCorner.Parent = clickBtn
+                    
+                    clickBtn.MouseEnter:Connect(function()
+                        TweenService:Create(clickBtn, TweenInfo.new(0.2), {BackgroundTransparency = 0.8}):Play()
+                    end)
+                    
+                    clickBtn.MouseLeave:Connect(function()
+                        TweenService:Create(clickBtn, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+                    end)
+                    
+                    clickBtn.MouseButton1Click:Connect(function()
+                        if Dropdown.SelectedOptions[optionName] then
+                            Dropdown.SelectedOptions[optionName] = nil
+                        else
+                            Dropdown.SelectedOptions[optionName] = true
+                        end
+                        
+                        local newColor = Dropdown.SelectedOptions[optionName] and Colors.Dropdown.Selected or Color3.fromRGB(70, 70, 70)
+                        local newText = Dropdown.SelectedOptions[optionName] and "✓" or ""
+                        
+                        TweenService:Create(checkbox, TweenInfo.new(0.2), {BackgroundColor3 = newColor}):Play()
+                        checkmark.Text = newText
+                        updateMainButtonText()
+                        if options.Callback then
+                            options.Callback(Dropdown.SelectedOptions)
+                        end
+                    end)
+                end
+                dropdownFrame.CanvasSize = UDim2.new(0,0,0,dropdownLayout.AbsoluteContentSize.Y)
+            end
+
+            mainButton.MouseEnter:Connect(function()
+                TweenService:Create(mainButton, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Dropdown.Hover}):Play()
+            end)
+
+            mainButton.MouseLeave:Connect(function()
+                TweenService:Create(mainButton, TweenInfo.new(0.2), {BackgroundColor3 = Colors.Dropdown.Background}):Play()
+            end)
+
+            mainButton.MouseButton1Click:Connect(function()
+                isOpen = not isOpen
+                dropdownFrame.Visible = isOpen
+                container.ZIndex = isOpen and 6 or 2
+                
+                -- Animate arrow rotation
+                local rotation = isOpen and 180 or 0
+                TweenService:Create(arrow, TweenInfo.new(0.2), {Rotation = rotation}):Play()
+                
+                -- Animate dropdown appearance
+                if isOpen then
+                    dropdownFrame.Size = UDim2.new(1, -45, 0, 0)
+                    dropdownFrame.Visible = true
+                    TweenService:Create(dropdownFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {Size = UDim2.new(1, -45, 0, 120)}):Play()
+                else
+                    TweenService:Create(dropdownFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {Size = UDim2.new(1, -45, 0, 0)}):Play()
+                    wait(0.2)
+                    if not isOpen then
+                        dropdownFrame.Visible = false
+                    end
+                end
+            end)
+            
+            function Dropdown:Refresh(newOptions, newCurrent)
+                options.Options = newOptions
+                Dropdown.SelectedOptions = {}
+                for _, opt in ipairs(newCurrent or {}) do Dropdown.SelectedOptions[opt] = true end
+                refreshOptions(newOptions)
+                updateMainButtonText()
+            end
+            
+            function Dropdown:Set(selections)
+                Dropdown.SelectedOptions = {}
+                for _, opt in ipairs(selections) do
+                    if table.find(options.Options, opt) then
+                        Dropdown.SelectedOptions[opt] = true
+                    end
+                end
+                refreshOptions(options.Options)
+                updateMainButtonText()
+            end
+            
+            refreshOptions(options.Options)
+            updateMainButtonText()
+            return Dropdown
+        end
+
+        return Tab
+    end
+    
+    return Window
+end
+
+return GUI
