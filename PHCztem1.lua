@@ -1,9 +1,3 @@
---[[
-    Modular UI Library by Gemini (Upgraded Version 2)
-    Place this script in: StarterPlayer > StarterPlayerScripts
-    This is the main library module.
-]]
-
 --// Services
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -102,7 +96,7 @@ local HideButton = createControlButton("X")
 local ZoomButton = createControlButton("+")
 local MinimizeButton = createControlButton("-")
 
---// CHANGED: Show UI Button (appears when main UI is hidden, now draggable and top-left)
+--// Show UI Button (appears when main UI is hidden, now draggable and top-left)
 local ShowButton = Instance.new("TextButton")
 ShowButton.Name = "ShowButton"
 ShowButton.Size = UDim2.new(0, 100, 0, 30)
@@ -208,7 +202,7 @@ Header.InputChanged:Connect(function(input)
     end
 end)
 
---// ADDED: Dragging Logic for ShowButton
+--// Dragging Logic for ShowButton
 local showButtonDragging = false
 local showButtonDragStart, showButtonStartPos
 ShowButton.InputBegan:Connect(function(input)
@@ -335,48 +329,74 @@ function GUI:CreateWindow(title)
             local state = options.StartingState or false
             local container = Instance.new("Frame")
             container.Name = options.Name
-            container.Size = UDim2.new(1, 0, 0, 30)
-            container.BackgroundTransparency = 1
+            container.Size = UDim2.new(1, 0, 0, 35)
+            container.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
             container.Parent = contentFrame
+            
+            local containerCorner = Instance.new("UICorner")
+            containerCorner.CornerRadius = UDim.new(0, 6)
+            containerCorner.Parent = container
+            
             local label = Instance.new("TextLabel")
-            label.Size = UDim2.new(1, -60, 1, 0)
+            label.Size = UDim2.new(1, -70, 1, 0)
+            label.Position = UDim2.new(0, 15, 0, 0)
             label.BackgroundTransparency = 1
-            label.Font = Enum.Font.SourceSans
-            label.Text = options.Name .. " (Toggle: " .. (state and "On" or "Off") .. ")"
+            label.Font = Enum.Font.SourceSansSemibold
+            label.Text = options.Name
             label.TextColor3 = Color3.fromRGB(220, 220, 220)
             label.TextSize = 16
             label.TextXAlignment = Enum.TextXAlignment.Left
             label.Parent = container
-            local switchTrack = Instance.new("Frame")
-            switchTrack.Size = UDim2.new(0, 50, 0, 24)
-            switchTrack.Position = UDim2.new(1, -50, 0.5, -12)
-            switchTrack.BackgroundColor3 = state and Color3.fromRGB(75, 180, 75) or Color3.fromRGB(100, 100, 100)
-            switchTrack.Parent = container
-            local trackCorner = Instance.new("UICorner")
-            trackCorner.CornerRadius = UDim.new(1, 0)
-            trackCorner.Parent = switchTrack
-            local switchKnob = Instance.new("Frame")
-            switchKnob.Size = UDim2.new(0, 20, 0, 20)
-            switchKnob.Position = state and UDim2.new(1, -22, 0.5, -10) or UDim2.new(0, 2, 0.5, -10)
-            switchKnob.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
-            switchKnob.BorderColor3 = Color3.fromRGB(150, 150, 150)
-            switchKnob.BorderSizePixel = 1
-            switchKnob.Parent = switchTrack
+            
+            -- Modern iOS-style toggle
+            local toggleBg = Instance.new("Frame")
+            toggleBg.Size = UDim2.new(0, 44, 0, 26)
+            toggleBg.Position = UDim2.new(1, -55, 0.5, -13)
+            toggleBg.BackgroundColor3 = state and Color3.fromRGB(52, 199, 89) or Color3.fromRGB(70, 70, 70)
+            toggleBg.Parent = container
+            
+            local toggleCorner = Instance.new("UICorner")
+            toggleCorner.CornerRadius = UDim.new(0, 13)
+            toggleCorner.Parent = toggleBg
+            
+            local toggleKnob = Instance.new("Frame")
+            toggleKnob.Size = UDim2.new(0, 22, 0, 22)
+            toggleKnob.Position = state and UDim2.new(1, -24, 0.5, -11) or UDim2.new(0, 2, 0.5, -11)
+            toggleKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            toggleKnob.Parent = toggleBg
+            
             local knobCorner = Instance.new("UICorner")
-            knobCorner.CornerRadius = UDim.new(1, 0)
-            knobCorner.Parent = switchKnob
+            knobCorner.CornerRadius = UDim.new(0, 11)
+            knobCorner.Parent = toggleKnob
+            
+            -- Add shadow effect to knob
+            local knobShadow = Instance.new("Frame")
+            knobShadow.Size = UDim2.new(1, 4, 1, 4)
+            knobShadow.Position = UDim2.new(0, -2, 0, -2)
+            knobShadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            knobShadow.BackgroundTransparency = 0.8
+            knobShadow.ZIndex = toggleKnob.ZIndex - 1
+            knobShadow.Parent = toggleKnob
+            
+            local shadowCorner = Instance.new("UICorner")
+            shadowCorner.CornerRadius = UDim.new(0, 13)
+            shadowCorner.Parent = knobShadow
+            
             local clickDetector = Instance.new("TextButton")
-            clickDetector.Size = UDim2.new(1, 0, 1, 0)
+            clickDetector.Size = UDim2.new(1, 10, 1, 10)
+            clickDetector.Position = UDim2.new(0, -5, 0, -5)
             clickDetector.BackgroundTransparency = 1
             clickDetector.Text = ""
-            clickDetector.Parent = switchTrack
+            clickDetector.Parent = toggleBg
+            
             clickDetector.MouseButton1Click:Connect(function()
                 state = not state
-                label.Text = options.Name .. " (Toggle: " .. (state and "On" or "Off") .. ")"
-                local trackColor = state and Color3.fromRGB(75, 180, 75) or Color3.fromRGB(100, 100, 100)
-                local knobPos = state and UDim2.new(1, -22, 0.5, -10) or UDim2.new(0, 2, 0.5, -10)
-                TweenService:Create(switchTrack, TweenInfo.new(0.2), {BackgroundColor3 = trackColor}):Play()
-                TweenService:Create(switchKnob, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = knobPos}):Play()
+                local bgColor = state and Color3.fromRGB(52, 199, 89) or Color3.fromRGB(70, 70, 70)
+                local knobPos = state and UDim2.new(1, -24, 0.5, -11) or UDim2.new(0, 2, 0.5, -11)
+                
+                TweenService:Create(toggleBg, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = bgColor}):Play()
+                TweenService:Create(toggleKnob, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = knobPos}):Play()
+                
                 if options.Callback then options.Callback(state) end
             end)
         end
@@ -384,96 +404,169 @@ function GUI:CreateWindow(title)
         function Tab:Textbox(options)
             local container = Instance.new("Frame")
             container.Name = options.Name
-            container.Size = UDim2.new(1, 0, 0, 35)
+            container.Size = UDim2.new(1, 0, 0, 45)
             container.BackgroundTransparency = 1
             container.Parent = contentFrame
+            
+            -- Modern material design inspired textbox
+            local textboxBg = Instance.new("Frame")
+            textboxBg.Size = UDim2.new(1, 0, 0, 38)
+            textboxBg.Position = UDim2.new(0, 0, 0, 7)
+            textboxBg.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+            textboxBg.Parent = container
+            
+            local bgCorner = Instance.new("UICorner")
+            bgCorner.CornerRadius = UDim.new(0, 8)
+            bgCorner.Parent = textboxBg
+            
+            -- Accent border
+            local accent = Instance.new("Frame")
+            accent.Size = UDim2.new(0, 3, 1, 0)
+            accent.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+            accent.BorderSizePixel = 0
+            accent.Parent = textboxBg
+            
+            local accentCorner = Instance.new("UICorner")
+            accentCorner.CornerRadius = UDim.new(0, 8)
+            accentCorner.Parent = accent
+            
             local textbox = Instance.new("TextBox")
-            textbox.Size = UDim2.new(1, 0, 1, 0)
-            textbox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            textbox.PlaceholderText = "Enter " .. options.Name .. " here"
+            textbox.Size = UDim2.new(1, -15, 1, 0)
+            textbox.Position = UDim2.new(0, 15, 0, 0)
+            textbox.BackgroundTransparency = 1
+            textbox.PlaceholderText = options.Name
             textbox.Font = Enum.Font.SourceSans
-            textbox.TextColor3 = Color3.fromRGB(220, 220, 220)
-            textbox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
-            textbox.TextSize = 14
+            textbox.TextColor3 = Color3.fromRGB(240, 240, 240)
+            textbox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+            textbox.TextSize = 16
+            textbox.TextXAlignment = Enum.TextXAlignment.Left
             textbox.ClearTextOnFocus = false
-            textbox.BorderSizePixel = 1
-            textbox.BorderColor3 = Color3.fromRGB(70, 70, 70)
-            textbox.Parent = container
-            local corner = Instance.new("UICorner")
-            corner.CornerRadius = UDim.new(0, 4)
-            corner.Parent = textbox
-            textbox.FocusLost:Connect(function(enterPressed) if enterPressed and options.Callback then options.Callback(textbox.Text) end end)
+            textbox.Parent = textboxBg
+            
+            -- Focus effects
+            textbox.Focused:Connect(function()
+                TweenService:Create(textboxBg, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(55, 55, 55)}):Play()
+                TweenService:Create(accent, TweenInfo.new(0.2), {Size = UDim2.new(0, 4, 1, 0)}):Play()
+            end)
+            
+            textbox.FocusLost:Connect(function(enterPressed)
+                TweenService:Create(textboxBg, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(45, 45, 45)}):Play()
+                TweenService:Create(accent, TweenInfo.new(0.2), {Size = UDim2.new(0, 3, 1, 0)}):Play()
+                if enterPressed and options.Callback then options.Callback(textbox.Text) end
+            end)
         end
         
         function Tab:Slider(options)
             local container = Instance.new("Frame")
             container.Name = options.Name
-            container.Size = UDim2.new(1, 0, 0, 40)
+            container.Size = UDim2.new(1, 0, 0, 50)
             container.BackgroundTransparency = 1
             container.Parent = contentFrame
+            
             local label = Instance.new("TextLabel")
-            label.Size = UDim2.new(1, 0, 0, 20)
+            label.Size = UDim2.new(0.7, 0, 0, 20)
             label.BackgroundTransparency = 1
-            label.Font = Enum.Font.SourceSans
+            label.Font = Enum.Font.SourceSansSemibold
             label.TextColor3 = Color3.fromRGB(220, 220, 220)
             label.TextSize = 16
             label.TextXAlignment = Enum.TextXAlignment.Left
-            label.Text = options.Name .. ": "
             label.Parent = container
-            local sliderFrame = Instance.new("Frame")
-            sliderFrame.Size = UDim2.new(1, 0, 0, 10)
-            sliderFrame.Position = UDim2.new(0, 0, 0, 25)
-            sliderFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            sliderFrame.BorderSizePixel = 1
-            sliderFrame.BorderColor3 = Color3.fromRGB(70, 70, 70)
-            sliderFrame.Parent = container
-            local sCorner = Instance.new("UICorner")
-            sCorner.CornerRadius = UDim.new(0, 5)
-            sCorner.Parent = sliderFrame
-            local fill = Instance.new("Frame")
-            fill.BackgroundColor3 = Color3.fromRGB(80, 120, 220)
-            fill.BorderSizePixel = 1
-            fill.BorderColor3 = Color3.fromRGB(100, 140, 240)
-            fill.Parent = sliderFrame
-            local fCorner = Instance.new("UICorner")
-            fCorner.CornerRadius = UDim.new(0, 5)
-            fCorner.Parent = fill
-            local handle = Instance.new("TextButton")
-            handle.Size = UDim2.new(0, 16, 0, 16)
-            handle.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-            handle.Text = ""
-            handle.BorderSizePixel = 1
-            handle.BorderColor3 = Color3.fromRGB(150, 150, 150)
+            
+            local valueLabel = Instance.new("TextLabel")
+            valueLabel.Size = UDim2.new(0.3, 0, 0, 20)
+            valueLabel.Position = UDim2.new(0.7, 0, 0, 0)
+            valueLabel.BackgroundTransparency = 1
+            valueLabel.Font = Enum.Font.SourceSansSemibold
+            valueLabel.TextColor3 = Color3.fromRGB(100, 150, 255)
+            valueLabel.TextSize = 14
+            valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+            valueLabel.Parent = container
+            
+            -- Modern track-based slider
+            local sliderTrack = Instance.new("Frame")
+            sliderTrack.Size = UDim2.new(1, 0, 0, 6)
+            sliderTrack.Position = UDim2.new(0, 0, 0, 30)
+            sliderTrack.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            sliderTrack.Parent = container
+            
+            local trackCorner = Instance.new("UICorner")
+            trackCorner.CornerRadius = UDim.new(0, 3)
+            trackCorner.Parent = sliderTrack
+            
+            local sliderFill = Instance.new("Frame")
+            sliderFill.Size = UDim2.new(0, 0, 1, 0)
+            sliderFill.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+            sliderFill.BorderSizePixel = 0
+            sliderFill.Parent = sliderTrack
+            
+            local fillCorner = Instance.new("UICorner")
+            fillCorner.CornerRadius = UDim.new(0, 3)
+            fillCorner.Parent = sliderFill
+            
+            local handle = Instance.new("Frame")
+            handle.Size = UDim2.new(0, 18, 0, 18)
+            handle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
             handle.ZIndex = 2
-            handle.Parent = fill
-            local hCorner = Instance.new("UICorner")
-            hCorner.CornerRadius = UDim.new(1, 0)
-            hCorner.Parent = handle
+            handle.Parent = sliderTrack
+            
+            local handleCorner = Instance.new("UICorner")
+            handleCorner.CornerRadius = UDim.new(0, 9)
+            handleCorner.Parent = handle
+            
+            -- Handle shadow
+            local handleShadow = Instance.new("Frame")
+            handleShadow.Size = UDim2.new(1, 4, 1, 4)
+            handleShadow.Position = UDim2.new(0, -2, 0, -2)
+            handleShadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            handleShadow.BackgroundTransparency = 0.7
+            handleShadow.ZIndex = 1
+            handleShadow.Parent = handle
+            
+            local shadowCorner = Instance.new("UICorner")
+            shadowCorner.CornerRadius = UDim.new(0, 11)
+            shadowCorner.Parent = handleShadow
+            
             local min, max, default = options.Min or 0, options.Max or 100, options.Default or 50
             local value = default
+            
             local function updateSlider(percent)
                 percent = math.clamp(percent, 0, 1)
                 value = min + (max - min) * percent
-                fill.Size = UDim2.new(percent, 0, 1, 0)
-                handle.Position = UDim2.new(percent, -8, 0.5, -8)
-                label.Text = options.Name .. ": " .. string.format("%.2f", value) .. " (" .. min .. "-" .. max .. ")"
+                sliderFill.Size = UDim2.new(percent, 0, 1, 0)
+                handle.Position = UDim2.new(percent, -9, 0.5, -9)
+                label.Text = options.Name
+                valueLabel.Text = string.format("%.1f", value)
                 if options.Callback then options.Callback(value) end
             end
+            
             updateSlider((default - min) / (max - min))
+            
             local dragConnection
-            handle.InputBegan:Connect(function(input)
+            local clickDetector = Instance.new("TextButton")
+            clickDetector.Size = UDim2.new(1, 20, 1, 20)
+            clickDetector.Position = UDim2.new(0, -10, 0, -10)
+            clickDetector.BackgroundTransparency = 1
+            clickDetector.Text = ""
+            clickDetector.Parent = sliderTrack
+            
+            clickDetector.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    TweenService:Create(handle, TweenInfo.new(0.1), {Size = UDim2.new(0, 20, 0, 20)}):Play()
                     dragConnection = UserInputService.InputChanged:Connect(function(changedInput)
                         if changedInput.UserInputType == Enum.UserInputType.MouseMovement or changedInput.UserInputType == Enum.UserInputType.Touch then
                             local mousePos = UserInputService:GetMouseLocation()
-                            local relativePos = mousePos.X - sliderFrame.AbsolutePosition.X
-                            local percent = math.clamp(relativePos / sliderFrame.AbsoluteSize.X, 0, 1)
+                            local relativePos = mousePos.X - sliderTrack.AbsolutePosition.X
+                            local percent = math.clamp(relativePos / sliderTrack.AbsoluteSize.X, 0, 1)
                             updateSlider(percent)
                         end
                     end)
                 end
             end)
-            handle.InputEnded:Connect(function() if dragConnection then dragConnection:Disconnect() end end)
+            
+            clickDetector.InputEnded:Connect(function()
+                TweenService:Create(handle, TweenInfo.new(0.1), {Size = UDim2.new(0, 18, 0, 18)}):Play()
+                if dragConnection then dragConnection:Disconnect() end
+            end)
         end
         
         function Tab:Keybind(options)
@@ -523,87 +616,181 @@ function GUI:CreateWindow(title)
 
             local container = Instance.new("Frame")
             container.Name = options.Name
-            container.Size = UDim2.new(1, 0, 0, 35)
+            container.Size = UDim2.new(1, 0, 0, 42)
             container.BackgroundTransparency = 1
             container.ZIndex = 2
             container.Parent = contentFrame
 
+            -- Modern card-style dropdown
+            local dropdownCard = Instance.new("Frame")
+            dropdownCard.Size = UDim2.new(1, 0, 1, 0)
+            dropdownCard.BackgroundColor3 = Color3.fromRGB(42, 42, 42)
+            dropdownCard.Parent = container
+            
+            local cardCorner = Instance.new("UICorner")
+            cardCorner.CornerRadius = UDim.new(0, 10)
+            cardCorner.Parent = dropdownCard
+            
+            -- Subtle border gradient effect
+            local borderFrame = Instance.new("Frame")
+            borderFrame.Size = UDim2.new(1, 2, 1, 2)
+            borderFrame.Position = UDim2.new(0, -1, 0, -1)
+            borderFrame.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+            borderFrame.ZIndex = dropdownCard.ZIndex - 1
+            borderFrame.Parent = dropdownCard
+            
+            local borderCorner = Instance.new("UICorner")
+            borderCorner.CornerRadius = UDim.new(0, 11)
+            borderCorner.Parent = borderFrame
+
             local mainButton = Instance.new("TextButton")
             mainButton.Name = "MainButton"
-            mainButton.Size = UDim2.new(1, 0, 1, 0)
-            mainButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            mainButton.Text = "Dropdown: " .. Dropdown.CurrentOption
-            mainButton.Font = Enum.Font.SourceSans
-            mainButton.TextColor3 = Color3.fromRGB(220, 220, 220)
-            mainButton.TextSize = 14
-            mainButton.Parent = container
-            local corner = Instance.new("UICorner")
-            corner.CornerRadius = UDim.new(0, 4)
-            corner.Parent = mainButton
+            mainButton.Size = UDim2.new(1, -15, 1, 0)
+            mainButton.Position = UDim2.new(0, 15, 0, 0)
+            mainButton.BackgroundTransparency = 1
+            mainButton.Text = Dropdown.CurrentOption
+            mainButton.Font = Enum.Font.SourceSansSemibold
+            mainButton.TextColor3 = Color3.fromRGB(240, 240, 240)
+            mainButton.TextSize = 16
+            mainButton.TextXAlignment = Enum.TextXAlignment.Left
+            mainButton.Parent = dropdownCard
+
+            -- Modern chevron indicator
+            local chevron = Instance.new("TextLabel")
+            chevron.Size = UDim2.new(0, 20, 1, 0)
+            chevron.Position = UDim2.new(1, -25, 0, 0)
+            chevron.BackgroundTransparency = 1
+            chevron.Text = "⌄"
+            chevron.Font = Enum.Font.SourceSansBold
+            chevron.TextColor3 = Color3.fromRGB(150, 150, 150)
+            chevron.TextSize = 18
+            chevron.TextXAlignment = Enum.TextXAlignment.Center
+            chevron.Parent = dropdownCard
 
             local dropdownFrame = Instance.new("ScrollingFrame")
             dropdownFrame.Name = "DropdownFrame"
             dropdownFrame.Size = UDim2.new(1, 0, 0, 120)
-            dropdownFrame.Position = UDim2.new(0, 0, 1, 5)
-            dropdownFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            dropdownFrame.BorderSizePixel = 1
-            dropdownFrame.BorderColor3 = Color3.fromRGB(70, 70, 70)
+            dropdownFrame.Position = UDim2.new(0, 0, 1, 8)
+            dropdownFrame.BackgroundColor3 = Color3.fromRGB(38, 38, 38)
+            dropdownFrame.BorderSizePixel = 0
             dropdownFrame.Visible = false
-            dropdownFrame.ZIndex = 3
+            dropdownFrame.ZIndex = 5
             dropdownFrame.ClipsDescendants = true
+            dropdownFrame.ScrollBarThickness = 4
+            dropdownFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
             dropdownFrame.Parent = container
+            
             local dCorner = Instance.new("UICorner")
-            dCorner.CornerRadius = UDim.new(0, 4)
+            dCorner.CornerRadius = UDim.new(0, 8)
             dCorner.Parent = dropdownFrame
+            
+            -- Dropdown shadow
+            local dropShadow = Instance.new("Frame")
+            dropShadow.Size = UDim2.new(1, 6, 1, 6)
+            dropShadow.Position = UDim2.new(0, -3, 0, -3)
+            dropShadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            dropShadow.BackgroundTransparency = 0.8
+            dropShadow.ZIndex = 4
+            dropShadow.Parent = dropdownFrame
+            
+            local shadowCorner = Instance.new("UICorner")
+            shadowCorner.CornerRadius = UDim.new(0, 11)
+            shadowCorner.Parent = dropShadow
+            
             local dropdownLayout = Instance.new("UIListLayout")
             dropdownLayout.SortOrder = Enum.SortOrder.LayoutOrder
+            dropdownLayout.Padding = UDim.new(0, 2)
             dropdownLayout.Parent = dropdownFrame
 
             local function refreshOptions(newOptions)
                 for _, child in ipairs(dropdownFrame:GetChildren()) do
                     if child:IsA("TextButton") then child:Destroy() end
                 end
-                for _, optionName in ipairs(newOptions) do
+                for i, optionName in ipairs(newOptions) do
                     local optionButton = Instance.new("TextButton")
                     optionButton.Name = optionName
-                    optionButton.Size = UDim2.new(1, 0, 0, 30)
-                    optionButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-                    optionButton.Text = "Option: " .. optionName
+                    optionButton.Size = UDim2.new(1, 0, 0, 32)
+                    optionButton.BackgroundColor3 = Color3.fromRGB(38, 38, 38)
+                    optionButton.Text = optionName
                     optionButton.Font = Enum.Font.SourceSans
                     optionButton.TextColor3 = Color3.fromRGB(200, 200, 200)
-                    optionButton.TextSize = 14
+                    optionButton.TextSize = 15
+                    optionButton.TextXAlignment = Enum.TextXAlignment.Left
                     optionButton.Parent = dropdownFrame
-                    optionButton.MouseEnter:Connect(function() optionButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60) end)
-                    optionButton.MouseLeave:Connect(function() optionButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45) end)
+                    
+                    -- Add padding to text
+                    local textPadding = Instance.new("UIPadding")
+                    textPadding.PaddingLeft = UDim.new(0, 12)
+                    textPadding.Parent = optionButton
+                    
+                    -- Highlight current selection
+                    if optionName == Dropdown.CurrentOption then
+                        optionButton.BackgroundColor3 = Color3.fromRGB(60, 120, 200)
+                        optionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    end
+                    
+                    optionButton.MouseEnter:Connect(function()
+                        if optionName ~= Dropdown.CurrentOption then
+                            optionButton.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+                        end
+                    end)
+                    
+                    optionButton.MouseLeave:Connect(function()
+                        if optionName ~= Dropdown.CurrentOption then
+                            optionButton.BackgroundColor3 = Color3.fromRGB(38, 38, 38)
+                        end
+                    end)
+                    
                     optionButton.MouseButton1Click:Connect(function()
                         Dropdown.CurrentOption = optionName
-                        mainButton.Text = "Dropdown: " .. optionName
+                        mainButton.Text = optionName
                         isOpen = false
+                        
+                        -- Animate chevron and close dropdown
+                        TweenService:Create(chevron, TweenInfo.new(0.2), {Rotation = 0}):Play()
+                        TweenService:Create(dropdownFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(1, 0, 0, 0)}):Play()
+                        wait(0.2)
                         dropdownFrame.Visible = false
                         container.ZIndex = 2
+                        
                         if options.Callback then options.Callback(optionName) end
+                        
+                        -- Refresh to update selection highlighting
+                        refreshOptions(newOptions)
                     end)
                 end
-                dropdownFrame.CanvasSize = UDim2.new(0, 0, 0, dropdownLayout.AbsoluteContentSize.Y)
+                dropdownFrame.CanvasSize = UDim2.new(0,0,0,dropdownLayout.AbsoluteContentSize.Y)
             end
 
             mainButton.MouseButton1Click:Connect(function()
                 isOpen = not isOpen
-                dropdownFrame.Visible = isOpen
-                container.ZIndex = isOpen and 4 or 2
+                container.ZIndex = isOpen and 6 or 2
+                
+                if isOpen then
+                    dropdownFrame.Visible = true
+                    dropdownFrame.Size = UDim2.new(1, 0, 0, 0)
+                    TweenService:Create(chevron, TweenInfo.new(0.2), {Rotation = 180}):Play()
+                    TweenService:Create(dropdownFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 0, 120)}):Play()
+                else
+                    TweenService:Create(chevron, TweenInfo.new(0.2), {Rotation = 0}):Play()
+                    TweenService:Create(dropdownFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(1, 0, 0, 0)}):Play()
+                    wait(0.2)
+                    dropdownFrame.Visible = false
+                end
             end)
             
             function Dropdown:Refresh(newOptions, newCurrent)
                 options.Options = newOptions
                 Dropdown.CurrentOption = newCurrent or newOptions[1]
-                mainButton.Text = "Dropdown: " .. Dropdown.CurrentOption
+                mainButton.Text = Dropdown.CurrentOption
                 refreshOptions(newOptions)
             end
             
             function Dropdown:Set(optionName)
                  if table.find(options.Options, optionName) then
                     Dropdown.CurrentOption = optionName
-                    mainButton.Text = "Dropdown: " .. optionName
+                    mainButton.Text = optionName
+                    refreshOptions(options.Options)
                  end
             end
             
