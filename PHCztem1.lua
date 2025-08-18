@@ -379,10 +379,10 @@ function GUI:CreateWindow(title)
             local switchTrack = Instance.new("Frame")
             switchTrack.Size = UDim2.new(0, 60, 0, 28)
             switchTrack.Position = UDim2.new(1, -60, 0.5, -14)
-            switchTrack.BackgroundColor3 = state and Color3.fromRGB(80, 200, 120) or Color3.fromRGB(80, 80, 90)
+            switchTrack.BackgroundColor3 = state and Color3.fromRGB(255, 165, 0) or Color3.fromRGB(80, 80, 90) -- Orange for on to distinguish
             switchTrack.Parent = container
             local trackCorner = Instance.new("UICorner")
-            trackCorner.CornerRadius = UDim.new(0, 14)
+            trackCorner.CornerRadius = UDim.new(0, 4) -- Less rounded for distinction
             trackCorner.Parent = switchTrack
             local switchKnob = Instance.new("Frame")
             switchKnob.Size = UDim2.new(0, 24, 0, 24)
@@ -390,7 +390,7 @@ function GUI:CreateWindow(title)
             switchKnob.BackgroundColor3 = Color3.fromRGB(245, 245, 245)
             switchKnob.Parent = switchTrack
             local knobCorner = Instance.new("UICorner")
-            knobCorner.CornerRadius = UDim.new(0, 12)
+            knobCorner.CornerRadius = UDim.new(0, 4) -- Less rounded
             knobCorner.Parent = switchKnob
             local clickDetector = Instance.new("TextButton")
             clickDetector.Size = UDim2.new(1, 0, 1, 0)
@@ -399,12 +399,17 @@ function GUI:CreateWindow(title)
             clickDetector.Parent = switchTrack
             clickDetector.MouseButton1Click:Connect(function()
                 state = not state
-                local trackColor = state and Color3.fromRGB(80, 200, 120) or Color3.fromRGB(80, 80, 90)
+                local trackColor = state and Color3.fromRGB(255, 165, 0) or Color3.fromRGB(80, 80, 90)
                 local knobPos = state and UDim2.new(1, -26, 0.5, -12) or UDim2.new(0, 2, 0.5, -12)
                 TweenService:Create(switchTrack, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = trackColor}):Play()
                 TweenService:Create(switchKnob, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = knobPos}):Play()
                 if options.Callback then options.Callback(state) end
             end)
+            -- Add border for distinction
+            local trackStroke = Instance.new("UIStroke")
+            trackStroke.Color = Color3.fromRGB(100, 100, 100)
+            trackStroke.Thickness = 1
+            trackStroke.Parent = switchTrack
         end
         
         function Tab:Textbox(options)
@@ -416,25 +421,30 @@ function GUI:CreateWindow(title)
             container.Parent = contentFrame
             local textbox = Instance.new("TextBox")
             textbox.Size = UDim2.new(1, 0, 1, 0)
-            textbox.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
+            textbox.BackgroundColor3 = Color3.fromRGB(60, 60, 70) -- Lighter gray for distinction
             textbox.PlaceholderText = options.Name
-            textbox.Font = Enum.Font.Gotham
+            textbox.Font = Enum.Font.GothamSemibold -- Bolder font
             textbox.TextColor3 = Color3.fromRGB(230, 230, 230)
             textbox.PlaceholderColor3 = Color3.fromRGB(140, 140, 150)
             textbox.TextSize = 16
             textbox.ClearTextOnFocus = false
             textbox.Parent = container
             local corner = Instance.new("UICorner")
-            corner.CornerRadius = UDim.new(0, 6)
+            corner.CornerRadius = UDim.new(0, 2) -- Almost square corners
             corner.Parent = textbox
             -- Focus effect
             textbox.Focused:Connect(function()
-                TweenService:Create(textbox, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 60)}):Play()
+                TweenService:Create(textbox, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(80, 80, 90)}):Play()
             end)
             textbox.FocusLost:Connect(function()
-                TweenService:Create(textbox, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 48)}):Play()
+                TweenService:Create(textbox, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 70)}):Play()
                 if options.Callback then options.Callback(textbox.Text) end
             end)
+            -- Add border
+            local textStroke = Instance.new("UIStroke")
+            textStroke.Color = Color3.fromRGB(120, 120, 120)
+            textStroke.Thickness = 1.5
+            textStroke.Parent = textbox
         end
         
         function Tab:Slider(options)
@@ -461,7 +471,7 @@ function GUI:CreateWindow(title)
             sCorner.CornerRadius = UDim.new(0, 6)
             sCorner.Parent = sliderFrame
             local fill = Instance.new("Frame")
-            fill.BackgroundColor3 = Color3.fromRGB(100, 140, 240)
+            fill.BackgroundColor3 = Color3.fromRGB(186, 85, 211) -- Purple fill for distinction
             fill.BorderSizePixel = 0
             fill.Parent = sliderFrame
             local fCorner = Instance.new("UICorner")
@@ -508,6 +518,13 @@ function GUI:CreateWindow(title)
             handle.MouseLeave:Connect(function()
                 TweenService:Create(handle, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(220, 220, 220)}):Play()
             end)
+            -- Add gradient to fill for distinction
+            local fillGradient = Instance.new("UIGradient")
+            fillGradient.Color = ColorSequence.new{
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(186, 85, 211)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(147, 112, 219))
+            }
+            fillGradient.Parent = fill
         end
         
         function Tab:Keybind(options)
@@ -575,21 +592,21 @@ function GUI:CreateWindow(title)
             local mainButton = Instance.new("TextButton")
             mainButton.Name = "MainButton"
             mainButton.Size = UDim2.new(1, 0, 1, 0)
-            mainButton.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+            mainButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180) -- Blue tint for distinction
             mainButton.Text = Dropdown.CurrentOption
             mainButton.Font = Enum.Font.Gotham
             mainButton.TextColor3 = Color3.fromRGB(230, 230, 230)
             mainButton.TextSize = 16
             mainButton.Parent = container
             local corner = Instance.new("UICorner")
-            corner.CornerRadius = UDim.new(0, 6)
+            corner.CornerRadius = UDim.new(0, 8) -- More rounded
             corner.Parent = mainButton
             -- Hover effect
             mainButton.MouseEnter:Connect(function()
-                TweenService:Create(mainButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(70, 70, 90)}):Play()
+                TweenService:Create(mainButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(100, 149, 237)}):Play()
             end)
             mainButton.MouseLeave:Connect(function()
-                TweenService:Create(mainButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 60)}):Play()
+                TweenService:Create(mainButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(70, 130, 180)}):Play()
             end)
 
             local dropdownFrame = Instance.new("ScrollingFrame")
@@ -605,7 +622,7 @@ function GUI:CreateWindow(title)
             dropdownFrame.ScrollBarThickness = 4
             dropdownFrame.Parent = container
             local dCorner = Instance.new("UICorner")
-            dCorner.CornerRadius = UDim.new(0, 6)
+            dCorner.CornerRadius = UDim.new(0, 8) -- More rounded
             dCorner.Parent = dropdownFrame
             local dropdownLayout = Instance.new("UIListLayout")
             dropdownLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -620,20 +637,20 @@ function GUI:CreateWindow(title)
                     local optionButton = Instance.new("TextButton")
                     optionButton.Name = optionName
                     optionButton.Size = UDim2.new(1, 0, 0, 36)
-                    optionButton.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+                    optionButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
                     optionButton.Text = optionName
                     optionButton.Font = Enum.Font.Gotham
                     optionButton.TextColor3 = Color3.fromRGB(230, 230, 230)
                     optionButton.TextSize = 16
                     optionButton.Parent = dropdownFrame
                     local oCorner = Instance.new("UICorner")
-                    oCorner.CornerRadius = UDim.new(0, 6)
+                    oCorner.CornerRadius = UDim.new(0, 8)
                     oCorner.Parent = optionButton
                     optionButton.MouseEnter:Connect(function()
-                        TweenService:Create(optionButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(70, 70, 90)}):Play()
+                        TweenService:Create(optionButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(100, 149, 237)}):Play()
                     end)
                     optionButton.MouseLeave:Connect(function()
-                        TweenService:Create(optionButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 60)}):Play()
+                        TweenService:Create(optionButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(70, 130, 180)}):Play()
                     end)
                     optionButton.MouseButton1Click:Connect(function()
                         Dropdown.CurrentOption = optionName
