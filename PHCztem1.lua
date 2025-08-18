@@ -618,13 +618,14 @@ function GUI:CreateWindow(title)
             container.Name = options.Name
             container.Size = UDim2.new(1, 0, 0, 42)
             container.BackgroundTransparency = 1
-            container.ZIndex = 2
+            container.ZIndex = 1
             container.Parent = contentFrame
 
             -- Modern card-style dropdown
             local dropdownCard = Instance.new("Frame")
             dropdownCard.Size = UDim2.new(1, 0, 1, 0)
             dropdownCard.BackgroundColor3 = Color3.fromRGB(42, 42, 42)
+            dropdownCard.ZIndex = 1
             dropdownCard.Parent = container
             
             local cardCorner = Instance.new("UICorner")
@@ -636,7 +637,7 @@ function GUI:CreateWindow(title)
             borderFrame.Size = UDim2.new(1, 2, 1, 2)
             borderFrame.Position = UDim2.new(0, -1, 0, -1)
             borderFrame.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-            borderFrame.ZIndex = dropdownCard.ZIndex - 1
+            borderFrame.ZIndex = 1
             borderFrame.Parent = dropdownCard
             
             local borderCorner = Instance.new("UICorner")
@@ -653,6 +654,7 @@ function GUI:CreateWindow(title)
             mainButton.TextColor3 = Color3.fromRGB(240, 240, 240)
             mainButton.TextSize = 16
             mainButton.TextXAlignment = Enum.TextXAlignment.Left
+            mainButton.ZIndex = 2
             mainButton.Parent = dropdownCard
 
             -- Modern chevron indicator
@@ -665,20 +667,20 @@ function GUI:CreateWindow(title)
             chevron.TextColor3 = Color3.fromRGB(150, 150, 150)
             chevron.TextSize = 18
             chevron.TextXAlignment = Enum.TextXAlignment.Center
+            chevron.ZIndex = 2
             chevron.Parent = dropdownCard
 
-            local dropdownFrame = Instance.new("ScrollingFrame")
+            -- Create dropdown list directly in ContentContainer to avoid clipping
+            local dropdownFrame = Instance.new("Frame")
             dropdownFrame.Name = "DropdownFrame"
-            dropdownFrame.Size = UDim2.new(1, 0, 0, 120)
-            dropdownFrame.Position = UDim2.new(0, 0, 1, 8)
+            dropdownFrame.Size = UDim2.new(0, container.AbsoluteSize.X, 0, 0)
+            dropdownFrame.Position = UDim2.new(0, container.AbsolutePosition.X - ContentContainer.AbsolutePosition.X, 0, container.AbsolutePosition.Y - ContentContainer.AbsolutePosition.Y + 50)
             dropdownFrame.BackgroundColor3 = Color3.fromRGB(38, 38, 38)
             dropdownFrame.BorderSizePixel = 0
             dropdownFrame.Visible = false
-            dropdownFrame.ZIndex = 5
+            dropdownFrame.ZIndex = 10
             dropdownFrame.ClipsDescendants = true
-            dropdownFrame.ScrollBarThickness = 4
-            dropdownFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
-            dropdownFrame.Parent = container
+            dropdownFrame.Parent = ContentContainer
             
             local dCorner = Instance.new("UICorner")
             dCorner.CornerRadius = UDim.new(0, 8)
@@ -690,20 +692,34 @@ function GUI:CreateWindow(title)
             dropShadow.Position = UDim2.new(0, -3, 0, -3)
             dropShadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
             dropShadow.BackgroundTransparency = 0.8
-            dropShadow.ZIndex = 4
+            dropShadow.ZIndex = 9
             dropShadow.Parent = dropdownFrame
             
             local shadowCorner = Instance.new("UICorner")
             shadowCorner.CornerRadius = UDim.new(0, 11)
             shadowCorner.Parent = dropShadow
+
+            local scrollFrame = Instance.new("ScrollingFrame")
+            scrollFrame.Size = UDim2.new(1, 0, 1, 0)
+            scrollFrame.BackgroundTransparency = 1
+            scrollFrame.ScrollBarThickness = 4
+            scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
+            scrollFrame.ZIndex = 10
+            scrollFrame.Parent = dropdownFrame
             
             local dropdownLayout = Instance.new("UIListLayout")
             dropdownLayout.SortOrder = Enum.SortOrder.LayoutOrder
             dropdownLayout.Padding = UDim.new(0, 2)
-            dropdownLayout.Parent = dropdownFrame
+            dropdownLayout.Parent = scrollFrame
+
+            local function updateDropdownPosition()
+                -- Update position when container moves
+                dropdownFrame.Position = UDim2.new(0, container.AbsolutePosition.X - ContentContainer.AbsolutePosition.X, 0, container.AbsolutePosition.Y - ContentContainer.AbsolutePosition.Y + 50)
+                dropdownFrame.Size = UDim2.new(0, container.AbsoluteSize.X, 0, dropdownFrame.Size.Y.Offset)
+            end
 
             local function refreshOptions(newOptions)
-                for _, child in ipairs(dropdownFrame:GetChildren()) do
+                for _, child in ipairs(scrollFrame:GetChildren()) do
                     if child:IsA("TextButton") then child:Destroy() end
                 end
                 for i, optionName in ipairs(newOptions) do
@@ -716,7 +732,8 @@ function GUI:CreateWindow(title)
                     optionButton.TextColor3 = Color3.fromRGB(200, 200, 200)
                     optionButton.TextSize = 15
                     optionButton.TextXAlignment = Enum.TextXAlignment.Left
-                    optionButton.Parent = dropdownFrame
+                    optionButton.ZIndex = 10
+                    optionButton.Parent = scrollFrame
                     
                     -- Add padding to text
                     local textPadding = Instance.new("UIPadding")
@@ -748,10 +765,11 @@ function GUI:CreateWindow(title)
                         
                         -- Animate chevron and close dropdown
                         TweenService:Create(chevron, TweenInfo.new(0.2), {Rotation = 0}):Play()
-                        TweenService:Create(dropdownFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(1, 0, 0, 0)}):Play()
-                        wait(0.2)
-                        dropdownFrame.Visible = false
-                        container.ZIndex = 2
+                        local closeTween = TweenService:Create(dropdownFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(0, container.AbsoluteSize.X, 0, 0)})
+                        closeTween:Play()
+                        closeTween.Completed:Connect(function()
+                            dropdownFrame.Visible = false
+                        end)
                         
                         if options.Callback then options.Callback(optionName) end
                         
@@ -759,23 +777,25 @@ function GUI:CreateWindow(title)
                         refreshOptions(newOptions)
                     end)
                 end
-                dropdownFrame.CanvasSize = UDim2.new(0,0,0,dropdownLayout.AbsoluteContentSize.Y)
+                scrollFrame.CanvasSize = UDim2.new(0,0,0,dropdownLayout.AbsoluteContentSize.Y)
             end
 
             mainButton.MouseButton1Click:Connect(function()
                 isOpen = not isOpen
-                container.ZIndex = isOpen and 6 or 2
+                updateDropdownPosition()
                 
                 if isOpen then
                     dropdownFrame.Visible = true
-                    dropdownFrame.Size = UDim2.new(1, 0, 0, 0)
+                    dropdownFrame.Size = UDim2.new(0, container.AbsoluteSize.X, 0, 0)
                     TweenService:Create(chevron, TweenInfo.new(0.2), {Rotation = 180}):Play()
-                    TweenService:Create(dropdownFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(1, 0, 0, 120)}):Play()
+                    TweenService:Create(dropdownFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, container.AbsoluteSize.X, 0, math.min(120, #options.Options * 34))}):Play()
                 else
                     TweenService:Create(chevron, TweenInfo.new(0.2), {Rotation = 0}):Play()
-                    TweenService:Create(dropdownFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(1, 0, 0, 0)}):Play()
-                    wait(0.2)
-                    dropdownFrame.Visible = false
+                    local closeTween = TweenService:Create(dropdownFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(0, container.AbsoluteSize.X, 0, 0)})
+                    closeTween:Play()
+                    closeTween.Completed:Connect(function()
+                        dropdownFrame.Visible = false
+                    end)
                 end
             end)
             
