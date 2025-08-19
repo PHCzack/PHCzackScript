@@ -1,1142 +1,849 @@
--- PHCz Farming Script GUI Library
--- Modern Roblox GUI with comprehensive farming features
+--[[
+=========================================================================================================================
+-- || Modular UI Library ||
+--
+-- Features:
+--  - Draggable Window
+--  - Hide/Show UI (Default Key: RightControl)
+--  - Mobile Friendly (Uses Scale sizing)
+--  - Scrollable Tabs
+--  - All components you requested
+--  - Fully modular and easy to integrate
+--
+-- Instructions:
+-- 1. Place this script inside a LocalScript in StarterPlayer > StarterPlayerScripts.
+-- 2. The UI will be created automatically.
+-- 3. Modify the "Example Usage" section at the bottom to build your own UI.
+=========================================================================================================================
+]]
 
-local GUI = {}
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+--// Services
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
+--// Main GUI Library Table
+local GUI = {}
+GUI.__index = GUI
 
--- Configuration
-local CONFIG = {
-    THEME = {
-        PRIMARY = Color3.fromRGB(64, 128, 255),
-        SECONDARY = Color3.fromRGB(45, 45, 45),
-        BACKGROUND = Color3.fromRGB(25, 25, 25),
-        TEXT = Color3.fromRGB(255, 255, 255),
-        SUCCESS = Color3.fromRGB(76, 175, 80),
-        WARNING = Color3.fromRGB(255, 193, 7),
-        DANGER = Color3.fromRGB(244, 67, 54)
-    },
-    ANIMATIONS = {
-        SPEED = 0.3,
-        EASING = Enum.EasingStyle.Quad,
-        DIRECTION = Enum.EasingDirection.Out
-    }
-}
+--// Configuration
+local HIDE_KEY = Enum.KeyCode.RightControl
+local UI_FONT = Enum.Font.SourceSans
+local UI_PRIMARY_COLOR = Color3.fromRGB(30, 30, 30)
+local UI_SECONDARY_COLOR = Color3.fromRGB(45, 45, 45)
+local UI_ACCENT_COLOR = Color3.fromRGB(100, 65, 165)
+local UI_TEXT_COLOR = Color3.fromRGB(255, 255, 255)
+local UI_TEXT_STROKE_COLOR = Color3.fromRGB(0, 0, 0)
 
--- Global Variables
-local GlobalState = {
-    -- Farm Variables
-    Sellinv = false,
-    running = false,
-    FeedonHand = false,
-    FeedAll = false,
-    running1 = false,
-    SellAllFruit = false,
-    AutoHatch = false,
-    running2 = false,
-    AutoBuySeeds = false,
-    AutoBuyGears = false,
-    runningBuySeeds = false,
-    runningBuyGears = false,
-    
-    -- ESP Variables
-    PlantESP = false,
-    selectedPlant = nil,
-    espObjects = {},
-    allFilteredPlants = {},
-    
-    -- Manual Plant Filter Variables
-    manualPlantFilters = {},
-    searchText = ""
-}
+--// Create the main GUI object
+function GUI.new()
+	local self = setmetatable({}, GUI)
 
--- Data Tables
-local DATA = {
-    availablePlantTypes = {
-        "Zenflare", "SugarApple", "Carrot", "Strawberry", "Blueberry", "Orange Tulip", 
-        "Tomato", "Corn", "Daffodil", "Watermelon", "Pumpkin", "Apple", "Bamboo", 
-        "Coconut", "Cactus", "Dragon Fruit", "Mango", "Grape", "Mushroom", "Pepper", 
-        "Cacao", "Beanstalk", "Ember Lily", "Sugar Apple", "Burning Bud", 
-        "Giant Pinecone", "Romanesco"
-    },
-    
-    seedTypes = {
-        "Carrot", "Strawberry", "Blueberry", "Orange Tulip", "Tomato", "Corn", "Daffodil", 
-        "Watermelon", "Pumpkin", "Apple", "Bamboo", "Coconut", "Cactus", "Dragon Fruit", 
-        "Mango", "Grape", "Mushroom", "Pepper", "Cacao", "Beanstalk", "Ember Lily", 
-        "Sugar Apple", "Burning Bud", "Giant Pinecone", "Romanesco"
-    },
-    
-    gearTypes = {
-        "Watering Can", "Trowel", "Recall Wrench", "Trading Ticket", "Basic Sprinkler", 
-        "Advanced Sprinkler", "Godly Sprinkler", "Lightning Rod", "Medium Toy", 
-        "Magnifying Glass", "Medium Treat", "Master Sprinkler", "Grandmaster Sprinkler", 
-        "Favorite Tool", "Harvest Tool", "Friendship Pot", "Tanning Mirror", 
-        "Cleaning Spray", "Levelup Lollipop"
-    },
-    
-    teleportLocations = {
-        {name = "Seed Shop", position = Vector3.new(86.58, 2.76, -27.00)},
-        {name = "Sell Shop", position = Vector3.new(86.58, 2.76, 0.42)},
-        {name = "Gear Shop", position = Vector3.new(-284.41, 5.76, -32.97)},
-        {name = "Cosmetics Shop", position = Vector3.new(-284.93, 2.99, -14.60)},
-        {name = "Egg Shop", position = Vector3.new(-283.50, 2.99, 6.02)},
-        {name = "Honey Shop", position = Vector3.new(-99.03, 4.00, -3.47)}
-    }
-}
+	-- Main ScreenGui
+	self.ScreenGui = Instance.new("ScreenGui")
+	self.ScreenGui.ResetOnSpawn = false
+	self.ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Utility Functions
-local function createTween(instance, properties, duration, easingStyle, easingDirection)
-    duration = duration or CONFIG.ANIMATIONS.SPEED
-    easingStyle = easingStyle or CONFIG.ANIMATIONS.EASING
-    easingDirection = easingDirection or CONFIG.ANIMATIONS.DIRECTION
-    
-    local tween = TweenService:Create(instance, TweenInfo.new(duration, easingStyle, easingDirection), properties)
-    return tween
+	-- Main Frame (The draggable window)
+	self.MainFrame = Instance.new("Frame")
+	self.MainFrame.Size = UDim2.fromScale(0.4, 0.5)
+	self.MainFrame.Position = UDim2.fromScale(0.5, 0.5)
+	self.MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+	self.MainFrame.BackgroundColor3 = UI_PRIMARY_COLOR
+	self.MainFrame.BorderSizePixel = 0
+	self.MainFrame.ClipsDescendants = true
+	self.MainFrame.Parent = self.ScreenGui
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = self.MainFrame
+
+	-- Header for Title and Dragging
+	self.Header = Instance.new("Frame")
+	self.Header.Size = UDim2.new(1, 0, 0, 35)
+	self.Header.BackgroundColor3 = UI_SECONDARY_COLOR
+	self.Header.BorderSizePixel = 0
+	self.Header.Parent = self.MainFrame
+
+	self.TitleLabel = Instance.new("TextLabel")
+	self.TitleLabel.Size = UDim2.new(1, -10, 1, 0)
+	self.TitleLabel.Position = UDim2.fromOffset(10, 0)
+	self.TitleLabel.BackgroundColor3 = self.Header.BackgroundColor3
+	self.TitleLabel.BackgroundTransparency = 1
+	self.TitleLabel.Font = UI_FONT
+	self.TitleLabel.Text = "My Roblox Game UI"
+	self.TitleLabel.TextColor3 = UI_TEXT_COLOR
+	self.TitleLabel.TextSize = 18
+	self.TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	self.TitleLabel.Parent = self.Header
+
+	-- Tab Container
+	self.TabContainer = Instance.new("Frame")
+	self.TabContainer.Size = UDim2.new(0.25, 0, 1, -35)
+	self.TabContainer.Position = UDim2.fromOffset(0, 35)
+	self.TabContainer.BackgroundColor3 = UI_SECONDARY_COLOR
+	self.TabContainer.BorderSizePixel = 0
+	self.TabContainer.Parent = self.MainFrame
+
+	self.TabListLayout = Instance.new("UIListLayout")
+	self.TabListLayout.Padding = UDim.new(0, 5)
+	self.TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	self.TabListLayout.Parent = self.TabContainer
+
+	-- Content Container
+	self.ContentContainer = Instance.new("Frame")
+	self.ContentContainer.Size = UDim2.new(0.75, 0, 1, -35)
+	self.ContentContainer.Position = UDim2.new(0.25, 0, 0, 35)
+	self.ContentContainer.BackgroundColor3 = UI_PRIMARY_COLOR
+	self.ContentContainer.BorderSizePixel = 0
+	self.ContentContainer.Parent = self.MainFrame
+
+	self.Tabs = {}
+	self.Visible = true
+	self.CurrentTab = nil
+
+	self:_makeDraggable()
+	self:_handleVisibility()
+
+	return self
 end
 
-local function createCorner(parent, radius)
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, radius or 8)
-    corner.Parent = parent
-    return corner
+--// Make the main frame draggable
+function GUI:_makeDraggable()
+	local dragging
+	local dragInput
+	local dragStart
+	local startPos
+
+	self.Header.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = self.MainFrame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			if dragging then
+				local delta = input.Position - dragStart
+				self.MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+			end
+		end
+	end)
 end
 
-local function createStroke(parent, color, thickness)
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = color or CONFIG.THEME.PRIMARY
-    stroke.Thickness = thickness or 1
-    stroke.Parent = parent
-    return stroke
+--// Handle showing/hiding the UI
+function GUI:_handleVisibility()
+	UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+		if gameProcessedEvent then return end
+		if input.KeyCode == HIDE_KEY then
+			self.Visible = not self.Visible
+			self.MainFrame.Visible = self.Visible
+		end
+	end)
 end
 
--- Core Functions
-local function feedItems()
-    while (GlobalState.FeedonHand or GlobalState.FeedAll or GlobalState.Sellinv or GlobalState.SellAllFruit) and task.wait(0.5) do
-        local args = {}
-        if GlobalState.FeedonHand then
-            ReplicatedStorage:WaitForChild("GameEvents", 9e9)
-                           :WaitForChild("BeanstalkRESubmitHeldPlant", 9e9):FireServer(unpack(args))
-        end
-        if GlobalState.FeedAll then
-            ReplicatedStorage:WaitForChild("GameEvents", 9e9)
-                           :WaitForChild("BeanstalkRESubmitAllPlant", 9e9):FireServer(unpack(args))
-        end
-        if GlobalState.Sellinv then 
-            ReplicatedStorage:WaitForChild("GameEvents", 9e9)
-                           :WaitForChild("Sell_Item", 9e9):FireServer(unpack(args))
-        end
-        if GlobalState.SellAllFruit then 
-            ReplicatedStorage:WaitForChild("GameEvents", 9e9)
-                           :WaitForChild("Sell_Inventory", 9e9):FireServer(unpack(args))
-        end
-    end
-    GlobalState.running1 = false
+--// Create a new Tab
+function GUI:Tab(name)
+	local tab = {}
+	tab.Name = name
+	tab.GUI = self
+
+	-- Tab Button
+	tab.Button = Instance.new("TextButton")
+	tab.Button.Size = UDim2.new(1, -10, 0, 30)
+	tab.Button.Position = UDim2.fromOffset(5, 0)
+	tab.Button.BackgroundColor3 = UI_PRIMARY_COLOR
+	tab.Button.Text = name
+	tab.Button.Font = UI_FONT
+	tab.Button.TextColor3 = UI_TEXT_COLOR
+	tab.Button.TextSize = 16
+	tab.Button.Parent = self.TabContainer
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = tab.Button
+
+	-- Content Frame (Scrollable)
+	tab.ContentFrame = Instance.new("ScrollingFrame")
+	tab.ContentFrame.Size = UDim2.new(1, 0, 1, 0)
+	tab.ContentFrame.BackgroundColor3 = self.ContentContainer.BackgroundColor3
+	tab.ContentFrame.BorderSizePixel = 0
+	tab.ContentFrame.BackgroundTransparency = 1
+	tab.ContentFrame.Visible = false
+	tab.ContentFrame.ScrollBarImageColor3 = UI_ACCENT_COLOR
+	tab.ContentFrame.ScrollBarThickness = 6
+	tab.ContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+	tab.ContentFrame.Parent = self.ContentContainer
+
+	local listLayout = Instance.new("UIListLayout")
+	listLayout.Padding = UDim.new(0, 10)
+	listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	listLayout.Parent = tab.ContentFrame
+	tab.Layout = listLayout
+
+	-- Tab selection logic
+	tab.Button.MouseButton1Click:Connect(function()
+		if self.CurrentTab then
+			self.CurrentTab.ContentFrame.Visible = false
+			self.CurrentTab.Button.BackgroundColor3 = UI_PRIMARY_COLOR
+		end
+		self.CurrentTab = tab
+		tab.ContentFrame.Visible = true
+		tab.Button.BackgroundColor3 = UI_ACCENT_COLOR
+	end)
+
+	-- Auto-select the first tab
+	if not self.CurrentTab then
+		tab.Button:Invoke()
+	end
+
+	-- Attach component functions to this tab instance
+	setmetatable(tab, { __index = self.TabMethods })
+	table.insert(self.Tabs, tab)
+	return tab
 end
 
-local function findEgg()
-    for _, farmSection in ipairs(workspace.Farm:GetChildren()) do
-        if farmSection:FindFirstChild("Important") then
-            local objectsPhysical = farmSection.Important:FindFirstChild("Objects_Physical")
-            if objectsPhysical then
-                for _, obj in ipairs(objectsPhysical:GetChildren()) do
-                    if (obj:IsA("BasePart") or obj:IsA("Model")) and string.find(obj.Name:lower(), "egg") then
-                        if not obj:FindFirstChild("PetID") and not obj:FindFirstChild("PetData") and not obj:GetAttribute("PetGUID") then
-                            return obj
-                        end
-                    end
-                end
-            end
-        end
-    end
-    return nil
+--// Methods for Tab objects will be stored here
+GUI.TabMethods = {}
+
+-- Helper function to create a base frame for components
+local function createComponentFrame(tab, height)
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(1, -20, 0, height)
+	frame.BackgroundColor3 = UI_SECONDARY_COLOR
+	frame.BorderSizePixel = 0
+	frame.Parent = tab.ContentFrame
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = frame
+
+	-- Auto-update canvas size
+	tab.Layout:ApplyTo(tab.ContentFrame)
+	local absoluteContentSize = tab.Layout.AbsoluteContentSize
+	tab.ContentFrame.CanvasSize = UDim2.fromOffset(0, absoluteContentSize.Y)
+
+	return frame
 end
 
-local function hatchEggs()
-    while GlobalState.AutoHatch and task.wait(0.5) do
-        local egg = findEgg()
-        if egg then
-            ReplicatedStorage:WaitForChild("GameEvents", 9e9)
-                           :WaitForChild("PetEggService", 9e9):FireServer("HatchPet", egg)
-            print("Hatching egg:", egg.Name)
-        end
-    end
-    GlobalState.running2 = false
+-- Helper function to create a label for components
+local function createComponentLabel(parent, text)
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(0.5, -10, 1, 0)
+	label.Position = UDim2.fromOffset(10, 0)
+	label.BackgroundTransparency = 1
+	label.Font = UI_FONT
+	label.Text = text
+	label.TextColor3 = UI_TEXT_COLOR
+	label.TextSize = 16
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = parent
+	return label
 end
 
-local function buyAllSeeds()
-    while GlobalState.AutoBuySeeds and task.wait(0.5) do
-        for _, seedType in ipairs(DATA.seedTypes) do
-            if not GlobalState.AutoBuySeeds then break end
-            local args = { [1] = seedType }
-            ReplicatedStorage:WaitForChild("GameEvents", 9e9)
-                           :WaitForChild("BuySeedStock", 9e9):FireServer(unpack(args))
-            print("Purchased:", seedType)
-        end
-    end
-    GlobalState.runningBuySeeds = false
+--// Button Component
+function GUI.TabMethods:Button(options)
+	local frame = createComponentFrame(self, 35)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(1, -10, 1, -10)
+	button.Position = UDim2.fromScale(0.5, 0.5)
+	button.AnchorPoint = Vector2.new(0.5, 0.5)
+	button.BackgroundColor3 = UI_ACCENT_COLOR
+	button.Font = UI_FONT
+	button.Text = options.Name or "Button"
+	button.TextColor3 = UI_TEXT_COLOR
+	button.TextSize = 16
+	button.Parent = frame
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = button
+
+	if options.Callback and type(options.Callback) == "function" then
+		button.MouseButton1Click:Connect(options.Callback)
+	end
 end
 
-local function buyAllGears()
-    while GlobalState.AutoBuyGears and task.wait(0.5) do
-        for _, gearType in ipairs(DATA.gearTypes) do
-            if not GlobalState.AutoBuyGears then break end
-            local args = { [1] = gearType }
-            ReplicatedStorage:WaitForChild("GameEvents", 9e9)
-                           :WaitForChild("BuyGearStock", 9e9):FireServer(unpack(args))
-            print("Purchased:", gearType)
-        end
-    end
-    GlobalState.runningBuyGears = false
+--// Toggle Component
+function GUI.TabMethods:Toggle(options)
+	local frame = createComponentFrame(self, 30)
+	createComponentLabel(frame, options.Name or "Toggle")
+
+	local state = options.StartingState or false
+
+	local toggleButton = Instance.new("TextButton")
+	toggleButton.Size = UDim2.new(0.4, 0, 0.8, 0)
+	toggleButton.Position = UDim2.new(0.95, 0, 0.5, 0)
+	toggleButton.AnchorPoint = Vector2.new(1, 0.5)
+	toggleButton.BackgroundColor3 = state and UI_ACCENT_COLOR or UI_PRIMARY_COLOR
+	toggleButton.Text = ""
+	toggleButton.Parent = frame
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = toggleButton
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = UI_ACCENT_COLOR
+	stroke.Thickness = 1
+	stroke.Parent = toggleButton
+
+	toggleButton.MouseButton1Click:Connect(function()
+		state = not state
+		TweenService:Create(toggleButton, TweenInfo.new(0.2), { BackgroundColor3 = state and UI_ACCENT_COLOR or UI_PRIMARY_COLOR }):Play()
+		if options.Callback and type(options.Callback) == "function" then
+			options.Callback(state)
+		end
+	end)
 end
 
-local function teleportPlayer(position)
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        player.Character.HumanoidRootPart.CFrame = CFrame.new(position)
-        print("Teleported to:", position)
-    end
+--// Textbox Component
+function GUI.TabMethods:Textbox(options)
+	local frame = createComponentFrame(self, 35)
+	createComponentLabel(frame, options.Name or "Textbox")
+
+	local textbox = Instance.new("TextBox")
+	textbox.Size = UDim2.new(0.5, -10, 0.8, 0)
+	textbox.Position = UDim2.new(0.95, 0, 0.5, 0)
+	textbox.AnchorPoint = Vector2.new(1, 0.5)
+	textbox.BackgroundColor3 = UI_PRIMARY_COLOR
+	textbox.Font = UI_FONT
+	textbox.Text = options.Default or ""
+	textbox.PlaceholderText = options.Placeholder or "Enter text..."
+	textbox.TextColor3 = UI_TEXT_COLOR
+	textbox.TextSize = 14
+	textbox.ClearTextOnFocus = false
+	textbox.Parent = frame
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = textbox
+
+	textbox.FocusLost:Connect(function(enterPressed)
+		if enterPressed then
+			if options.Callback and type(options.Callback) == "function" then
+				options.Callback(textbox.Text)
+			end
+		end
+	end)
 end
 
--- ESP Functions
-local function clearESP()
-    for _, obj in pairs(GlobalState.espObjects) do
-        if obj and obj.Parent then
-            obj:Destroy()
-        end
-    end
-    GlobalState.espObjects = {}
+--// Dropdown Component
+function GUI.TabMethods:Dropdown(options)
+	local frame = createComponentFrame(self, 35)
+	createComponentLabel(frame, options.Name or "Dropdown")
+
+	local isOpen = false
+	local multiSelect = options.MultiSelect or false
+	local selected = {}
+
+	local dropdownButton = Instance.new("TextButton")
+	dropdownButton.Size = UDim2.new(0.5, -10, 0.8, 0)
+	dropdownButton.Position = UDim2.new(0.95, 0, 0.5, 0)
+	dropdownButton.AnchorPoint = Vector2.new(1, 0.5)
+	dropdownButton.BackgroundColor3 = UI_PRIMARY_COLOR
+	dropdownButton.Font = UI_FONT
+	dropdownButton.Text = "Select..."
+	dropdownButton.TextColor3 = UI_TEXT_COLOR
+	dropdownButton.TextSize = 14
+	dropdownButton.Parent = frame
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = dropdownButton
+
+	local dropdownList = Instance.new("Frame")
+	dropdownList.Size = UDim2.new(dropdownButton.Size.X.Scale, dropdownButton.Size.X.Offset, 0, 0)
+	dropdownList.Position = UDim2.new(dropdownButton.Position.X.Scale, dropdownButton.Position.X.Offset, dropdownButton.Position.Y.Scale + 0.4, dropdownButton.Position.Y.Offset)
+	dropdownList.AnchorPoint = Vector2.new(1, 0)
+	dropdownList.BackgroundColor3 = UI_PRIMARY_COLOR
+	dropdownList.BorderSizePixel = 0
+	dropdownList.ClipsDescendants = true
+	dropdownList.Visible = false
+	dropdownList.ZIndex = 2
+	dropdownList.Parent = frame
+
+	local listCorner = Instance.new("UICorner")
+	listCorner.CornerRadius = UDim.new(0, 4)
+	listCorner.Parent = dropdownList
+
+	local listLayout = Instance.new("UIListLayout")
+	listLayout.Parent = dropdownList
+
+	local function updateButtonText()
+		if table.getn(selected) == 0 then
+			dropdownButton.Text = "Select..."
+		elseif table.getn(selected) > 1 then
+			dropdownButton.Text = table.getn(selected) .. " selected"
+		else
+			dropdownButton.Text = selected[1]
+		end
+	end
+
+	for _, itemText in ipairs(options.Items or {}) do
+		local itemButton = Instance.new("TextButton")
+		itemButton.Size = UDim2.new(1, 0, 0, 25)
+		itemButton.BackgroundColor3 = UI_PRIMARY_COLOR
+		itemButton.BackgroundTransparency = 1
+		itemButton.Font = UI_FONT
+		itemButton.Text = itemText
+		itemButton.TextColor3 = UI_TEXT_COLOR
+		itemButton.TextSize = 14
+		itemButton.Parent = dropdownList
+
+		itemButton.MouseEnter:Connect(function() itemButton.BackgroundTransparency = 0.5 end)
+		itemButton.MouseLeave:Connect(function() itemButton.BackgroundTransparency = 1 end)
+
+		itemButton.MouseButton1Click:Connect(function()
+			if multiSelect then
+				local existingIndex = table.find(selected, itemText)
+				if existingIndex then
+					table.remove(selected, existingIndex)
+					itemButton.TextColor3 = UI_TEXT_COLOR
+				else
+					table.insert(selected, itemText)
+					itemButton.TextColor3 = UI_ACCENT_COLOR
+				end
+			else
+				selected = { itemText }
+				isOpen = false -- Close on single select
+				dropdownList.Visible = false
+				itemButton.TextColor3 = UI_ACCENT_COLOR
+			end
+			updateButtonText()
+			if options.Callback and type(options.Callback) == "function" then
+				options.Callback(multiSelect and selected or selected[1])
+			end
+		end)
+	end
+
+	dropdownButton.MouseButton1Click:Connect(function()
+		isOpen = not isOpen
+		dropdownList.Visible = isOpen
+		local listHeight = #dropdownList:GetChildren() * 25
+		TweenService:Create(dropdownList, TweenInfo.new(0.2), { Size = UDim2.new(dropdownButton.Size.X.Scale, 0, 0, isOpen and listHeight or 0) }):Play()
+	end)
 end
 
-local function createESP(plant)
-    if not plant or not plant.Parent then return end
-    clearESP()
-    
-    local hasActiveFilters = false
-    for filterName, isActive in pairs(GlobalState.manualPlantFilters) do
-        if isActive then
-            hasActiveFilters = true
+--// Slider Component
+function GUI.TabMethods:Slider(options)
+	local frame = createComponentFrame(self, 40)
+	local min, max, default = options.Min or 0, options.Max or 100, options.Default or 50
+	createComponentLabel(frame, options.Name or "Slider")
+
+	local valueLabel = Instance.new("TextLabel")
+	valueLabel.Size = UDim2.new(0, 50, 1, 0)
+	valueLabel.Position = UDim2.new(1, -10, 0, 0)
+	valueLabel.AnchorPoint = Vector2.new(1, 0)
+	valueLabel.BackgroundTransparency = 1
+	valueLabel.Font = UI_FONT
+	valueLabel.TextColor3 = UI_TEXT_COLOR
+	valueLabel.TextSize = 14
+	valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+	valueLabel.Parent = frame
+
+	local sliderBack = Instance.new("Frame")
+	sliderBack.Size = UDim2.new(0.5, -70, 0, 6)
+	sliderBack.Position = UDim2.new(0.7, 0, 0.7, 0)
+	sliderBack.AnchorPoint = Vector2.new(0.5, 0.5)
+	sliderBack.BackgroundColor3 = UI_PRIMARY_COLOR
+	sliderBack.Parent = frame
+	local backCorner = Instance.new("UICorner")
+	backCorner.CornerRadius = UDim.new(1, 0)
+	backCorner.Parent = sliderBack
+
+	local sliderFill = Instance.new("Frame")
+	sliderFill.BackgroundColor3 = UI_ACCENT_COLOR
+	sliderFill.Parent = sliderBack
+	local fillCorner = Instance.new("UICorner")
+	fillCorner.CornerRadius = UDim.new(1, 0)
+	fillCorner.Parent = sliderFill
+
+	local handle = Instance.new("Frame")
+	handle.Size = UDim2.fromOffset(12, 12)
+	handle.AnchorPoint = Vector2.new(0.5, 0.5)
+	handle.BackgroundColor3 = UI_TEXT_COLOR
+	handle.Parent = sliderFill
+	local handleCorner = Instance.new("UICorner")
+	handleCorner.CornerRadius = UDim.new(1, 0)
+	handleCorner.Parent = handle
+
+	local currentValue = default
+	local function updateSlider(value)
+		currentValue = math.clamp(value, min, max)
+		local percentage = (currentValue - min) / (max - min)
+		sliderFill.Size = UDim2.new(percentage, 0, 1, 0)
+		handle.Position = UDim2.new(1, 0, 0.5, 0)
+		valueLabel.Text = tostring(math.floor(currentValue))
+		if options.Callback and type(options.Callback) == "function" then
+			options.Callback(currentValue)
+		end
+	end
+
+	updateSlider(default)
+
+	local dragging = false
+	sliderBack.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+		end
+	end)
+	sliderBack.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = false
+		end
+	end)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+			local mouseX = input.Position.X
+			local startX = sliderBack.AbsolutePosition.X
+			local width = sliderBack.AbsoluteSize.X
+			local percentage = math.clamp((mouseX - startX) / width, 0, 1)
+			local newValue = min + (max - min) * percentage
+			updateSlider(newValue)
+		end
+	end)
+end
+
+--// Keybind Component
+function GUI.TabMethods:Keybind(options)
+	local frame = createComponentFrame(self, 35)
+	createComponentLabel(frame, options.Name or "Keybind")
+
+	local currentKey = options.Keybind or "..."
+	local isBinding = false
+
+	local keybindButton = Instance.new("TextButton")
+	keybindButton.Size = UDim2.new(0.3, 0, 0.8, 0)
+	keybindButton.Position = UDim2.new(0.95, 0, 0.5, 0)
+	keybindButton.AnchorPoint = Vector2.new(1, 0.5)
+	keybindButton.BackgroundColor3 = UI_PRIMARY_COLOR
+	keybindButton.Font = UI_FONT
+	keybindButton.Text = tostring(currentKey)
+	keybindButton.TextColor3 = UI_TEXT_COLOR
+	keybindButton.TextSize = 14
+	keybindButton.Parent = frame
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = keybindButton
+
+	keybindButton.MouseButton1Click:Connect(function()
+		isBinding = true
+		keybindButton.Text = "..."
+	end)
+
+	UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+		if isBinding and not gameProcessedEvent then
+			isBinding = false
+			if input.KeyCode == Enum.KeyCode.Escape then
+				currentKey = "..."
+			else
+				currentKey = input.KeyCode.Name
+			end
+			keybindButton.Text = tostring(currentKey)
+			if options.Callback and type(options.Callback) == "function" then
+				options.Callback(currentKey)
+			end
+		end
+	end)
+end
+
+--// ColorPicker Component
+function GUI.TabMethods:ColorPicker(options)
+	-- This is a simplified color picker. A full-featured one is very complex.
+	local frame = createComponentFrame(self, 120)
+	createComponentLabel(frame, options.Name or "Color Picker")
+
+	local colorPreview = Instance.new("Frame")
+	colorPreview.Size = UDim2.new(0.2, 0, 0.2, 0)
+	colorPreview.Position = UDim2.new(0.9, 0, 0.2, 0)
+	colorPreview.AnchorPoint = Vector2.new(1, 0.5)
+	colorPreview.BackgroundColor3 = Color3.new(1, 1, 1)
+	colorPreview.Parent = frame
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 4)
+	corner.Parent = colorPreview
+
+	local hueGradient = Instance.new("UIGradient")
+	hueGradient.Rotation = 90
+	hueGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+		ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 255, 0)),
+		ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 255, 0)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
+		ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 0, 255)),
+		ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0)),
+	})
+	
+	local function createSlider(name, parent, yPos, callback)
+		local sliderFrame = Instance.new("Frame")
+		sliderFrame.Size = UDim2.new(1, -20, 0, 20)
+		sliderFrame.Position = UDim2.fromOffset(10, yPos)
+		sliderFrame.BackgroundTransparency = 1
+		sliderFrame.Parent = parent
+		
+		local back = Instance.new("Frame")
+		back.Size = UDim2.new(1, 0, 0, 6)
+		back.Position = UDim2.fromScale(0.5, 0.5)
+		back.AnchorPoint = Vector2.new(0.5, 0.5)
+		back.BackgroundColor3 = UI_PRIMARY_COLOR
+		back.Parent = sliderFrame
+		local backCorner = Instance.new("UICorner")
+		backCorner.CornerRadius = UDim.new(1, 0)
+		backCorner.Parent = back
+		
+		local fill = Instance.new("Frame")
+		fill.Size = UDim2.fromScale(1, 1)
+		fill.BackgroundColor3 = UI_ACCENT_COLOR
+		fill.Parent = back
+		local fillCorner = Instance.new("UICorner")
+		fillCorner.CornerRadius = UDim.new(1, 0)
+		fillCorner.Parent = fill
+		
+		local handle = Instance.new("Frame")
+		handle.Size = UDim2.fromOffset(12, 12)
+		handle.AnchorPoint = Vector2.new(0.5, 0.5)
+		handle.Position = UDim2.fromScale(1, 0.5)
+		handle.BackgroundColor3 = UI_TEXT_COLOR
+		handle.Parent = fill
+		local handleCorner = Instance.new("UICorner")
+		handleCorner.CornerRadius = UDim.new(1, 0)
+		handleCorner.Parent = handleCorner
+		
+		local value = 1
+		
+		local function update(input)
+			local pos = input.Position.X
+			local start = back.AbsolutePosition.X
+			local width = back.AbsoluteSize.X
+			value = math.clamp((pos - start) / width, 0, 1)
+			fill.Size = UDim2.new(value, 0, 1, 0)
+			callback()
+		end
+		
+		back.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then
+				local conn
+				conn = UserInputService.InputChanged:Connect(function(i)
+					if i.UserInputType == Enum.UserInputType.MouseMovement then
+						update(i)
+					end
+				end)
+				local conn2 = UserInputService.InputEnded:Connect(function(i)
+					if i.UserInputType == Enum.UserInputType.MouseButton1 then
+						conn:Disconnect()
+						conn2:Disconnect()
+					end
+				end)
+				update(input)
+			end
+		end)
+		
+		return function() return value end, back, fill
+	end
+	
+	local r, g, b = 1, 1, 1
+	
+	local function updateColor()
+		local finalColor = Color3.fromHSV(r(), g(), b())
+		colorPreview.BackgroundColor3 = finalColor
+		if options.Callback then options.Callback(finalColor) end
+	end
+	
+	r, _, _ = createSlider("H", frame, 40, updateColor)
+	g, _, _ = createSlider("S", frame, 65, updateColor)
+	b, _, _ = createSlider("V", frame, 90, updateColor)
+end
+
+--// Prompt
+function GUI:Prompt(options)
+	local promptBg = Instance.new("Frame")
+	promptBg.Size = UDim2.fromScale(1, 1)
+	promptBg.BackgroundColor3 = Color3.new(0, 0, 0)
+	promptBg.BackgroundTransparency = 0.5
+	promptBg.ZIndex = 10
+	promptBg.Parent = self.ScreenGui
+
+	local promptFrame = Instance.new("Frame")
+	promptFrame.Size = UDim2.fromScale(0.3, 0.2)
+	promptFrame.Position = UDim2.fromScale(0.5, 0.5)
+	promptFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+	promptFrame.BackgroundColor3 = UI_PRIMARY_COLOR
+	promptFrame.Parent = promptBg
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = promptFrame
+
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, 0, 0, 30)
+	title.BackgroundColor3 = UI_SECONDARY_COLOR
+	title.Text = options.Title or "Prompt"
+	title.Font = UI_FONT
+	title.TextColor3 = UI_TEXT_COLOR
+	title.TextSize = 18
+	title.Parent = promptFrame
+
+	local text = Instance.new("TextLabel")
+	text.Size = UDim2.new(1, -20, 0.6, -30)
+	text.Position = UDim2.fromOffset(10, 30)
+	text.BackgroundTransparency = 1
+	text.Text = options.Text or ""
+	text.Font = UI_FONT
+	text.TextColor3 = UI_TEXT_COLOR
+	text.TextSize = 16
+	text.TextWrapped = true
+	text.Parent = promptFrame
+
+	local buttonContainer = Instance.new("Frame")
+	buttonContainer.Size = UDim2.new(1, 0, 0.4, 0)
+	buttonContainer.Position = UDim2.new(0, 0, 0.6, 0)
+	buttonContainer.BackgroundTransparency = 1
+	buttonContainer.Parent = promptFrame
+
+	local listLayout = Instance.new("UIListLayout")
+	listLayout.FillDirection = Enum.FillDirection.Horizontal
+	listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	listLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	listLayout.Padding = UDim.new(0, 10)
+	listLayout.Parent = buttonContainer
+
+	for btnText, callback in pairs(options.Buttons) do
+		local button = Instance.new("TextButton")
+		button.Size = UDim2.new(0, 100, 0, 30)
+		button.BackgroundColor3 = UI_ACCENT_COLOR
+		button.Text = btnText
+		button.Font = UI_FONT
+		button.TextColor3 = UI_TEXT_COLOR
+		button.TextSize = 16
+		button.Parent = buttonContainer
+		local btnCorner = Instance.new("UICorner")
+		btnCorner.CornerRadius = UDim.new(0, 4)
+		btnCorner.Parent = button
+
+		button.MouseButton1Click:Connect(function()
+			if callback() and not options.Followup then
+				promptBg:Destroy()
+			end
+		end)
+	end
+end
+
+--// Notification
+function GUI:Notification(options)
+	local notifFrame = Instance.new("Frame")
+	notifFrame.Size = UDim2.new(0.2, 0, 0, 60)
+	notifFrame.Position = UDim2.new(0.5, 0, 0, -60)
+	notifFrame.AnchorPoint = Vector2.new(0.5, 0)
+	notifFrame.BackgroundColor3 = UI_PRIMARY_COLOR
+	notifFrame.ZIndex = 10
+	notifFrame.Parent = self.ScreenGui
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = notifFrame
+
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, -10, 0.5, 0)
+	title.Position = UDim2.fromOffset(10, 0)
+	title.BackgroundTransparency = 1
+	title.Text = options.Title or "Notification"
+	title.Font = UI_FONT
+	title.TextColor3 = UI_TEXT_COLOR
+	title.TextSize = 16
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.Parent = notifFrame
+
+	local text = Instance.new("TextLabel")
+	text.Size = UDim2.new(1, -10, 0.5, 0)
+	text.Position = UDim2.new(0, 10, 0.5, 0)
+	text.BackgroundTransparency = 1
+	text.Text = options.Text or ""
+	text.Font = UI_FONT
+	text.TextColor3 = Color3.fromRGB(200, 200, 200)
+	text.TextSize = 14
+	text.TextXAlignment = Enum.TextXAlignment.Left
+	text.Parent = notifFrame
+
+	TweenService:Create(notifFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Position = UDim2.new(0.5, 0, 0.02, 0) }):Play()
+
+	task.delay(options.Duration or 3, function()
+		local tween = TweenService:Create(notifFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In), { Position = UDim2.new(0.5, 0, 0, -60) })
+		tween:Play()
+		tween.Completed:Connect(function()
+			notifFrame:Destroy()
+			if options.Callback then options.Callback() end
+		end)
+	end)
+end
+
+--// Credit
+function GUI:Credit(options)
+    -- Find or create a dedicated credits tab
+    local creditsTab
+    for _, tab in ipairs(self.Tabs) do
+        if tab.Name == "Credits" then
+            creditsTab = tab
             break
         end
     end
-    
-    if hasActiveFilters then
-        local plantsToHighlight = {}
-        local farm = workspace:FindFirstChild("Farm")
-        if farm then
-            local farmSection = farm:FindFirstChild("Farm")
-            if farmSection then
-                local important = farmSection:FindFirstChild("Important")
-                if important then
-                    local plantsPhysical = important:FindFirstChild("Plants_Physical")
-                    if plantsPhysical then
-                        for _, plantModel in ipairs(plantsPhysical:GetChildren()) do
-                            if plantModel:IsA("Model") then
-                                for filterName, isActive in pairs(GlobalState.manualPlantFilters) do
-                                    if isActive and string.find(plantModel.Name:lower(), filterName:lower()) then
-                                        table.insert(plantsToHighlight, plantModel)
-                                        break
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        
-        for _, plantModel in ipairs(plantsToHighlight) do
-            local rootPart = plantModel:FindFirstChild("Main") or plantModel:FindFirstChildWhichIsA("BasePart")
-            if rootPart then
-                local billboard = Instance.new("BillboardGui")
-                billboard.Name = "PlantESP_Billboard"
-                billboard.Parent = rootPart
-                billboard.Size = UDim2.new(0, 80, 0, 20)
-                billboard.StudsOffset = Vector3.new(0, 3, 0)
-                billboard.AlwaysOnTop = true
-                billboard.LightInfluence = 0
-                billboard.MaxDistance = math.huge
-                
-                local frame = Instance.new("Frame")
-                frame.Parent = billboard
-                frame.Size = UDim2.new(1, 0, 1, 0)
-                frame.BackgroundColor3 = CONFIG.THEME.BACKGROUND
-                frame.BackgroundTransparency = 0.2
-                frame.BorderSizePixel = 0
-                createCorner(frame, 4)
-                
-                local label = Instance.new("TextLabel")
-                label.Parent = frame
-                label.Size = UDim2.new(1, 0, 1, 0)
-                label.BackgroundTransparency = 1
-                label.Text = plantModel.Name
-                label.TextColor3 = CONFIG.THEME.SUCCESS
-                label.TextScaled = true
-                label.Font = Enum.Font.GothamBold
-                label.TextStrokeTransparency = 0
-                label.TextStrokeColor3 = Color3.new(0, 0, 0)
-                
-                table.insert(GlobalState.espObjects, billboard)
-            end
-        end
-    else
-        if plant then
-            local rootPart = plant:FindFirstChild("Main") or plant:FindFirstChildWhichIsA("BasePart")
-            if not rootPart then return end
-            
-            local billboard = Instance.new("BillboardGui")
-            billboard.Name = "PlantESP_Billboard"
-            billboard.Parent = rootPart
-            billboard.Size = UDim2.new(0, 80, 0, 20)
-            billboard.StudsOffset = Vector3.new(0, 3, 0)
-            billboard.AlwaysOnTop = true
-            billboard.LightInfluence = 0
-            billboard.MaxDistance = math.huge
-            
-            local frame = Instance.new("Frame")
-            frame.Parent = billboard
-            frame.Size = UDim2.new(1, 0, 1, 0)
-            frame.BackgroundColor3 = CONFIG.THEME.BACKGROUND
-            frame.BackgroundTransparency = 0.2
-            frame.BorderSizePixel = 0
-            createCorner(frame, 4)
-            
-            local label = Instance.new("TextLabel")
-            label.Parent = frame
-            label.Size = UDim2.new(1, 0, 1, 0)
-            label.BackgroundTransparency = 1
-            label.Text = plant.Name
-            label.TextColor3 = CONFIG.THEME.SUCCESS
-            label.TextScaled = true
-            label.Font = Enum.Font.GothamBold
-            label.TextStrokeTransparency = 0
-            label.TextStrokeColor3 = Color3.new(0, 0, 0)
-            
-            table.insert(GlobalState.espObjects, billboard)
-        end
+    if not creditsTab then
+        creditsTab = self:Tab("Credits")
     end
+
+    local frame = createComponentFrame(creditsTab, 80)
+    frame.BackgroundColor3 = UI_PRIMARY_COLOR
+    
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, -20, 0, 20)
+    nameLabel.Position = UDim2.fromOffset(10, 5)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Font = UI_FONT
+    nameLabel.Text = options.Name or "Unknown"
+    nameLabel.TextColor3 = UI_ACCENT_COLOR
+    nameLabel.TextSize = 18
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.Parent = frame
+    
+    local descLabel = Instance.new("TextLabel")
+    descLabel.Size = UDim2.new(1, -20, 0, 20)
+    descLabel.Position = UDim2.fromOffset(10, 25)
+    descLabel.BackgroundTransparency = 1
+    descLabel.Font = UI_FONT
+    descLabel.Text = options.Description or ""
+    descLabel.TextColor3 = UI_TEXT_COLOR
+    descLabel.TextSize = 14
+    descLabel.TextXAlignment = Enum.TextXAlignment.Left
+    descLabel.Parent = frame
+    
+    local socialText = ""
+    if options.V3rm then socialText = socialText .. "V3rm: " .. options.V3rm .. " " end
+    if options.Discord then socialText = socialText .. "Discord: " .. options.Discord end
+    
+    local socialLabel = Instance.new("TextLabel")
+    socialLabel.Size = UDim2.new(1, -20, 0, 20)
+    socialLabel.Position = UDim2.fromOffset(10, 45)
+    socialLabel.BackgroundTransparency = 1
+    socialLabel.Font = UI_FONT
+    socialLabel.Text = socialText
+    socialLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    socialLabel.TextSize = 12
+    socialLabel.TextXAlignment = Enum.TextXAlignment.Left
+    socialLabel.Parent = frame
 end
 
-local function updateESP()
-    if GlobalState.PlantESP and GlobalState.selectedPlant then
-        createESP(GlobalState.selectedPlant)
-    else
-        clearESP()
-    end
-end
 
--- GUI Creation Functions
-function GUI:CreateWindow(title)
-    local Window = {}
-    Window.Tabs = {}
-    
-    -- Main ScreenGui
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "PHCzScript"
-    screenGui.ResetOnSpawn = false
-    screenGui.Parent = playerGui
-    
-    -- Main Frame
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 500, 0, 400)
-    mainFrame.Position = UDim2.new(0.5, -250, 0.5, -200)
-    mainFrame.BackgroundColor3 = CONFIG.THEME.BACKGROUND
-    mainFrame.BorderSizePixel = 0
-    mainFrame.Parent = screenGui
-    createCorner(mainFrame, 12)
-    createStroke(mainFrame, CONFIG.THEME.PRIMARY, 2)
-    
-    -- Title Bar
-    local titleBar = Instance.new("Frame")
-    titleBar.Name = "TitleBar"
-    titleBar.Size = UDim2.new(1, 0, 0, 40)
-    titleBar.Position = UDim2.new(0, 0, 0, 0)
-    titleBar.BackgroundColor3 = CONFIG.THEME.PRIMARY
-    titleBar.BorderSizePixel = 0
-    titleBar.Parent = mainFrame
-    createCorner(titleBar, 12)
-    
-    -- Title Label
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.Name = "Title"
-    titleLabel.Size = UDim2.new(1, -100, 1, 0)
-    titleLabel.Position = UDim2.new(0, 10, 0, 0)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = title or "PHCz Script"
-    titleLabel.TextColor3 = CONFIG.THEME.TEXT
-    titleLabel.TextScaled = true
-    titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    titleLabel.Parent = titleBar
-    
-    -- Close Button
-    local closeButton = Instance.new("TextButton")
-    closeButton.Name = "CloseButton"
-    closeButton.Size = UDim2.new(0, 30, 0, 30)
-    closeButton.Position = UDim2.new(1, -40, 0, 5)
-    closeButton.BackgroundColor3 = CONFIG.THEME.DANGER
-    closeButton.BorderSizePixel = 0
-    closeButton.Text = "×"
-    closeButton.TextColor3 = CONFIG.THEME.TEXT
-    closeButton.TextScaled = true
-    closeButton.Font = Enum.Font.GothamBold
-    closeButton.Parent = titleBar
-    createCorner(closeButton, 6)
-    
-    closeButton.MouseButton1Click:Connect(function()
-        local closeTween = createTween(mainFrame, {Size = UDim2.new(0, 0, 0, 0)}, 0.3)
-        closeTween:Play()
-        closeTween.Completed:Connect(function()
-            screenGui:Destroy()
-        end)
-    end)
-    
-    -- Minimize Button
-    local minimizeButton = Instance.new("TextButton")
-    minimizeButton.Name = "MinimizeButton"
-    minimizeButton.Size = UDim2.new(0, 30, 0, 30)
-    minimizeButton.Position = UDim2.new(1, -75, 0, 5)
-    minimizeButton.BackgroundColor3 = CONFIG.THEME.WARNING
-    minimizeButton.BorderSizePixel = 0
-    minimizeButton.Text = "−"
-    minimizeButton.TextColor3 = CONFIG.THEME.TEXT
-    minimizeButton.TextScaled = true
-    minimizeButton.Font = Enum.Font.GothamBold
-    minimizeButton.Parent = titleBar
-    createCorner(minimizeButton, 6)
-    
-    local isMinimized = false
-    minimizeButton.MouseButton1Click:Connect(function()
-        isMinimized = not isMinimized
-        local targetSize = isMinimized and UDim2.new(0, 500, 0, 40) or UDim2.new(0, 500, 0, 400)
-        local minimizeTween = createTween(mainFrame, {Size = targetSize}, 0.3)
-        minimizeTween:Play()
-    end)
-    
-    -- Tab Container
-    local tabContainer = Instance.new("Frame")
-    tabContainer.Name = "TabContainer"
-    tabContainer.Size = UDim2.new(0, 120, 1, -50)
-    tabContainer.Position = UDim2.new(0, 10, 0, 50)
-    tabContainer.BackgroundColor3 = CONFIG.THEME.SECONDARY
-    tabContainer.BorderSizePixel = 0
-    tabContainer.Parent = mainFrame
-    createCorner(tabContainer, 8)
-    
-    -- Content Container
-    local contentContainer = Instance.new("Frame")
-    contentContainer.Name = "ContentContainer"
-    contentContainer.Size = UDim2.new(1, -150, 1, -50)
-    contentContainer.Position = UDim2.new(0, 140, 0, 50)
-    contentContainer.BackgroundTransparency = 1
-    contentContainer.BorderSizePixel = 0
-    contentContainer.Parent = mainFrame
-    
-    -- Drag functionality
-    local dragToggle = nil
-    local dragSpeed = 0.25
-    local dragStart = nil
-    local startPos = nil
-    
-    local function updateInput(input)
-        local delta = input.Position - dragStart
-        local position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
-                                  startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        createTween(mainFrame, {Position = position}, dragSpeed):Play()
-    end
-    
-    titleBar.InputBegan:Connect(function(input)
-        if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then 
-            dragToggle = true
-            dragStart = input.Position
-            startPos = mainFrame.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragToggle = false
-                end
-            end)
-        end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            if dragToggle then
-                updateInput(input)
-            end
-        end
-    end)
-    
-    -- Window Methods
-    function Window:CreateTab(name)
-        local Tab = {}
-        Tab.Elements = {}
-        
-        -- Tab Button
-        local tabButton = Instance.new("TextButton")
-        tabButton.Name = name .. "Tab"
-        tabButton.Size = UDim2.new(1, -10, 0, 30)
-        tabButton.Position = UDim2.new(0, 5, 0, 5 + (#Window.Tabs * 35))
-        tabButton.BackgroundColor3 = CONFIG.THEME.BACKGROUND
-        tabButton.BorderSizePixel = 0
-        tabButton.Text = name
-        tabButton.TextColor3 = CONFIG.THEME.TEXT
-        tabButton.TextScaled = true
-        tabButton.Font = Enum.Font.Gotham
-        tabButton.Parent = tabContainer
-        createCorner(tabButton, 6)
-        
-        -- Tab Content
-        local tabContent = Instance.new("ScrollingFrame")
-        tabContent.Name = name .. "Content"
-        tabContent.Size = UDim2.new(1, 0, 1, 0)
-        tabContent.Position = UDim2.new(0, 0, 0, 0)
-        tabContent.BackgroundTransparency = 1
-        tabContent.BorderSizePixel = 0
-        tabContent.ScrollBarThickness = 4
-        tabContent.ScrollBarImageColor3 = CONFIG.THEME.PRIMARY
-        tabContent.CanvasSize = UDim2.new(0, 0, 0, 0)
-        tabContent.Visible = false
-        tabContent.Parent = contentContainer
-        
-        -- Tab switching
-        tabButton.MouseButton1Click:Connect(function()
-            for _, tab in pairs(Window.Tabs) do
-                tab.Content.Visible = false
-                tab.Button.BackgroundColor3 = CONFIG.THEME.BACKGROUND
-            end
-            tabContent.Visible = true
-            tabButton.BackgroundColor3 = CONFIG.THEME.PRIMARY
-        end)
-        
-        -- Auto-select first tab
-        if #Window.Tabs == 0 then
-            tabContent.Visible = true
-            tabButton.BackgroundColor3 = CONFIG.THEME.PRIMARY
-        end
-        
-        local elementY = 0
-        
-        -- Tab Methods
-        function Tab:Toggle(options)
-            local toggle = Instance.new("Frame")
-            toggle.Name = options.Name .. "Toggle"
-            toggle.Size = UDim2.new(1, -20, 0, 40)
-            toggle.Position = UDim2.new(0, 10, 0, elementY)
-            toggle.BackgroundColor3 = CONFIG.THEME.SECONDARY
-            toggle.BorderSizePixel = 0
-            toggle.Parent = tabContent
-            createCorner(toggle, 8)
-            
-            local label = Instance.new("TextLabel")
-            label.Name = "Label"
-            label.Size = UDim2.new(1, -60, 1, 0)
-            label.Position = UDim2.new(0, 10, 0, 0)
-            label.BackgroundTransparency = 1
-            label.Text = options.Name
-            label.TextColor3 = CONFIG.THEME.TEXT
-            label.TextScaled = true
-            label.Font = Enum.Font.Gotham
-            label.TextXAlignment = Enum.TextXAlignment.Left
-            label.Parent = toggle
-            
-            local button = Instance.new("TextButton")
-            button.Name = "Button"
-            button.Size = UDim2.new(0, 40, 0, 25)
-            button.Position = UDim2.new(1, -50, 0.5, -12.5)
-            button.BackgroundColor3 = options.StartingState and CONFIG.THEME.SUCCESS or CONFIG.THEME.DANGER
-            button.BorderSizePixel = 0
-            button.Text = options.StartingState and "ON" or "OFF"
-            button.TextColor3 = CONFIG.THEME.TEXT
-            button.TextScaled = true
-            button.Font = Enum.Font.GothamBold
-            button.Parent = toggle
-            createCorner(button, 6)
-            
-            local state = options.StartingState or false
-            
-            button.MouseButton1Click:Connect(function()
-                state = not state
-                button.Text = state and "ON" or "OFF"
-                button.BackgroundColor3 = state and CONFIG.THEME.SUCCESS or CONFIG.THEME.DANGER
-                
-                local buttonTween = createTween(button, {Size = UDim2.new(0, 45, 0, 30)}, 0.1)
-                buttonTween:Play()
-                buttonTween.Completed:Connect(function()
-                    createTween(button, {Size = UDim2.new(0, 40, 0, 25)}, 0.1):Play()
-                end)
-                
-                if options.Callback then
-                    options.Callback(state)
-                end
-            end)
-            
-            elementY = elementY + 50
-            tabContent.CanvasSize = UDim2.new(0, 0, 0, elementY)
-        end
-        
-        function Tab:Button(options)
-            local button = Instance.new("TextButton")
-            button.Name = options.Name .. "Button"
-            button.Size = UDim2.new(1, -20, 0, 40)
-            button.Position = UDim2.new(0, 10, 0, elementY)
-            button.BackgroundColor3 = CONFIG.THEME.PRIMARY
-            button.BorderSizePixel = 0
-            button.Text = options.Name
-            button.TextColor3 = CONFIG.THEME.TEXT
-            button.TextScaled = true
-            button.Font = Enum.Font.GothamBold
-            button.Parent = tabContent
-            createCorner(button, 8)
-            
-            button.MouseButton1Click:Connect(function()
-                local buttonTween = createTween(button, {Size = UDim2.new(1, -15, 0, 45)}, 0.1)
-                buttonTween:Play()
-                buttonTween.Completed:Connect(function()
-                    createTween(button, {Size = UDim2.new(1, -20, 0, 40)}, 0.1):Play()
-                end)
-                
-                if options.Callback then
-                    options.Callback()
-                end
-            end)
-            
-            elementY = elementY + 50
-            tabContent.CanvasSize = UDim2.new(0, 0, 0, elementY)
-        end
-        
-        function Tab:Dropdown(options)
-            local dropdown = {}
-            dropdown.Options = options.Options or {}
-            
-            local dropdownFrame = Instance.new("Frame")
-            dropdownFrame.Name = options.Name .. "Dropdown"
-            dropdownFrame.Size = UDim2.new(1, -20, 0, 40)
-            dropdownFrame.Position = UDim2.new(0, 10, 0, elementY)
-            dropdownFrame.BackgroundColor3 = CONFIG.THEME.SECONDARY
-            dropdownFrame.BorderSizePixel = 0
-            dropdownFrame.Parent = tabContent
-            createCorner(dropdownFrame, 8)
-            
-            local label = Instance.new("TextLabel")
-            label.Name = "Label"
-            label.Size = UDim2.new(1, -30, 1, 0)
-            label.Position = UDim2.new(0, 10, 0, 0)
-            label.BackgroundTransparency = 1
-            label.Text = options.Name
-            label.TextColor3 = CONFIG.THEME.TEXT
-            label.TextScaled = true
-            label.Font = Enum.Font.Gotham
-            label.TextXAlignment = Enum.TextXAlignment.Left
-            label.Parent = dropdownFrame
-            
-            local dropButton = Instance.new("TextButton")
-            dropButton.Name = "DropButton"
-            dropButton.Size = UDim2.new(0, 20, 0, 20)
-            dropButton.Position = UDim2.new(1, -30, 0.5, -10)
-            dropButton.BackgroundColor3 = CONFIG.THEME.PRIMARY
-            dropButton.BorderSizePixel = 0
-            dropButton.Text = "▼"
-            dropButton.TextColor3 = CONFIG.THEME.TEXT
-            dropButton.TextScaled = true
-            dropButton.Font = Enum.Font.GothamBold
-            dropButton.Parent = dropdownFrame
-            createCorner(dropButton, 4)
-            
-            local optionsFrame = Instance.new("Frame")
-            optionsFrame.Name = "OptionsFrame"
-            optionsFrame.Size = UDim2.new(1, 0, 0, 0)
-            optionsFrame.Position = UDim2.new(0, 0, 1, 2)
-            optionsFrame.BackgroundColor3 = CONFIG.THEME.BACKGROUND
-            optionsFrame.BorderSizePixel = 0
-            optionsFrame.Visible = false
-            optionsFrame.Parent = dropdownFrame
-            createCorner(optionsFrame, 6)
-            
-            local optionsScroll = Instance.new("ScrollingFrame")
-            optionsScroll.Name = "OptionsScroll"
-            optionsScroll.Size = UDim2.new(1, 0, 1, 0)
-            optionsScroll.Position = UDim2.new(0, 0, 0, 0)
-            optionsScroll.BackgroundTransparency = 1
-            optionsScroll.BorderSizePixel = 0
-            optionsScroll.ScrollBarThickness = 2
-            optionsScroll.ScrollBarImageColor3 = CONFIG.THEME.PRIMARY
-            optionsScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-            optionsScroll.Parent = optionsFrame
-            
-            local isOpen = false
-            
-            dropButton.MouseButton1Click:Connect(function()
-                isOpen = not isOpen
-                dropButton.Text = isOpen and "▲" or "▼"
-                
-                if isOpen then
-                    optionsFrame.Visible = true
-                    local targetHeight = math.min(#dropdown.Options * 30, 150)
-                    optionsFrame.Size = UDim2.new(1, 0, 0, targetHeight)
-                    optionsScroll.CanvasSize = UDim2.new(0, 0, 0, #dropdown.Options * 30)
-                else
-                    optionsFrame.Visible = false
-                    optionsFrame.Size = UDim2.new(1, 0, 0, 0)
-                end
-            end)
-            
-            function dropdown:Refresh(newOptions)
-                dropdown.Options = newOptions or {}
-                
-                -- Clear existing options
-                for _, child in ipairs(optionsScroll:GetChildren()) do
-                    if child:IsA("TextButton") then
-                        child:Destroy()
-                    end
-                end
-                
-                -- Create new options
-                for i, option in ipairs(dropdown.Options) do
-                    local optionButton = Instance.new("TextButton")
-                    optionButton.Name = "Option" .. i
-                    optionButton.Size = UDim2.new(1, -4, 0, 28)
-                    optionButton.Position = UDim2.new(0, 2, 0, (i-1) * 30 + 1)
-                    optionButton.BackgroundColor3 = CONFIG.THEME.SECONDARY
-                    optionButton.BorderSizePixel = 0
-                    optionButton.Text = option
-                    optionButton.TextColor3 = CONFIG.THEME.TEXT
-                    optionButton.TextScaled = true
-                    optionButton.Font = Enum.Font.Gotham
-                    optionButton.Parent = optionsScroll
-                    createCorner(optionButton, 4)
-                    
-                    optionButton.MouseButton1Click:Connect(function()
-                        label.Text = options.Name .. ": " .. option
-                        isOpen = false
-                        dropButton.Text = "▼"
-                        optionsFrame.Visible = false
-                        optionsFrame.Size = UDim2.new(1, 0, 0, 0)
-                        
-                        if options.Callback then
-                            options.Callback(option)
-                        end
-                    end)
-                end
-                
-                optionsScroll.CanvasSize = UDim2.new(0, 0, 0, #dropdown.Options * 30)
-            end
-            
-            -- Initialize dropdown
-            dropdown:Refresh(dropdown.Options)
-            
-            elementY = elementY + 50
-            tabContent.CanvasSize = UDim2.new(0, 0, 0, elementY)
-            
-            return dropdown
-        end
-        
-        function Tab:Textbox(options)
-            local textboxFrame = Instance.new("Frame")
-            textboxFrame.Name = options.Name .. "Textbox"
-            textboxFrame.Size = UDim2.new(1, -20, 0, 40)
-            textboxFrame.Position = UDim2.new(0, 10, 0, elementY)
-            textboxFrame.BackgroundColor3 = CONFIG.THEME.SECONDARY
-            textboxFrame.BorderSizePixel = 0
-            textboxFrame.Parent = tabContent
-            createCorner(textboxFrame, 8)
-            
-            local label = Instance.new("TextLabel")
-            label.Name = "Label"
-            label.Size = UDim2.new(0.4, -5, 1, 0)
-            label.Position = UDim2.new(0, 10, 0, 0)
-            label.BackgroundTransparency = 1
-            label.Text = options.Name
-            label.TextColor3 = CONFIG.THEME.TEXT
-            label.TextScaled = true
-            label.Font = Enum.Font.Gotham
-            label.TextXAlignment = Enum.TextXAlignment.Left
-            label.Parent = textboxFrame
-            
-            local textBox = Instance.new("TextBox")
-            textBox.Name = "TextBox"
-            textBox.Size = UDim2.new(0.6, -10, 0, 25)
-            textBox.Position = UDim2.new(0.4, 5, 0.5, -12.5)
-            textBox.BackgroundColor3 = CONFIG.THEME.BACKGROUND
-            textBox.BorderSizePixel = 0
-            textBox.Text = ""
-            textBox.PlaceholderText = options.PlaceholderText or "Enter text..."
-            textBox.TextColor3 = CONFIG.THEME.TEXT
-            textBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
-            textBox.TextScaled = true
-            textBox.Font = Enum.Font.Gotham
-            textBox.Parent = textboxFrame
-            createCorner(textBox, 6)
-            createStroke(textBox, CONFIG.THEME.PRIMARY, 1)
-            
-            textBox.FocusLost:Connect(function(enterPressed)
-                if enterPressed and options.Callback then
-                    options.Callback(textBox.Text)
-                end
-            end)
-            
-            elementY = elementY + 50
-            tabContent.CanvasSize = UDim2.new(0, 0, 0, elementY)
-        end
-        
-        Window.Tabs[name] = {
-            Button = tabButton,
-            Content = tabContent,
-            Tab = Tab
-        }
-        
-        return Tab
-    end
-    
-    return Window
-end
-
--- Initialize the main script
-local function initializeScript()
-    local Window = GUI:CreateWindow("PHCz Farming Script")
-    
-    -- Create Tabs
-    local FarmTab = Window:CreateTab("Farm")
-    local EventTab = Window:CreateTab("Event") 
-    local EggTab = Window:CreateTab("Eggs")
-    local TeleportTab = Window:CreateTab("Teleport")
-    local ScannerTab = Window:CreateTab("Plant Scanner")
-    
-    -- Farm Tab Elements
-    FarmTab:Toggle{
-        Name = "Sell on Hand",
-        StartingState = false,
-        Callback = function(state)
-            GlobalState.Sellinv = state
-            print("Sell inv on Hand:", state)
-            if (state or GlobalState.SellAllFruit or GlobalState.FeedonHand or GlobalState.FeedAll) and not GlobalState.running1 then
-                GlobalState.running1 = true
-                task.spawn(feedItems)
-            end
-        end
-    }
-    
-    FarmTab:Toggle{
-        Name = "Sell All Fruit",
-        StartingState = false,
-        Callback = function(state)
-            GlobalState.SellAllFruit = state
-            print("Sell All Fruit:", state)
-            if (state or GlobalState.Sellinv or GlobalState.FeedonHand or GlobalState.FeedAll) and not GlobalState.running1 then
-                GlobalState.running1 = true
-                task.spawn(feedItems)
-            end
-        end
-    }
-    
-    FarmTab:Toggle{
-        Name = "Auto Buy All Seeds",
-        StartingState = false,
-        Callback = function(state)
-            GlobalState.AutoBuySeeds = state
-            if state and not GlobalState.runningBuySeeds then
-                GlobalState.runningBuySeeds = true
-                task.spawn(buyAllSeeds)
-            end
-        end
-    }
-    
-    FarmTab:Toggle{
-        Name = "Auto Buy All Gears",
-        StartingState = false,
-        Callback = function(state)
-            GlobalState.AutoBuyGears = state
-            if state and not GlobalState.runningBuyGears then
-                GlobalState.runningBuyGears = true
-                task.spawn(buyAllGears)
-            end
-        end
-    }
-    
-    -- Event Tab Elements
-    EventTab:Toggle{
-        Name = "Feed on Hand",
-        StartingState = false,
-        Callback = function(state)
-            GlobalState.FeedonHand = state
-            print("On Hand Feeded:", state)
-            if (state or GlobalState.FeedAll or GlobalState.Sellinv or GlobalState.SellAllFruit) and not GlobalState.running1 then
-                GlobalState.running1 = true
-                task.spawn(feedItems)
-            end
-        end
-    }
-    
-    EventTab:Toggle{
-        Name = "Feed All",
-        StartingState = false,
-        Callback = function(state)
-            GlobalState.FeedAll = state
-            print("All Feeded:", state)
-            if (state or GlobalState.FeedonHand or GlobalState.Sellinv or GlobalState.SellAllFruit) and not GlobalState.running1 then
-                GlobalState.running1 = true
-                task.spawn(feedItems)
-            end
-        end
-    }
-    
-    -- Egg Tab Elements
-    EggTab:Toggle{
-        Name = "Auto Hatch Eggs",
-        StartingState = false,
-        Callback = function(state)
-            GlobalState.AutoHatch = state
-            print("Auto Hatch:", state)
-            if state and not GlobalState.running2 then
-                GlobalState.running2 = true
-                task.spawn(hatchEggs)
-            end
-        end
-    }
-    
-    -- Teleport Tab Elements
-    for _, location in ipairs(DATA.teleportLocations) do
-        TeleportTab:Button{
-            Name = location.name,
-            Callback = function()
-                teleportPlayer(location.position)
-            end
-        }
-    end
-    
-    -- Plant Scanner Tab Elements
-    local plantsDropdown
-    local plantFilterDropdown
-    local lastScanTime = 0
-    local scanCooldown = 5
-    
-    -- Helper functions for plant scanning
-    local function getFilteredPlantOptions()
-        local filtered = {}
-        for _, plantType in ipairs(DATA.availablePlantTypes) do
-            if GlobalState.searchText == "" or string.find(plantType:lower(), GlobalState.searchText:lower()) then
-                local status = GlobalState.manualPlantFilters[plantType] and " ✓" or ""
-                table.insert(filtered, plantType .. status)
-            end
-        end
-        return filtered
-    end
-    
-    local function getSelectedFiltersText()
-        local selected = {}
-        for plantType, isSelected in pairs(GlobalState.manualPlantFilters) do
-            if isSelected then
-                table.insert(selected, plantType)
-            end
-        end
-        if #selected == 0 then
-            return "No filters selected"
-        elseif #selected <= 3 then
-            return table.concat(selected, ", ")
-        else
-            return selected[1] .. ", " .. selected[2] .. " (+" .. (#selected - 2) .. " more)"
-        end
-    end
-    
-    local function scanPlants()
-        local plants = {}
-        local farm = workspace:FindFirstChild("Farm")
-        if not farm then return plants end
-        
-        local farmSection = farm:FindFirstChild("Farm")
-        if not farmSection then return plants end
-        
-        local important = farmSection:FindFirstChild("Important")
-        if not important then return plants end
-        
-        local plantsPhysical = important:FindFirstChild("Plants_Physical")
-        if not plantsPhysical then return plants end
-        
-        for _, plant in ipairs(plantsPhysical:GetChildren()) do
-            if plant:IsA("Model") then
-                local shouldInclude = true
-                local hasActiveFilters = false
-                
-                for filterName, isActive in pairs(GlobalState.manualPlantFilters) do
-                    if isActive then
-                        hasActiveFilters = true
-                        break
-                    end
-                end
-                
-                if hasActiveFilters then
-                    shouldInclude = false
-                    for filterName, isActive in pairs(GlobalState.manualPlantFilters) do
-                        if isActive and string.find(plant.Name:lower(), filterName:lower()) then
-                            shouldInclude = true
-                            break
-                        end
-                    end
-                end
-                
-                if shouldInclude then
-                    local rootPart = plant:FindFirstChild("Main") or plant:FindFirstChildWhichIsA("BasePart")
-                    local position = rootPart and rootPart.Position or Vector3.new(0, 0, 0)
-                    local posString = string.format("(%d, %d, %d)", 
-                                                  math.floor(position.X), 
-                                                  math.floor(position.Y), 
-                                                  math.floor(position.Z))
-                    
-                    table.insert(plants, {
-                        name = plant.Name.." "..posString,
-                        model = plant,
-                        position = position
-                    })
-                end
-            end
-        end
-        
-        return plants
-    end
-    
-    -- Plant Scanner Elements
-    ScannerTab:Toggle{
-        Name = "Plant ESP",
-        StartingState = false,
-        Callback = function(state)
-            GlobalState.PlantESP = state
-            print("Plant ESP:", state)
-            updateESP()
-        end
-    }
-    
-    ScannerTab:Textbox{
-        Name = "Search Plants",
-        PlaceholderText = "Type to search...",
-        Callback = function(text)
-            GlobalState.searchText = text
-            if plantFilterDropdown then
-                local filteredOptions = getFilteredPlantOptions()
-                plantFilterDropdown:Refresh(filteredOptions)
-            end
-        end
-    }
-    
-    plantFilterDropdown = ScannerTab:Dropdown{
-        Name = "Plant Filters",
-        Options = getFilteredPlantOptions(),
-        Callback = function(selected)
-            local plantName = selected:gsub(" ✓", "")
-            
-            if GlobalState.manualPlantFilters[plantName] == nil then
-                GlobalState.manualPlantFilters[plantName] = true
-            else
-                GlobalState.manualPlantFilters[plantName] = not GlobalState.manualPlantFilters[plantName]
-            end
-            
-            print("Filter toggled:", plantName, "=", GlobalState.manualPlantFilters[plantName])
-            
-            local filteredOptions = getFilteredPlantOptions()
-            plantFilterDropdown:Refresh(filteredOptions)
-            
-            if GlobalState.PlantESP then
-                updateESP()
-            end
-        end
-    }
-    
-    ScannerTab:Button{
-        Name = "Clear All Filters",
-        Callback = function()
-            GlobalState.manualPlantFilters = {}
-            print("All plant filters cleared")
-            
-            if plantFilterDropdown then
-                local filteredOptions = getFilteredPlantOptions()
-                plantFilterDropdown:Refresh(filteredOptions)
-            end
-            
-            if GlobalState.PlantESP then
-                updateESP()
-            end
-        end
-    }
-    
-    ScannerTab:Button{
-        Name = "Scan Plants",
-        Callback = function()
-            if os.time() - lastScanTime < scanCooldown then
-                print(string.format("Please wait %d more seconds before scanning again", 
-                      scanCooldown - (os.time() - lastScanTime)))
-                return
-            end
-            
-            lastScanTime = os.time()
-            local plants = scanPlants()
-            
-            local options = {}
-            for i, plant in ipairs(plants) do
-                table.insert(options, plant.name)
-            end
-            
-            if #options == 0 then
-                table.insert(options, "No plants found!")
-            end
-            
-            if plantsDropdown then
-                plantsDropdown:Refresh(options)
-            else
-                plantsDropdown = ScannerTab:Dropdown{
-                    Name = "Select Plant",
-                    Options = options,
-                    Callback = function(selected)
-                        for _, plant in ipairs(plants) do
-                            if plant.name == selected then
-                                GlobalState.selectedPlant = plant.model
-                                updateESP()
-                                
-                                local char = player.Character
-                                if char and char:FindFirstChild("HumanoidRootPart") then
-                                    char.HumanoidRootPart.CFrame = CFrame.new(plant.position + Vector3.new(0, 5, 0))
-                                    print("Teleported to:", plant.name)
-                                end
-                                break
-                            end
-                        end
-                    end
-                }
-            end
-            
-            print(string.format("Found %d plants", #options))
-        end
-    }
-    
-    -- Auto-scan every 30 seconds
-    task.spawn(function()
-        while task.wait(30) do
-            if plantsDropdown then
-                local plants = scanPlants()
-                local options = {}
-                for i, plant in ipairs(plants) do
-                    table.insert(options, plant.name)
-                end
-                if #options > 0 then
-                    plantsDropdown:Refresh(options)
-                end
-            end
-        end
-    end)
-    
-    -- Cleanup on script end
-    Players.PlayerRemoving:Connect(function(playerLeaving)
-        if playerLeaving == player then
-            clearESP()
-        end
-    end)
-    
-    print("PHCz Farming Script Loaded Successfully!")
-end
-
--- Auto-initialize when the module is loaded
-initializeScript()
-
-return GUI
+--// Parent the ScreenGui to the player's PlayerGui
+local Player = game.Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+local MyGUI = GUI.new()
+MyGUI.ScreenGui.Parent = PlayerGui
