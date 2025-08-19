@@ -198,24 +198,32 @@ ZoomButton.MouseButton1Click:Connect(function()
 end)
 
 --// Tab container with modern styling
-local TabContainer = Instance.new("Frame")
+local TabContainer = Instance.new("ScrollingFrame")
 TabContainer.Name = "TabContainer"
 TabContainer.Size = UDim2.new(0, 140, 1, -40)
 TabContainer.Position = UDim2.new(0, 0, 0, 40)
 TabContainer.BackgroundColor3 = Color3.fromRGB(15, 17, 22)
 TabContainer.BorderSizePixel = 0
+TabContainer.ScrollBarThickness = 0
+TabContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
 TabContainer.Parent = MainFrame
 
 local tabPadding = Instance.new("UIPadding")
 tabPadding.PaddingTop = UDim.new(0, 10)
 tabPadding.PaddingLeft = UDim.new(0, 10)
 tabPadding.PaddingRight = UDim.new(0, 10)
+tabPadding.PaddingBottom = UDim.new(0, 10)
 tabPadding.Parent = TabContainer
 
 local tabLayout = Instance.new("UIListLayout")
 tabLayout.Padding = UDim.new(0, 8)
 tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
 tabLayout.Parent = TabContainer
+
+-- Update tab container canvas size when tabs are added
+tabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    TabContainer.CanvasSize = UDim2.new(0, 0, 0, tabLayout.AbsoluteContentSize.Y + 20)
+end)
 
 --// Content container with improved styling
 local ContentContainer = Instance.new("Frame")
@@ -324,8 +332,8 @@ function GUI:CreateWindow(title)
 
         local tabButton = Instance.new("TextButton")
         tabButton.Name = name .. "Button"
-        tabButton.Size = UDim2.new(1, -10, 0, 40)
-        tabButton.Position = UDim2.new(0, 5, 0, 0)
+        tabButton.Size = UDim2.new(1, 0, 0, 40)
+        tabButton.Position = UDim2.new(0, 0, 0, 0)
         tabButton.BackgroundColor3 = Color3.fromRGB(35, 37, 45)
         tabButton.Text = name
         tabButton.Font = Enum.Font.GothamSemibold
@@ -350,12 +358,16 @@ function GUI:CreateWindow(title)
         end)
 
         tabButton.MouseButton1Click:Connect(function()
+            -- Hide current active tab
             if activeTab then
                 activeTab.Visible = false
                 tabs[activeTab.Name].Button.BackgroundColor3 = Color3.fromRGB(35, 37, 45)
+                tabs[activeTab.Name].Button.TextColor3 = Color3.fromRGB(200, 200, 200)
             end
+            -- Show new active tab
             contentFrame.Visible = true
             tabButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+            tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
             activeTab = contentFrame
         end)
         
@@ -368,6 +380,7 @@ function GUI:CreateWindow(title)
         if not activeTab then
             contentFrame.Visible = true
             tabButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+            tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
             activeTab = contentFrame
         end
 
