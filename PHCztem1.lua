@@ -1,12 +1,12 @@
-
 --// Services
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
 --// Main GUI Library Table
-local GUI = {}
-GUI.__index = GUI
+--// CHANGED: Renamed to Rayfield for compatibility with the example script
+local Rayfield = {}
+Rayfield.__index = Rayfield
 
 --// Main ScreenGui and configuration
 local MainGui = Instance.new("ScreenGui")
@@ -97,7 +97,7 @@ local HideButton = createControlButton("X")
 local ZoomButton = createControlButton("+")
 local MinimizeButton = createControlButton("-")
 
---// CHANGED: Show UI Button (appears when main UI is hidden, now draggable and top-left)
+--// Show UI Button (appears when main UI is hidden)
 local ShowButton = Instance.new("TextButton")
 ShowButton.Name = "ShowButton"
 ShowButton.Size = UDim2.new(0, 100, 0, 30)
@@ -107,7 +107,7 @@ ShowButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 ShowButton.TextColor3 = Color3.fromRGB(220, 220, 220)
 ShowButton.Font = Enum.Font.SourceSans
 ShowButton.Visible = false
-ShowButton.ZIndex = 10 -- Make sure it's on top
+ShowButton.ZIndex = 10
 ShowButton.Parent = MainGui
 local showCorner = Instance.new("UICorner")
 showCorner.CornerRadius = UDim.new(0, 6)
@@ -144,7 +144,7 @@ ZoomButton.MouseButton1Click:Connect(function()
     isZoomed = not isZoomed
     if isZoomed then
         isMinimized = false -- Can't be minimized and zoomed
-        originalSize = MainFrame.Size -- Save current size before zooming
+        originalSize = MainFrame.Size
         originalPosition = MainFrame.Position
         TweenService:Create(MainFrame, TweenInfo.new(0.2), {
             Size = zoomedSize,
@@ -203,7 +203,7 @@ Header.InputChanged:Connect(function(input)
     end
 end)
 
---// ADDED: Dragging Logic for ShowButton
+--// Dragging Logic for ShowButton
 local showButtonDragging = false
 local showButtonDragStart, showButtonStartPos
 ShowButton.InputBegan:Connect(function(input)
@@ -241,14 +241,17 @@ local playerGui = player:WaitForChild("PlayerGui")
 MainGui.Parent = playerGui
 
 --// Window Object
-function GUI:CreateWindow(title)
-    Title.Text = title or "Roblox UI"
+--// CHANGED: Updated to accept a table of options for compatibility
+function Rayfield:CreateWindow(options)
+    Title.Text = options.Name or "Roblox UI"
+    -- Note: Other options like LoadingTitle, ConfigurationSaving, etc., are ignored
+    -- as they are part of a more complex library and not implemented here.
     local Window = {}
     
-    function Window:CreateTab(name)
+    --// CHANGED: Added unused iconId parameter for compatibility
+    function Window:CreateTab(name, iconId)
         local Tab = {}
         
-        --// NOTE: This is a ScrollingFrame, it already has a scrollbar when content overflows.
         local contentFrame = Instance.new("ScrollingFrame")
         contentFrame.Name = name
         contentFrame.Size = UDim2.new(1, -10, 1, -10)
@@ -267,7 +270,6 @@ function GUI:CreateWindow(title)
         contentLayout.Parent = contentFrame
         
         local function updateCanvasSize()
-            -- Add a little padding at the bottom
             contentFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 10)
         end
         
@@ -328,7 +330,8 @@ function GUI:CreateWindow(title)
         end
         
         function Tab:Toggle(options)
-            local state = options.StartingState or false
+            --// CHANGED: Renamed 'StartingState' to 'CurrentValue' for compatibility
+            local state = options.CurrentValue or false
             local container = Instance.new("Frame")
             container.Name = options.Name
             container.Size = UDim2.new(1, 0, 0, 30)
@@ -440,7 +443,7 @@ function GUI:CreateWindow(title)
                 percent = math.clamp(percent, 0, 1)
                 value = min + (max - min) * percent
                 fill.Size = UDim2.new(percent, 0, 1, 0)
-                handle.Position = UDim2.new(percent, -8, 0.5, -8) -- Center handle
+                handle.Position = UDim2.new(percent, -8, 0.5, -8)
                 label.Text = string.format("%s: %.2f", options.Name, value)
                 if options.Callback then options.Callback(value) end
             end
@@ -501,10 +504,9 @@ function GUI:CreateWindow(title)
             end)
         end
         
-        function Tab:Dropdown(options)
-            --// CHANGED: Reverted to single-select to match user example
+        --// CHANGED: Complete rewrite to support both Single and Multi-selection
+        function Tab:CreateDropdown(options)
             local Dropdown = {}
-            Dropdown.CurrentOption = options.CurrentOption or options.Options[1]
             local isOpen = false
 
             local container = Instance.new("Frame")
@@ -518,7 +520,6 @@ function GUI:CreateWindow(title)
             mainButton.Name = "MainButton"
             mainButton.Size = UDim2.new(1, 0, 1, 0)
             mainButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            mainButton.Text = Dropdown.CurrentOption
             mainButton.Font = Enum.Font.SourceSans
             mainButton.TextColor3 = Color3.fromRGB(220, 220, 220)
             mainButton.TextSize = 14
@@ -545,32 +546,94 @@ function GUI:CreateWindow(title)
             dropdownLayout.SortOrder = Enum.SortOrder.LayoutOrder
             dropdownLayout.Parent = dropdownFrame
 
-            local function refreshOptions(newOptions)
-                for _, child in ipairs(dropdownFrame:GetChildren()) do
-                    if child:IsA("TextButton") then child:Destroy() end
+            if options.MultiSelection then
+                --// Multi-Selection Logic
+                local selectedOptions = {}
+                for _, v in ipairs(options.CurrentOption or {}) do table.insert(selectedOptions, v) end
+
+                local function updateMainButtonText()
+                    local count = #selectedOptions
+                    if count == 0 then
+                        mainButton.Text = options.Name
+                    elseif count <= 2 then
+                        mainButton.Text = table.concat(selectedOptions, ", ")
+                    else
+                        mainButton.Text = count .. " Selected"
+                    end
                 end
-                for _, optionName in ipairs(newOptions) do
-                    local optionButton = Instance.new("TextButton")
-                    optionButton.Name = optionName
-                    optionButton.Size = UDim2.new(1, 0, 0, 30)
-                    optionButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-                    optionButton.Text = optionName
-                    optionButton.Font = Enum.Font.SourceSans
-                    optionButton.TextColor3 = Color3.fromRGB(200, 200, 200)
-                    optionButton.TextSize = 14
-                    optionButton.Parent = dropdownFrame
-                    optionButton.MouseEnter:Connect(function() optionButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60) end)
-                    optionButton.MouseLeave:Connect(function() optionButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45) end)
-                    optionButton.MouseButton1Click:Connect(function()
-                        Dropdown.CurrentOption = optionName
-                        mainButton.Text = optionName
-                        isOpen = false
-                        dropdownFrame.Visible = false
-                        container.ZIndex = 2
-                        if options.Callback then options.Callback(optionName) end
-                    end)
+
+                local function refreshOptions(newOptions)
+                    for _, child in ipairs(dropdownFrame:GetChildren()) do
+                        if child:IsA("TextButton") then child:Destroy() end
+                    end
+                    for _, optionName in ipairs(newOptions or options.Options) do
+                        local optionButton = Instance.new("TextButton")
+                        optionButton.Name = optionName
+                        optionButton.Size = UDim2.new(1, 0, 0, 30)
+                        optionButton.Text = optionName
+                        optionButton.Font = Enum.Font.SourceSans
+                        optionButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+                        optionButton.TextSize = 14
+                        optionButton.Parent = dropdownFrame
+                        
+                        local isSelected = table.find(selectedOptions, optionName)
+                        optionButton.BackgroundColor3 = isSelected and Color3.fromRGB(65, 65, 65) or Color3.fromRGB(45, 45, 45)
+
+                        optionButton.MouseEnter:Connect(function() if not table.find(selectedOptions, optionName) then optionButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60) end end)
+                        optionButton.MouseLeave:Connect(function() if not table.find(selectedOptions, optionName) then optionButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45) end end)
+                        
+                        optionButton.MouseButton1Click:Connect(function()
+                            local foundIndex = table.find(selectedOptions, optionName)
+                            if foundIndex then
+                                table.remove(selectedOptions, foundIndex)
+                                optionButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60) -- Hover color
+                            else
+                                table.insert(selectedOptions, optionName)
+                                optionButton.BackgroundColor3 = Color3.fromRGB(65, 65, 65) -- Selected color
+                            end
+                            updateMainButtonText()
+                            if options.Callback then options.Callback(selectedOptions) end
+                        end)
+                    end
+                    dropdownFrame.CanvasSize = UDim2.new(0,0,0,dropdownLayout.AbsoluteContentSize.Y)
                 end
-                dropdownFrame.CanvasSize = UDim2.new(0,0,0,dropdownLayout.AbsoluteContentSize.Y)
+                
+                updateMainButtonText()
+                refreshOptions(options.Options)
+            else
+                --// Single-Selection Logic
+                Dropdown.CurrentOption = options.CurrentOption or options.Options[1]
+                mainButton.Text = Dropdown.CurrentOption
+
+                local function refreshOptions(newOptions)
+                    for _, child in ipairs(dropdownFrame:GetChildren()) do
+                        if child:IsA("TextButton") then child:Destroy() end
+                    end
+                    for _, optionName in ipairs(newOptions) do
+                        local optionButton = Instance.new("TextButton")
+                        optionButton.Name = optionName
+                        optionButton.Size = UDim2.new(1, 0, 0, 30)
+                        optionButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+                        optionButton.Text = optionName
+                        optionButton.Font = Enum.Font.SourceSans
+                        optionButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+                        optionButton.TextSize = 14
+                        optionButton.Parent = dropdownFrame
+                        optionButton.MouseEnter:Connect(function() optionButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60) end)
+                        optionButton.MouseLeave:Connect(function() optionButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45) end)
+                        optionButton.MouseButton1Click:Connect(function()
+                            Dropdown.CurrentOption = optionName
+                            mainButton.Text = optionName
+                            isOpen = false
+                            dropdownFrame.Visible = false
+                            container.ZIndex = 2
+                            if options.Callback then options.Callback(optionName) end
+                        end)
+                    end
+                    dropdownFrame.CanvasSize = UDim2.new(0,0,0,dropdownLayout.AbsoluteContentSize.Y)
+                end
+
+                refreshOptions(options.Options)
             end
 
             mainButton.MouseButton1Click:Connect(function()
@@ -578,24 +641,12 @@ function GUI:CreateWindow(title)
                 dropdownFrame.Visible = isOpen
                 container.ZIndex = isOpen and 4 or 2
             end)
-            
-            function Dropdown:Refresh(newOptions, newCurrent)
-                options.Options = newOptions
-                Dropdown.CurrentOption = newCurrent or newOptions[1]
-                mainButton.Text = Dropdown.CurrentOption
-                refreshOptions(newOptions)
-            end
-            
-            function Dropdown:Set(optionName)
-                 if table.find(options.Options, optionName) then
-                    Dropdown.CurrentOption = optionName
-                    mainButton.Text = optionName
-                 end
-            end
-            
-            refreshOptions(options.Options)
+
             return Dropdown
         end
+
+        --// Alias for Dropdown to match API
+        Tab.Dropdown = Tab.CreateDropdown
 
         return Tab
     end
@@ -603,4 +654,5 @@ function GUI:CreateWindow(title)
     return Window
 end
 
-return GUI
+--// CHANGED: Renamed to Rayfield for compatibility
+return Rayfield
