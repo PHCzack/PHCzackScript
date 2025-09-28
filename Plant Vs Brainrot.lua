@@ -13,13 +13,10 @@ local BrainrotsTab = Window:CreateTab("Brainrots")
 local MiscTab = Window:CreateTab("Misc")
 local VisualTab = Window:CreateTab("Visual")
 
-
-
 --// Services
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-
 local LocalPlayer = Players.LocalPlayer
 local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
@@ -34,45 +31,11 @@ local autoEquipEnabled = false
 local autoBuyEnabled = false
 local autoBuyGearEnabled = false
 local followAttackEnabled = false
-local visualTargets = {
-    ["Board"] = {
-        workspace.Plots["1"].Other.Tier3.Model,
-        workspace.Plots["2"].Other.Tier1.Model,
-        workspace.Plots["3"].Other.Tier1.Model,
-        workspace.Plots["4"].Other.Tier1.Model,
-        workspace.Plots["5"].Other.Tier1.Model,
-        workspace.Plots["6"].Other.Tier1.Model
-    },
-    ["Rows"] = {
-        workspace.Plots["1"].Rows,
-        workspace.Plots["2"].Rows,
-        workspace.Plots["3"].Rows,
-        workspace.Plots["4"].Rows,
-        workspace.Plots["5"].Rows,
-        workspace.Plots["6"].Rows
-    },
-    ["Plants"] = {
-        workspace.Plots["1"].Plants,
-        workspace.Plots["2"].Plants,
-        workspace.Plots["3"].Plants,
-        workspace.Plots["4"].Plants,
-        workspace.Plots["5"].Plants,
-        workspace.Plots["6"].Plants
-    }
-}
-
-local selectedVisual = nil
+local selectedVisuals = {}
 local hiddenObjects = {}
--- Info Label (created once, updated later)
---local rowsInfoLabel = VisualTab:Label("")
-
-
-
-
 local selectedPlots = {}
 local selectedSeeds = {}
 local selectedGears = {}
-
 local claimInterval = 0.1
 local originalPosition = nil
 
@@ -88,7 +51,50 @@ local gearList = {
     "Water Bucket","Frost Grenade","Banana Gun","Frost Blower","Carrot Launcher"
 }
 
--- Plots
+-- ✅ Safe Plots Loader
+local plots = workspace:WaitForChild("Plots", 10)
+if not plots then
+    warn("⚠️ Plots not found, creating dummy folder.")
+    plots = Instance.new("Folder", workspace)
+    plots.Name = "Plots"
+end
+
+local function safeGetPlot(id, childName)
+    local plot = plots:FindFirstChild(tostring(id))
+    if plot then
+        return plot:FindFirstChild(childName)
+    end
+end
+
+-- ✅ Safe Visual Targets
+local visualTargets = {
+    ["Board"] = {
+        safeGetPlot(1,"Other") and safeGetPlot(1,"Other"):FindFirstChild("Tier3") and safeGetPlot(1,"Other").Tier3:FindFirstChild("Model"),
+        safeGetPlot(2,"Other") and safeGetPlot(2,"Other"):FindFirstChild("Tier1") and safeGetPlot(2,"Other").Tier1:FindFirstChild("Model"),
+        safeGetPlot(3,"Other") and safeGetPlot(3,"Other"):FindFirstChild("Tier1") and safeGetPlot(3,"Other").Tier1:FindFirstChild("Model"),
+        safeGetPlot(4,"Other") and safeGetPlot(4,"Other"):FindFirstChild("Tier1") and safeGetPlot(4,"Other").Tier1:FindFirstChild("Model"),
+        safeGetPlot(5,"Other") and safeGetPlot(5,"Other"):FindFirstChild("Tier1") and safeGetPlot(5,"Other").Tier1:FindFirstChild("Model"),
+        safeGetPlot(6,"Other") and safeGetPlot(6,"Other"):FindFirstChild("Tier1") and safeGetPlot(6,"Other").Tier1:FindFirstChild("Model")
+    },
+    ["Rows"] = {
+        safeGetPlot(1,"Rows"),
+        safeGetPlot(2,"Rows"),
+        safeGetPlot(3,"Rows"),
+        safeGetPlot(4,"Rows"),
+        safeGetPlot(5,"Rows"),
+        safeGetPlot(6,"Rows")
+    },
+    ["Plants"] = {
+        safeGetPlot(1,"Plants"),
+        safeGetPlot(2,"Plants"),
+        safeGetPlot(3,"Plants"),
+        safeGetPlot(4,"Plants"),
+        safeGetPlot(5,"Plants"),
+        safeGetPlot(6,"Plants")
+    }
+}
+
+-- Plots teleport points (unchanged)
 local plotLocations = {
     ["Plot 1"] = {Vector3.new(94,10,685),Vector3.new(93,10,697),Vector3.new(93,10,707)},
     ["Plot 2"] = {Vector3.new(-7,10,685),Vector3.new(-7,10,697),Vector3.new(-6,10,707)},
@@ -110,7 +116,7 @@ local function fireRemoteSafely(remote, args)
 end
 
 --// =========================
--- Brainrots Auto Attack (Fixed)
+-- Brainrots Auto Attack
 --// =========================
 local WeaponAttack = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("AttacksServer", 9e9):WaitForChild("WeaponAttack", 9e9)
 local weaponName = "Leather Grip Bat"
@@ -144,20 +150,18 @@ local function getBrainrotUUID(brainrot)
     if uuidObj and uuidObj:IsA("StringValue") then
         return uuidObj.Value
     end
-    return brainrot.Name -- fallback
+    return brainrot.Name
 end
 
 local function equipWeapon()
     local char = LocalPlayer.Character
     if not char then return end
-    -- Already holding weapon?
     if char:FindFirstChildOfClass("Tool") and char:FindFirstChildOfClass("Tool").Name == weaponName then
         return
     end
-    -- Search Backpack
     local tool = LocalPlayer.Backpack:FindFirstChild(weaponName)
     if tool then
-        LocalPlayer.Character.Humanoid:EquipTool(tool)
+        char.Humanoid:EquipTool(tool)
     end
 end
 
@@ -168,12 +172,10 @@ local function followAndAttack()
         local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
         if hrp then
             equipWeapon()
-            -- follow closer
             root.CFrame = root.CFrame:Lerp(CFrame.new(hrp.Position + Vector3.new(0,3,0)), 0.2)
-            -- attack
             local uuid = getBrainrotUUID(brainrot)
             if uuid then
-                WeaponAttack:FireServer({uuid}) -- ✅ fixed args
+                WeaponAttack:FireServer({uuid})
             end
         end
     end
@@ -365,10 +367,6 @@ ShopTab:Toggle({
 --// =========================
 -- Misc Tab
 --// =========================
-
-
-
--- Unlimited Jump Toggle
 local unlimitedJump = false
 MiscTab:Toggle({
     Name = "Unlimited Jump",
@@ -378,14 +376,12 @@ MiscTab:Toggle({
     end
 })
 
--- Listen for jumping
 game:GetService("UserInputService").JumpRequest:Connect(function()
     if unlimitedJump and humanoid then
         humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
     end
 end)
 
--- Reduce Lag
 MiscTab:Toggle({
     Name = "Reduce Lag",
     CurrentValue = false,
@@ -418,7 +414,6 @@ MiscTab:Toggle({
                 end
             end
         else
-            -- Reset (approx defaults)
             local t = game.Workspace.Terrain
             t.WaterWaveSize = 0.5
             t.WaterWaveSpeed = 1
@@ -432,7 +427,6 @@ MiscTab:Toggle({
     end
 })
 
--- Remove Fog
 MiscTab:Toggle({
     Name = "Remove Fog",
     CurrentValue = false,
@@ -448,9 +442,6 @@ MiscTab:Toggle({
 --// =========================
 -- Visual Tab
 --// =========================
-
-
-
 VisualTab:Dropdown({
     Name = "Select Visual(s)",
     Options = {"Board","Rows","Plants"},
@@ -458,12 +449,6 @@ VisualTab:Dropdown({
     CurrentOption = {},
     Callback = function(list)
         selectedVisuals = list
-        -- Show description only if "Rows" is selected
-        if table.find(list, "Rows") then
-            rowsInfoLabel:Set('<font color="rgb(255,0,0)">⚠️ If you hide Rows, Brainrots may not show.\nDon\'t worry, it\'s just a visual change to reduce lag.</font>')
-        else
-            rowsInfoLabel:Set("") -- clear text
-        end
     end
 })
 
@@ -474,7 +459,6 @@ VisualTab:Toggle({
         for _, visType in ipairs(selectedVisuals) do
             if visualTargets[visType] then
                 if state then
-                    -- Hide
                     hiddenObjects[visType] = {}
                     for _, obj in ipairs(visualTargets[visType]) do
                         if obj and obj.Parent then
@@ -483,7 +467,6 @@ VisualTab:Toggle({
                         end
                     end
                 else
-                    -- Restore
                     if hiddenObjects[visType] then
                         for i, obj in ipairs(visualTargets[visType]) do
                             if obj and not obj.Parent then
