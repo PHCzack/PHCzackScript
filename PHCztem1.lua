@@ -17,11 +17,15 @@ MainGui.ResetOnSpawn = false
 --// Create the main frame for the UI
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 550, 0, 350)
-MainFrame.Position = UDim2.new(0.5, -275, 0.5, -175)
+--// MODIFIED: Kept the smaller size
+MainFrame.Size = UDim2.new(0, 450, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -225, 0.5, -150)
+--// MODIFIED: Kept the transparency
+MainFrame.BackgroundTransparency = 0.15
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-MainFrame.BorderColor3 = Color3.fromRGB(50, 50, 50)
-MainFrame.BorderSizePixel = 2
+--// MODIFIED: Changed border color to a cool blue accent
+MainFrame.BorderColor3 = Color3.fromRGB(0, 120, 255)
+MainFrame.BorderSizePixel = 1 -- A thinner border looks cleaner
 MainFrame.Active = true
 MainFrame.Visible = true
 MainFrame.ClipsDescendants = true
@@ -40,16 +44,28 @@ Header.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 Header.BorderSizePixel = 0
 Header.Parent = MainFrame
 
+--// MODIFIED: Added a cool gradient to the header
+local headerGradient = Instance.new("UIGradient")
+headerGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 120, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(120, 0, 255))
+})
+headerGradient.Rotation = 90 -- Makes it a horizontal gradient
+headerGradient.Parent = Header
+
 local headerCorner = Instance.new("UICorner")
 headerCorner.CornerRadius = UDim.new(0, 8)
 headerCorner.Parent = Header
-
 local bottomFix = Instance.new("Frame")
 bottomFix.Size = UDim2.new(1,0,0.5,0)
 bottomFix.Position = UDim2.new(0,0,0.5,0)
 bottomFix.BackgroundColor3 = Header.BackgroundColor3
 bottomFix.BorderSizePixel = 0
 bottomFix.Parent = headerCorner
+-- This ensures the bottom half of the corner is a solid color
+local bottomFixGradientClone = headerGradient:Clone()
+bottomFixGradientClone.Parent = bottomFix
+
 
 local Title = Instance.new("TextLabel")
 Title.Name = "Title"
@@ -81,10 +97,11 @@ controlsLayout.Parent = ControlsFrame
 local function createControlButton(text)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 20, 0, 20)
-    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    btn.BackgroundTransparency = 0.8
     btn.Text = text
     btn.Font = Enum.Font.SourceSansBold
-    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.TextColor3 = Color3.fromRGB(30, 30, 30)
     btn.TextSize = 14
     btn.Parent = ControlsFrame
     local corner = Instance.new("UICorner")
@@ -94,8 +111,8 @@ local function createControlButton(text)
 end
 
 local HideButton = createControlButton("X")
-local ZoomButton = createControlButton("+")
-local MinimizeButton = createControlButton("-")
+local ZoomButton = createControlButton("❐")
+local MinimizeButton = createControlButton("—")
 
 --// Show UI Button (appears when main UI is hidden)
 local ShowButton = Instance.new("TextButton")
@@ -103,12 +120,15 @@ ShowButton.Name = "ShowButton"
 ShowButton.Size = UDim2.new(0, 100, 0, 30)
 ShowButton.Position = UDim2.new(0, 10, 0, 10) -- Positioned top-left
 ShowButton.Text = "Show UI"
-ShowButton.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 ShowButton.TextColor3 = Color3.fromRGB(220, 220, 220)
 ShowButton.Font = Enum.Font.SourceSans
 ShowButton.Visible = false
 ShowButton.ZIndex = 10
 ShowButton.Parent = MainGui
+local showButtonGradient = headerGradient:Clone() -- Reuse the cool gradient
+showButtonGradient.Parent = ShowButton
+
+
 local showCorner = Instance.new("UICorner")
 showCorner.CornerRadius = UDim.new(0, 6)
 showCorner.Parent = ShowButton
@@ -146,10 +166,7 @@ ZoomButton.MouseButton1Click:Connect(function()
         isMinimized = false -- Can't be minimized and zoomed
         originalSize = MainFrame.Size
         originalPosition = MainFrame.Position
-        TweenService:Create(MainFrame, TweenInfo.new(0.2), {
-            Size = zoomedSize,
-            Position = UDim2.new(0.5, -zoomedSize.X.Offset/2, 0.5, -zoomedSize.Y.Offset/2)
-        }):Play()
+        TweenService:Create(MainFrame, TweenInfo.new(0.2), { Size = zoomedSize, Position = UDim2.new(0.5, -zoomedSize.X.Offset/2, 0.5, -zoomedSize.Y.Offset/2) }):Play()
     else
         TweenService:Create(MainFrame, TweenInfo.new(0.2), {Size = originalSize, Position = originalPosition}):Play()
     end
@@ -161,6 +178,7 @@ TabContainer.Name = "TabContainer"
 TabContainer.Size = UDim2.new(0, 120, 1, -30)
 TabContainer.Position = UDim2.new(0, 0, 0, 30)
 TabContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+TabContainer.BackgroundTransparency = 0.15
 TabContainer.BorderSizePixel = 0
 TabContainer.Parent = MainFrame
 
@@ -175,6 +193,7 @@ ContentContainer.Name = "ContentContainer"
 ContentContainer.Size = UDim2.new(1, -120, 1, -30)
 ContentContainer.Position = UDim2.new(0, 120, 0, 30)
 ContentContainer.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+ContentContainer.BackgroundTransparency = 0.15
 ContentContainer.BorderSizePixel = 0
 ContentContainer.Parent = MainFrame
 
@@ -196,6 +215,7 @@ Header.InputBegan:Connect(function(input)
         end)
     end
 end)
+
 Header.InputChanged:Connect(function(input)
     if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and dragging and not isZoomed then
         local delta = input.Position - dragStart
@@ -218,13 +238,13 @@ ShowButton.InputBegan:Connect(function(input)
         end)
     end
 end)
+
 ShowButton.InputChanged:Connect(function(input)
     if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and showButtonDragging then
         local delta = input.Position - showButtonDragStart
         ShowButton.Position = UDim2.new(showButtonStartPos.X.Scale, showButtonStartPos.X.Offset + delta.X, showButtonStartPos.Y.Scale, showButtonStartPos.Y.Offset + delta.Y)
     end
 end)
-
 
 --// Show/Hide Logic
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -244,23 +264,21 @@ MainGui.Parent = playerGui
 --// CHANGED: Updated to accept a table of options for compatibility
 function Rayfield:CreateWindow(options)
     Title.Text = options.Name or "Roblox UI"
-    -- Note: Other options like LoadingTitle, ConfigurationSaving, etc., are ignored
-    -- as they are part of a more complex library and not implemented here.
     local Window = {}
-    
+
     --// CHANGED: Added unused iconId parameter for compatibility
     function Window:CreateTab(name, iconId)
         local Tab = {}
-        
+
         local contentFrame = Instance.new("ScrollingFrame")
         contentFrame.Name = name
         contentFrame.Size = UDim2.new(1, -10, 1, -10)
         contentFrame.Position = UDim2.new(0, 5, 0, 5)
-        contentFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        contentFrame.BackgroundTransparency = 1
         contentFrame.BorderSizePixel = 0
         contentFrame.Visible = false
         contentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-        contentFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80)
+        contentFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 120, 255)
         contentFrame.ScrollBarThickness = 6
         contentFrame.Parent = ContentContainer
 
@@ -272,7 +290,6 @@ function Rayfield:CreateWindow(options)
         local function updateCanvasSize()
             contentFrame.CanvasSize = UDim2.new(0, 0, 0, contentLayout.AbsoluteContentSize.Y + 10)
         end
-        
         contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvasSize)
 
         local tabButton = Instance.new("TextButton")
@@ -285,7 +302,7 @@ function Rayfield:CreateWindow(options)
         tabButton.TextColor3 = Color3.fromRGB(220, 220, 220)
         tabButton.TextSize = 14
         tabButton.Parent = TabContainer
-        
+
         local btnCorner = Instance.new("UICorner")
         btnCorner.CornerRadius = UDim.new(0, 4)
         btnCorner.Parent = tabButton
@@ -296,22 +313,20 @@ function Rayfield:CreateWindow(options)
                 tabs[activeTab.Name].Button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
             end
             contentFrame.Visible = true
-            tabButton.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
+            --// MODIFIED: Changed active tab color to a cool blue
+            tabButton.BackgroundColor3 = Color3.fromRGB(0, 80, 170)
             activeTab = contentFrame
         end)
-        
-        tabs[name] = {
-            Frame = contentFrame,
-            Button = tabButton,
-            Layout = contentLayout
-        }
-        
+
+        tabs[name] = { Frame = contentFrame, Button = tabButton, Layout = contentLayout }
+
         if not activeTab then
             contentFrame.Visible = true
-            tabButton.BackgroundColor3 = Color3.fromRGB(65, 65, 65)
+            --// MODIFIED: Changed active tab color to a cool blue
+            tabButton.BackgroundColor3 = Color3.fromRGB(0, 80, 170)
             activeTab = contentFrame
         end
-
+        
         --// Component Functions
         function Tab:Button(options)
             local btn = Instance.new("TextButton")
@@ -323,20 +338,27 @@ function Rayfield:CreateWindow(options)
             btn.TextColor3 = Color3.fromRGB(220, 220, 220)
             btn.TextSize = 16
             btn.Parent = contentFrame
+
             local corner = Instance.new("UICorner")
             corner.CornerRadius = UDim.new(0, 4)
             corner.Parent = btn
-            btn.MouseButton1Click:Connect(function() if options.Callback then options.Callback() end end)
+
+            btn.MouseButton1Click:Connect(function()
+                if options.Callback then
+                    options.Callback()
+                end
+            end)
         end
-        
+
         function Tab:Toggle(options)
-            --// CHANGED: Renamed 'StartingState' to 'CurrentValue' for compatibility
             local state = options.CurrentValue or false
+
             local container = Instance.new("Frame")
             container.Name = options.Name
             container.Size = UDim2.new(1, 0, 0, 30)
             container.BackgroundTransparency = 1
             container.Parent = contentFrame
+
             local label = Instance.new("TextLabel")
             label.Size = UDim2.new(1, -60, 1, 0)
             label.BackgroundTransparency = 1
@@ -346,43 +368,54 @@ function Rayfield:CreateWindow(options)
             label.TextSize = 16
             label.TextXAlignment = Enum.TextXAlignment.Left
             label.Parent = container
+
             local switchTrack = Instance.new("Frame")
             switchTrack.Size = UDim2.new(0, 50, 0, 24)
             switchTrack.Position = UDim2.new(1, -50, 0.5, -12)
-            switchTrack.BackgroundColor3 = state and Color3.fromRGB(75, 180, 75) or Color3.fromRGB(100, 100, 100)
+            --// MODIFIED: Changed the toggle 'on' color to the cool blue accent
+            switchTrack.BackgroundColor3 = state and Color3.fromRGB(0, 120, 255) or Color3.fromRGB(100, 100, 100)
             switchTrack.Parent = container
+
             local trackCorner = Instance.new("UICorner")
             trackCorner.CornerRadius = UDim.new(1, 0)
             trackCorner.Parent = switchTrack
+
             local switchKnob = Instance.new("Frame")
             switchKnob.Size = UDim2.new(0, 20, 0, 20)
             switchKnob.Position = state and UDim2.new(1, -22, 0.5, -10) or UDim2.new(0, 2, 0.5, -10)
             switchKnob.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
             switchKnob.Parent = switchTrack
+
             local knobCorner = Instance.new("UICorner")
             knobCorner.CornerRadius = UDim.new(1, 0)
             knobCorner.Parent = switchKnob
+
             local clickDetector = Instance.new("TextButton")
             clickDetector.Size = UDim2.new(1, 0, 1, 0)
             clickDetector.BackgroundTransparency = 1
             clickDetector.Text = ""
             clickDetector.Parent = switchTrack
+
             clickDetector.MouseButton1Click:Connect(function()
                 state = not state
-                local trackColor = state and Color3.fromRGB(75, 180, 75) or Color3.fromRGB(100, 100, 100)
+                --// MODIFIED: Changed the toggle 'on' color to the cool blue accent
+                local trackColor = state and Color3.fromRGB(0, 120, 255) or Color3.fromRGB(100, 100, 100)
                 local knobPos = state and UDim2.new(1, -22, 0.5, -10) or UDim2.new(0, 2, 0.5, -10)
                 TweenService:Create(switchTrack, TweenInfo.new(0.2), {BackgroundColor3 = trackColor}):Play()
                 TweenService:Create(switchKnob, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = knobPos}):Play()
-                if options.Callback then options.Callback(state) end
+                if options.Callback then
+                    options.Callback(state)
+                end
             end)
         end
-        
+
         function Tab:Textbox(options)
             local container = Instance.new("Frame")
             container.Name = options.Name
             container.Size = UDim2.new(1, 0, 0, 35)
             container.BackgroundTransparency = 1
             container.Parent = contentFrame
+
             local textbox = Instance.new("TextBox")
             textbox.Size = UDim2.new(1, 0, 1, 0)
             textbox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
@@ -393,18 +426,25 @@ function Rayfield:CreateWindow(options)
             textbox.TextSize = 14
             textbox.ClearTextOnFocus = false
             textbox.Parent = container
+
             local corner = Instance.new("UICorner")
             corner.CornerRadius = UDim.new(0, 4)
             corner.Parent = textbox
-            textbox.FocusLost:Connect(function(enterPressed) if enterPressed and options.Callback then options.Callback(textbox.Text) end end)
+
+            textbox.FocusLost:Connect(function(enterPressed)
+                if enterPressed and options.Callback then
+                    options.Callback(textbox.Text)
+                end
+            end)
         end
-        
+
         function Tab:Slider(options)
             local container = Instance.new("Frame")
             container.Name = options.Name
             container.Size = UDim2.new(1, 0, 0, 40)
             container.BackgroundTransparency = 1
             container.Parent = contentFrame
+
             local label = Instance.new("TextLabel")
             label.Size = UDim2.new(1, 0, 0, 20)
             label.BackgroundTransparency = 1
@@ -413,41 +453,60 @@ function Rayfield:CreateWindow(options)
             label.TextSize = 16
             label.TextXAlignment = Enum.TextXAlignment.Left
             label.Parent = container
+
             local sliderFrame = Instance.new("Frame")
             sliderFrame.Size = UDim2.new(1, 0, 0, 10)
             sliderFrame.Position = UDim2.new(0, 0, 0, 25)
             sliderFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
             sliderFrame.Parent = container
+
             local sCorner = Instance.new("UICorner")
             sCorner.CornerRadius = UDim.new(0, 5)
             sCorner.Parent = sliderFrame
+
             local fill = Instance.new("Frame")
-            fill.BackgroundColor3 = Color3.fromRGB(80, 120, 220)
             fill.BorderSizePixel = 0
             fill.Parent = sliderFrame
+            
+            --// MODIFIED: Added a cool gradient to the slider fill
+            local fillGradient = Instance.new("UIGradient")
+            fillGradient.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 120, 255)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(120, 0, 255))
+            })
+            fillGradient.Parent = fill
+
             local fCorner = Instance.new("UICorner")
             fCorner.CornerRadius = UDim.new(0, 5)
             fCorner.Parent = fill
+
             local handle = Instance.new("TextButton")
             handle.Size = UDim2.new(0, 16, 0, 16)
-            handle.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+            handle.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
             handle.Text = ""
             handle.ZIndex = 2
             handle.Parent = fill
+
             local hCorner = Instance.new("UICorner")
             hCorner.CornerRadius = UDim.new(1, 0)
             hCorner.Parent = handle
+
             local min, max, default = options.Min or 0, options.Max or 100, options.Default or 50
             local value = default
+
             local function updateSlider(percent)
                 percent = math.clamp(percent, 0, 1)
                 value = min + (max - min) * percent
                 fill.Size = UDim2.new(percent, 0, 1, 0)
-                handle.Position = UDim2.new(percent, -8, 0.5, -8)
+                handle.Position = UDim2.new(1, -8, 0.5, -8) -- Position handle at the end of the fill
                 label.Text = string.format("%s: %.2f", options.Name, value)
-                if options.Callback then options.Callback(value) end
+                if options.Callback then
+                    options.Callback(value)
+                end
             end
+
             updateSlider((default - min) / (max - min))
+
             local dragConnection
             handle.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -461,15 +520,21 @@ function Rayfield:CreateWindow(options)
                     end)
                 end
             end)
-            handle.InputEnded:Connect(function() if dragConnection then dragConnection:Disconnect() end end)
+
+            handle.InputEnded:Connect(function()
+                if dragConnection then
+                    dragConnection:Disconnect()
+                end
+            end)
         end
-        
+
         function Tab:Keybind(options)
             local container = Instance.new("Frame")
             container.Name = options.Name
             container.Size = UDim2.new(1, 0, 0, 30)
             container.BackgroundTransparency = 1
             container.Parent = contentFrame
+
             local label = Instance.new("TextLabel")
             label.Size = UDim2.new(0.6, 0, 1, 0)
             label.BackgroundTransparency = 1
@@ -479,6 +544,7 @@ function Rayfield:CreateWindow(options)
             label.TextSize = 16
             label.TextXAlignment = Enum.TextXAlignment.Left
             label.Parent = container
+
             local keybindButton = Instance.new("TextButton")
             keybindButton.Size = UDim2.new(0.4, -5, 1, 0)
             keybindButton.Position = UDim2.new(0.6, 5, 0, 0)
@@ -488,9 +554,11 @@ function Rayfield:CreateWindow(options)
             keybindButton.TextColor3 = Color3.fromRGB(220, 220, 220)
             keybindButton.TextSize = 14
             keybindButton.Parent = container
+
             local corner = Instance.new("UICorner")
             corner.CornerRadius = UDim.new(0, 4)
             corner.Parent = keybindButton
+
             keybindButton.MouseButton1Click:Connect(function()
                 keybindButton.Text = "..."
                 local connection
@@ -503,8 +571,7 @@ function Rayfield:CreateWindow(options)
                 end)
             end)
         end
-        
-        --// CHANGED: Complete rewrite to support both Single and Multi-selection
+
         function Tab:CreateDropdown(options)
             local Dropdown = {}
             local isOpen = false
@@ -524,6 +591,7 @@ function Rayfield:CreateWindow(options)
             mainButton.TextColor3 = Color3.fromRGB(220, 220, 220)
             mainButton.TextSize = 14
             mainButton.Parent = container
+
             local corner = Instance.new("UICorner")
             corner.CornerRadius = UDim.new(0, 4)
             corner.Parent = mainButton
@@ -539,33 +607,28 @@ function Rayfield:CreateWindow(options)
             dropdownFrame.ZIndex = 3
             dropdownFrame.ClipsDescendants = true
             dropdownFrame.Parent = container
+            
             local dCorner = Instance.new("UICorner")
             dCorner.CornerRadius = UDim.new(0, 4)
             dCorner.Parent = dropdownFrame
+
             local dropdownLayout = Instance.new("UIListLayout")
             dropdownLayout.SortOrder = Enum.SortOrder.LayoutOrder
             dropdownLayout.Parent = dropdownFrame
 
             if options.MultiSelection then
-                --// Multi-Selection Logic
                 local selectedOptions = {}
                 for _, v in ipairs(options.CurrentOption or {}) do table.insert(selectedOptions, v) end
 
                 local function updateMainButtonText()
                     local count = #selectedOptions
-                    if count == 0 then
-                        mainButton.Text = options.Name
-                    elseif count <= 2 then
-                        mainButton.Text = table.concat(selectedOptions, ", ")
-                    else
-                        mainButton.Text = count .. " Selected"
-                    end
+                    if count == 0 then mainButton.Text = options.Name
+                    elseif count <= 2 then mainButton.Text = table.concat(selectedOptions, ", ")
+                    else mainButton.Text = count .. " Selected" end
                 end
 
                 local function refreshOptions(newOptions)
-                    for _, child in ipairs(dropdownFrame:GetChildren()) do
-                        if child:IsA("TextButton") then child:Destroy() end
-                    end
+                    for _, child in ipairs(dropdownFrame:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
                     for _, optionName in ipairs(newOptions or options.Options) do
                         local optionButton = Instance.new("TextButton")
                         optionButton.Name = optionName
@@ -575,21 +638,21 @@ function Rayfield:CreateWindow(options)
                         optionButton.TextColor3 = Color3.fromRGB(200, 200, 200)
                         optionButton.TextSize = 14
                         optionButton.Parent = dropdownFrame
-                        
+
                         local isSelected = table.find(selectedOptions, optionName)
-                        optionButton.BackgroundColor3 = isSelected and Color3.fromRGB(65, 65, 65) or Color3.fromRGB(45, 45, 45)
+                        optionButton.BackgroundColor3 = isSelected and Color3.fromRGB(0, 80, 170) or Color3.fromRGB(45, 45, 45)
 
                         optionButton.MouseEnter:Connect(function() if not table.find(selectedOptions, optionName) then optionButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60) end end)
                         optionButton.MouseLeave:Connect(function() if not table.find(selectedOptions, optionName) then optionButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45) end end)
-                        
+
                         optionButton.MouseButton1Click:Connect(function()
                             local foundIndex = table.find(selectedOptions, optionName)
                             if foundIndex then
                                 table.remove(selectedOptions, foundIndex)
-                                optionButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60) -- Hover color
+                                optionButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
                             else
                                 table.insert(selectedOptions, optionName)
-                                optionButton.BackgroundColor3 = Color3.fromRGB(65, 65, 65) -- Selected color
+                                optionButton.BackgroundColor3 = Color3.fromRGB(0, 80, 170)
                             end
                             updateMainButtonText()
                             if options.Callback then options.Callback(selectedOptions) end
@@ -597,18 +660,14 @@ function Rayfield:CreateWindow(options)
                     end
                     dropdownFrame.CanvasSize = UDim2.new(0,0,0,dropdownLayout.AbsoluteContentSize.Y)
                 end
-                
                 updateMainButtonText()
                 refreshOptions(options.Options)
             else
-                --// Single-Selection Logic
                 Dropdown.CurrentOption = options.CurrentOption or options.Options[1]
                 mainButton.Text = Dropdown.CurrentOption
 
                 local function refreshOptions(newOptions)
-                    for _, child in ipairs(dropdownFrame:GetChildren()) do
-                        if child:IsA("TextButton") then child:Destroy() end
-                    end
+                    for _, child in ipairs(dropdownFrame:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
                     for _, optionName in ipairs(newOptions) do
                         local optionButton = Instance.new("TextButton")
                         optionButton.Name = optionName
@@ -619,8 +678,10 @@ function Rayfield:CreateWindow(options)
                         optionButton.TextColor3 = Color3.fromRGB(200, 200, 200)
                         optionButton.TextSize = 14
                         optionButton.Parent = dropdownFrame
+                        
                         optionButton.MouseEnter:Connect(function() optionButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60) end)
                         optionButton.MouseLeave:Connect(function() optionButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45) end)
+
                         optionButton.MouseButton1Click:Connect(function()
                             Dropdown.CurrentOption = optionName
                             mainButton.Text = optionName
@@ -632,7 +693,6 @@ function Rayfield:CreateWindow(options)
                     end
                     dropdownFrame.CanvasSize = UDim2.new(0,0,0,dropdownLayout.AbsoluteContentSize.Y)
                 end
-
                 refreshOptions(options.Options)
             end
 
@@ -641,18 +701,12 @@ function Rayfield:CreateWindow(options)
                 dropdownFrame.Visible = isOpen
                 container.ZIndex = isOpen and 4 or 2
             end)
-
             return Dropdown
         end
-
-        --// Alias for Dropdown to match API
         Tab.Dropdown = Tab.CreateDropdown
-
         return Tab
     end
-    
     return Window
 end
 
---// CHANGED: Renamed to Rayfield for compatibility
 return Rayfield
