@@ -31,6 +31,9 @@ local autoEquipEnabled = false
 local autoBuyEnabled = false
 local autoBuyGearEnabled = false
 local followAttackEnabled = false
+local followAttackEnabled = false  
+local espEnabled = false 
+local legendaryAttackEnabled = false -- NEW toggle flag
 local selectedVisuals = {}
 local hiddenObjects = {}
 local selectedPlots = {}
@@ -38,7 +41,10 @@ local selectedSeeds = {}
 local selectedGears = {}
 local claimInterval = 0.1
 local originalPosition = nil
+local selectedRarities = {}
+local equipDelay = 5  
 
+local selectedRarityAttackEnabled = false
 -- Seeds & Gear List
 local seedsList = {
     "Cactus Seed","Strawberry Seed","Pumpkin Seed","Sunflower Seed",
@@ -118,27 +124,18 @@ end
 --// =========================
 -- Brainrots Auto Attack
 --// =========================
-local WeaponAttack = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("AttacksServer", 9e9):WaitForChild("WeaponAttack", 9e9)
+local WeaponAttack = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("AttacksServer"):WaitForChild("WeaponAttack")
 local weaponName = "Leather Grip Bat"
 
-local function getNearestBrainrot()
-    local folder = workspace:FindFirstChild("ScriptedMap") and workspace.ScriptedMap:FindFirstChild("Brainrots")
-    if not folder then return end
-    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-    local closest, dist = nil, math.huge
-    for _, brainrot in ipairs(folder:GetChildren()) do
-        if brainrot:IsA("Model") then
-            local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
-            if hrp then
-                local mag = (hrp.Position - root.Position).Magnitude
-                if mag < dist then
-                    closest, dist = brainrot, mag
-                end
-            end
+--// Helper Functions
+local function getRarity(brainrot)
+    if brainrot then
+        local rarity = brainrot:FindFirstChild("Rarity") or brainrot:GetAttribute("Rarity")
+        if rarity then
+            return rarity.Value or rarity
         end
     end
-    return closest
+    return "Unknown"
 end
 
 local function getBrainrotUUID(brainrot)
@@ -165,14 +162,57 @@ local function equipWeapon()
     end
 end
 
-local function followAndAttack()
-    local brainrot = getNearestBrainrot()
+--// Get nearest Brainrot (all)
+local function getNearestBrainrot()
+    local folder = workspace:FindFirstChild("ScriptedMap") and workspace.ScriptedMap:FindFirstChild("Brainrots")
+    if not folder then return nil end
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
+    local closest, dist = nil, math.huge
+    for _, brainrot in ipairs(folder:GetChildren()) do
+        if brainrot:IsA("Model") then
+            local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
+            if hrp then
+                local mag = (hrp.Position - root.Position).Magnitude
+                if mag < dist then
+                    closest, dist = brainrot, mag
+                end
+            end
+        end
+    end
+    return closest
+end
+
+--// Get nearest Legendary Brainrot (rarity filter)
+local function getNearestLegendaryBrainrot()
+    local folder = workspace:FindFirstChild("ScriptedMap") and workspace.ScriptedMap:FindFirstChild("Brainrots")
+    if not folder then return nil end
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
+    local closest, dist = nil, math.huge
+    for _, brainrot in ipairs(folder:GetChildren()) do
+        if brainrot:IsA("Model") and getRarity(brainrot) == "Legendary" then
+            local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
+            if hrp then
+                local mag = (hrp.Position - root.Position).Magnitude
+                if mag < dist then
+                    closest, dist = brainrot, mag
+                end
+            end
+        end
+    end
+    return closest
+end
+
+--// Attack logic
+local function followAndAttack(targetBrainrot)
+    local brainrot = targetBrainrot
     local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if brainrot and root then
         local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
         if hrp then
             equipWeapon()
-            root.CFrame = root.CFrame:Lerp(CFrame.new(hrp.Position + Vector3.new(0,3,0)), 0.2)
+            root.CFrame = root.CFrame:Lerp(CFrame.new(hrp.Position + Vector3.new(0, 3, 0)), 0.2)
             local uuid = getBrainrotUUID(brainrot)
             if uuid then
                 WeaponAttack:FireServer({uuid})
@@ -181,19 +221,142 @@ local function followAndAttack()
     end
 end
 
+--// ESP Function (unchanged)
+local function createESP(brainrot)
+    if not espEnabled then return end
+    
+    local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
+    if hrp and not hrp:FindFirstChild("RarityESP") then
+        local rarity = getRarity(brainrot)
+
+        local rarityColor = Color3.fromRGB(255, 255, 255)
+        if rarity == "Common" then
+            rarityColor = Color3.fromRGB(0, 255, 0)
+        elseif rarity == "Rare" then
+            rarityColor = Color3.fromRGB(0, 0, 255)
+        elseif rarity == "Epic" then
+            rarityColor = Color3.fromRGB(128, 0, 128)
+        elseif rarity == "Legendary" then
+            rarityColor = Color3.fromRGB(255, 215, 0)
+        end
+
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "RarityESP"
+        billboard.Parent = hrp
+        billboard.Adornee = hrp
+        billboard.Size = UDim2.new(0, 50, 0, 25)
+        billboard.StudsOffset = Vector3.new(0, 3, 0)
+
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Parent = billboard
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
+        textLabel.BackgroundTransparency = 1
+        textLabel.Text = rarity
+        textLabel.TextColor3 = rarityColor
+        textLabel.TextStrokeTransparency = 0.8
+        textLabel.TextScaled = false
+        textLabel.TextSize = 14
+    end
+end
+
+-- Get nearest Brainrot from selected rarities
+local function getNearestSelectedRarityBrainrot()
+    local folder = workspace:FindFirstChild("ScriptedMap") and workspace.ScriptedMap:FindFirstChild("Brainrots")
+    if not folder or #selectedRarities == 0 then return nil end
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
+
+    local closest, dist = nil, math.huge
+    for _, brainrot in ipairs(folder:GetChildren()) do
+        if brainrot:IsA("Model") then
+            local rarity = getRarity(brainrot)
+            if table.find(selectedRarities, rarity) then
+                local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
+                if hrp then
+                    local mag = (hrp.Position - root.Position).Magnitude
+                    if mag < dist then
+                        closest, dist = brainrot, mag
+                    end
+                end
+            end
+        end
+    end
+    return closest
+end
+
+-- Update your main loop
 RunService.Heartbeat:Connect(function()
     if followAttackEnabled then
-        followAndAttack()
+        local target = getNearestBrainrot()
+        if target then followAndAttack(target) end
+    elseif legendaryAttackEnabled then
+        local target = getNearestLegendaryBrainrot()
+        if target then followAndAttack(target) end
+    elseif selectedRarityAttackEnabled and #selectedRarities > 0 then
+        local target = getNearestSelectedRarityBrainrot()
+        if target then followAndAttack(target) end
+    end
+
+    if espEnabled then
+        local folder = workspace:FindFirstChild("ScriptedMap") and workspace.ScriptedMap:FindFirstChild("Brainrots")
+        if folder then
+            for _, brainrot in ipairs(folder:GetChildren()) do
+                if brainrot:IsA("Model") then
+                    createESP(brainrot)
+                end
+            end
+        end
     end
 end)
 
+
+BrainrotsTab:Dropdown({
+    Name = "Auto Hit Selected Rarity",
+    Options = {"Rare", "Epic", "Legendary", "Mythic", "Godly", "Secret"},
+    CurrentOption = {},
+    MultiSelection = true,
+    Callback = function(list)
+        selectedRarities = list or {}
+        if #selectedRarities > 0 then
+            followAttackEnabled = false
+            legendaryAttackEnabled = false
+        end
+    end
+})
+
+-- Toggle for enabling/disabling the feature
 BrainrotsTab:Toggle({
-    Name = "Auto Hit Brainrot",
+    Name = "Enable Selected Rarity Attack",
+    CurrentValue = false,
+    Callback = function(state)
+        selectedRarityAttackEnabled = state
+        if state then
+            followAttackEnabled = false
+            legendaryAttackEnabled = false
+        end
+    end
+})
+
+--// Toggles
+BrainrotsTab:Toggle({
+    Name = "Auto Hit Brainrot (All)",
     CurrentValue = false,
     Callback = function(state)
         followAttackEnabled = state
+        if state then legendaryAttackEnabled = false end -- avoid conflict
     end
 })
+
+BrainrotsTab:Toggle({
+    Name = "ESP Rarity Name",
+    CurrentValue = false,
+    Callback = function(state)
+        espEnabled = state
+    end
+})
+
+
+
 
 --// =========================
 -- Farm Tab
@@ -254,6 +417,71 @@ FarmTab:Toggle({
     end
 })
 
+
+
+-- Dropdown for Equip Time
+FarmTab:Dropdown({
+    Name = "Equip Time",
+    Options = {"5 Seconds", "10 Seconds", "30 Seconds", "1 Minute", "5 Minutes", "10 Minutes", "15 Minutes"},
+    CurrentOption = "Equip Time",
+    Callback = function(option)
+        if option == "5 Seconds" then
+            equipDelay = 5
+        elseif option == "10 Seconds" then
+            equipDelay = 10
+        elseif option == "30 Seconds" then
+            equipDelay = 30
+        elseif option == "1 Minute" then
+            equipDelay = 60
+        elseif option == "5 Minutes" then
+            equipDelay = 300
+        elseif option == "10 Minutes" then
+            equipDelay = 600
+        elseif option == "15 Minutes" then
+            equipDelay = 900
+        end
+    end
+})
+
+-- Auto Equip Brainrots Pet Toggle
+FarmTab:Toggle({
+    Name = "Auto Equip Brainrots Pet",
+    CurrentValue = false,
+    Callback = function(state)
+        autoEquipEnabled = state
+        if state then
+            task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("EquipBestBrainrots", 9e9)
+
+                while autoEquipEnabled do
+                    remote:FireServer() -- ✅ Updated Remote
+                    task.wait(equipDelay)
+                end
+            end)
+        end
+    end
+})
+
+
+-- Auto Fuse Toggle
+FarmTab:Toggle({
+    Name = "Auto Fuse",
+    CurrentValue = false,
+    Callback = function(state)
+        autoFuseEnabled = state
+        if state then
+            task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("PromptFuse", 9e9)
+
+                while autoFuseEnabled do
+                    remote:FireServer() -- ✅ Fire fuse remote
+                    task.wait(0.5) -- ⏳ now runs every 0.5 seconds
+                end
+            end)
+        end
+    end
+})
+
 FarmTab:Toggle({
     Name = "Auto Sell Brainrot",
     CurrentValue = false,
@@ -288,22 +516,7 @@ FarmTab:Toggle({
     end
 })
 
-FarmTab:Toggle({
-    Name = "Auto Equip Best Pet (Beta)",
-    CurrentValue = false,
-    Callback = function(state)
-        autoEquipEnabled = state
-        if state then
-            task.spawn(function()
-                local remote = ReplicatedStorage:WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent")
-                while autoEquipEnabled do
-                    fireRemoteSafely(remote,{{[2]="5"}})
-                    task.wait(5)
-                end
-            end)
-        end
-    end
-})
+
 
 --// =========================
 -- Shop Tab
@@ -316,6 +529,9 @@ ShopTab:Dropdown({
     Callback = function(list) selectedSeeds = list end
 })
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Auto Buy Seeds Toggle
 ShopTab:Toggle({
     Name = "Auto Buy Seeds",
     CurrentValue = false,
@@ -323,11 +539,13 @@ ShopTab:Toggle({
         autoBuyEnabled = state
         if state then
             task.spawn(function()
-                local remote = ReplicatedStorage:WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent")
+                -- ✅ Updated Remote Path
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyItem", 9e9)
+
                 while autoBuyEnabled do
                     for _, seedName in ipairs(selectedSeeds) do
                         if not autoBuyEnabled then break end
-                        fireRemoteSafely(remote,{{seedName,"\8"}})
+                        remote:FireServer(seedName)
                         task.wait(0.5)
                     end
                 end
@@ -344,6 +562,9 @@ ShopTab:Dropdown({
     Callback = function(list) selectedGears = list end
 })
 
+
+
+-- Auto Buy Gear Toggle
 ShopTab:Toggle({
     Name = "Auto Buy Gear",
     CurrentValue = false,
@@ -351,11 +572,14 @@ ShopTab:Toggle({
         autoBuyGearEnabled = state
         if state then
             task.spawn(function()
-                local remote = ReplicatedStorage:WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent")
+                -- ✅ Updated Remote Path
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyGear", 9e9)
+
                 while autoBuyGearEnabled do
                     for _, gearName in ipairs(selectedGears) do
                         if not autoBuyGearEnabled then break end
-                        fireRemoteSafely(remote,{{gearName,"\26"}})
+                        -- Fire directly with the gearName
+                        remote:FireServer(gearName)
                         task.wait(0.5)
                     end
                 end
@@ -480,3 +704,8 @@ VisualTab:Toggle({
         end
     end
 })
+
+
+
+
+
