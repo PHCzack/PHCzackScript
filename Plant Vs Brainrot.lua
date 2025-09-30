@@ -97,8 +97,17 @@ local visualTargets = {
         safeGetPlot(4,"Plants"),
         safeGetPlot(5,"Plants"),
         safeGetPlot(6,"Plants")
+    },
+    ["PlatForms"] = {
+        safeGetPlot(1,"Brainrots"),
+        safeGetPlot(2,"Brainrots"),
+        safeGetPlot(3,"Brainrots"),
+        safeGetPlot(4,"Brainrots"),
+        safeGetPlot(5,"Brainrots"),
+        safeGetPlot(6,"Brainrots")
     }
 }
+
 
 -- Plots teleport points (unchanged)
 local plotLocations = {
@@ -462,6 +471,25 @@ FarmTab:Toggle({
     end
 })
 
+-- Auto Open Lucky Egg Toggle
+FarmTab:Toggle({
+    Name = "Auto Open Lucky Egg",
+    CurrentValue = false,
+    Callback = function(state)
+        autoOpenLuckyEggEnabled = state
+        if state then
+            task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("OpenEgg", 9e9)
+
+                while autoOpenLuckyEggEnabled do
+                    remote:FireServer("Godly Lucky Egg") -- ✅ Open Lucky Egg
+                    task.wait(1) -- ⏳ opens every 0.5s
+                end
+            end)
+        end
+    end
+})
+
 
 -- Auto Fuse Toggle
 FarmTab:Toggle({
@@ -668,7 +696,7 @@ MiscTab:Toggle({
 --// =========================
 VisualTab:Dropdown({
     Name = "Select Visual(s)",
-    Options = {"Board","Rows","Plants"},
+    Options = {"Board","Rows","Plants","PlatForms"},
     MultiSelection = true,
     CurrentOption = {},
     Callback = function(list)
@@ -677,7 +705,7 @@ VisualTab:Dropdown({
 })
 
 VisualTab:Toggle({
-    Name = "Hide/Show Selected",
+    Name = "Hide/Show Selected (Reduce Lag)",
     CurrentValue = false,
     Callback = function(state)
         for _, visType in ipairs(selectedVisuals) do
@@ -704,8 +732,3 @@ VisualTab:Toggle({
         end
     end
 })
-
-
-
-
-
