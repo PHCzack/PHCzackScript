@@ -490,6 +490,44 @@ FarmTab:Toggle({
     end
 })
 
+-- Auto Open Secret Lucky Egg Toggle
+FarmTab:Toggle({
+    Name = "Auto Open Secret Lucky Egg",
+    CurrentValue = false,
+    Callback = function(state)
+        autoOpenSecretLuckyEggEnabled = state
+        if state then
+            task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("OpenEgg", 9e9)
+
+                while autoOpenSecretLuckyEggEnabled do
+                    remote:FireServer("Secret Lucky Egg")
+                    task.wait(1) -- ⏳ every 1s
+                end
+            end)
+        end
+    end
+})
+
+-- Auto Open Meme Lucky Egg Toggle
+FarmTab:Toggle({
+    Name = "Auto Open Meme Lucky Egg",
+    CurrentValue = false,
+    Callback = function(state)
+        autoOpenMemeLuckyEggEnabled = state
+        if state then
+            task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("OpenEgg", 9e9)
+
+                while autoOpenMemeLuckyEggEnabled do
+                    remote:FireServer("Meme Lucky Egg")
+                    task.wait(1) -- ⏳ every 1s
+                end
+            end)
+        end
+    end
+})
+
 
 -- Auto Fuse Toggle
 FarmTab:Toggle({
@@ -506,6 +544,38 @@ FarmTab:Toggle({
                     task.wait(0.5) -- ⏳ now runs every 0.5 seconds
                 end
             end)
+        end
+    end
+})
+
+-- Auto Rebirth Toggle
+FarmTab:Toggle({
+    Name = "Auto Rebirth",
+    CurrentValue = false,
+    Callback = function(state)
+        autoRebirthEnabled = state
+        if state then
+            task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Rebirth", 9e9)
+
+                while autoRebirthEnabled do
+                    remote:FireServer({}) -- ✅ Fire Rebirth remote
+                    task.wait(1) -- ⏳ every 1s (adjust if needed)
+                end
+            end)
+        end
+    end
+})
+
+-- Buy All Platforms (1-30) Button
+ShopTab:Button({
+    Name = "Buy Platforms (All)",
+    Callback = function()
+        local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyPlatform", 9e9)
+
+        for i = 1, 30 do
+            remote:FireServer(tostring(i)) -- ✅ buys platform i
+            task.wait(0.2) -- small delay to avoid flooding
         end
     end
 })
