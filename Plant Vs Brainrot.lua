@@ -567,19 +567,6 @@ FarmTab:Toggle({
     end
 })
 
--- Buy All Platforms (1-30) Button
-ShopTab:Button({
-    Name = "Buy Platforms (All)",
-    Callback = function()
-        local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyPlatform", 9e9)
-
-        for i = 1, 30 do
-            remote:FireServer(tostring(i)) -- ✅ buys platform i
-            task.wait(0.2) -- small delay to avoid flooding
-        end
-    end
-})
-
 FarmTab:Toggle({
     Name = "Auto Sell Brainrot",
     CurrentValue = false,
@@ -613,6 +600,37 @@ FarmTab:Toggle({
         end
     end
 })
+
+--// =========================
+-- PlatForm Tab
+--// =========================
+local PlatformTab = Window:CreateTab("PlatForm")
+
+-- Remote reference
+local buyPlatformRemote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyPlatform", 9e9)
+
+-- 🔥 Master Button: Buy all 1-30
+PlatformTab:Button({
+    Name = "Buy All Platforms (Beta Can buy already Own)",
+    Callback = function()
+        for i = 1, 30 do
+            buyPlatformRemote:FireServer(tostring(i))
+            task.wait(0.2) -- ⏳ small delay to prevent remote flood
+        end
+    end
+})
+
+-- 📌 Individual Buttons: 1 to 30
+for i = 1, 30 do
+    PlatformTab:Button({
+        Name = "Buy Platform " .. i,
+        Callback = function()
+            buyPlatformRemote:FireServer(tostring(i))
+        end
+    })
+end
+
+
 
 
 
