@@ -658,7 +658,7 @@ end)
 
 BrainrotsTab:Dropdown({
     Name = "Auto Hit Selected Rarity",
-    Options = {"Rare", "Epic", "Legendary", "Mythic", "Godly", "Secret"},
+    Options = {"Rare", "Epic", "Legendary", "Mythic", "Godly", "Secret", "Limited"},
     CurrentOption = {},
     MultiSelection = true,
     Callback = function(list)
