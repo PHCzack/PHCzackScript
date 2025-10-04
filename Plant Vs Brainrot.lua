@@ -1,5 +1,5 @@
 --// Load Library
-local PHCzack = loadstring(game:HttpGet("https://raw.githubusercontent.com/PHCzack/PHCzackScript/refs/heads/main/Library1.lua"))()
+local PHCzack = loadstring(game:HttpGet("https://raw.githubusercontent.com/PHCzack/PHCzackScript/refs/heads/main/PHCztem1.lua"))()
 
 --// Create Window
 local Window = PHCzack:CreateWindow({
@@ -133,8 +133,11 @@ end
 --// =========================
 -- Brainrots Auto Attack
 --// =========================
+local frostBlowerEnabled = false
+local bananaGunEnabled = false
 local WeaponAttack = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("AttacksServer"):WaitForChild("WeaponAttack")
 local weaponName = "Leather Grip Bat"
+
 
 --// Helper Functions
 local function getRarity(brainrot)
@@ -157,6 +160,22 @@ local function getBrainrotUUID(brainrot)
         return uuidObj.Value
     end
     return brainrot.Name
+end
+
+local function getPredictedPosition(brainrot, delay)
+    local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
+    if not hrp then return nil end
+
+    local speedValue = brainrot:FindFirstChild("Speed")
+    local velocity = hrp.Velocity
+    local speed = speedValue and speedValue.Value or velocity.Magnitude
+
+    -- Estimate movement direction
+    local direction = velocity.Magnitude > 0 and velocity.Unit or Vector3.zero
+
+    -- Predict where the target will be after delay seconds
+    local predicted = hrp.Position + direction * (speed * delay)
+    return predicted
 end
 
 local function equipWeapon()
@@ -293,19 +312,337 @@ local function getNearestSelectedRarityBrainrot()
     return closest
 end
 
--- Update your main loop
-RunService.Heartbeat:Connect(function()
-    if followAttackEnabled then
-        local target = getNearestBrainrot()
-        if target then followAndAttack(target) end
-    elseif legendaryAttackEnabled then
-        local target = getNearestLegendaryBrainrot()
-        if target then followAndAttack(target) end
-    elseif selectedRarityAttackEnabled and #selectedRarities > 0 then
-        local target = getNearestSelectedRarityBrainrot()
-        if target then followAndAttack(target) end
+
+--// =========================
+-- Freeze Brainrots (Frost Grenade Auto)
+--// =========================
+local UseItem = ReplicatedStorage.Remotes:WaitForChild("UseItem")
+local freezeEnabled = false
+
+-- Follow and Freeze with Frost Grenade
+local function followAndFreeze(brainrot)
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if brainrot and root then
+        local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
+        if hrp then
+            -- Move closer (like auto-follow attack)
+            root.CFrame = root.CFrame:Lerp(CFrame.new(hrp.Position + Vector3.new(0, 3, 0)), 0.2)
+
+            -- Equip & throw grenade
+            local grenade = equipFrostGrenade()
+            if grenade then
+                UseItem:FireServer({
+                    Toggle = true,
+                    Time = 0.5,
+                    Tool = grenade,
+                    Pos = hrp.Position
+                })
+            end
+        end
+    end
+end
+
+
+-- Helper: get target position (prioritize Head)
+local function getTargetPosition(brainrot)
+    if not brainrot then return nil end
+    local head = brainrot:FindFirstChild("Head")
+    if head and head:IsA("BasePart") then
+        return head.Position
+    end
+    local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
+    if hrp then
+        return hrp.Position + Vector3.new(0, 2, 0) -- small offset upwards if no head
+    end
+    return nil
+end
+
+--// =========================
+-- Carrot Launcher Support
+--// =========================
+local carrotLauncherEnabled = false
+
+-- Helper: find Carrot Launcher in Backpack/Character
+local function getCarrotLauncher()
+    local char = LocalPlayer.Character
+    local backpack = LocalPlayer.Backpack
+    if not char or not backpack then return nil end
+
+    -- check equipped first
+    for _, tool in ipairs(char:GetChildren()) do
+        if tool:IsA("Tool") and string.find(tool.Name, "Carrot Launcher") then
+            return tool
+        end
     end
 
+    -- check backpack
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") and string.find(tool.Name, "Carrot Launcher") then
+            return tool
+        end
+    end
+
+    return nil
+end
+
+-- Auto equip Carrot Launcher
+local function equipCarrotLauncher()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    local launcher = getCarrotLauncher()
+    if launcher and not char:FindFirstChild(launcher.Name) then
+        char.Humanoid:EquipTool(launcher)
+        return launcher
+    end
+    return launcher
+end
+
+-- Fire Carrot Launcher
+local function fireCarrotLauncher(brainrot)
+    local launcher = equipCarrotLauncher()
+    if not launcher then return end
+
+    local predictedPos = getPredictedPosition(brainrot, 0.3)
+    UseItem:FireServer({
+        Toggle = true,
+        Time = 0.3,
+        Tool = launcher,
+        Pos = predictedPos
+    })
+end
+
+
+local function fireBananaGun(brainrot)
+    local launcher = equipBananaGun()
+    if not launcher then return end
+
+    local predictedPos = getPredictedPosition(brainrot, 0.3)
+    UseItem:FireServer({
+        Toggle = true,
+        Time = 0.3,
+        Tool = launcher,
+        Pos = predictedPos
+    })
+end
+
+local function followAndFreeze(brainrot)
+    local predictedPos = getPredictedPosition(brainrot, 0.5)
+    local grenade = equipFrostGrenade()
+    if grenade and predictedPos then
+        UseItem:FireServer({
+            Toggle = true,
+            Time = 0.5,
+            Tool = grenade,
+            Pos = predictedPos
+        })
+    end
+end
+
+local function fireFrostBlower(brainrot)
+    local targetPos = getTargetPosition(brainrot)
+    if not targetPos then return end
+    local blower = equipFrostBlower()
+    if blower then
+        UseItem:FireServer({
+            Tool = blower,
+            Toggle = true
+        })
+    end
+end
+
+
+-- Helper: find Frost Grenade in Backpack/Character (any quantity)
+local function getFrostGrenade()
+    local char = LocalPlayer.Character
+    local backpack = LocalPlayer.Backpack
+    if not char or not backpack then return nil end
+
+    -- Check equipped first
+    for _, tool in ipairs(char:GetChildren()) do
+        if tool:IsA("Tool") and string.find(tool.Name, "Frost Grenade") then
+            return tool
+        end
+    end
+    -- Then check backpack
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") and string.find(tool.Name, "Frost Grenade") then
+            return tool
+        end
+    end
+    return nil
+end
+
+-- Auto equip Frost Grenade
+local function equipFrostGrenade()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    local grenade = getFrostGrenade()
+    if grenade and not char:FindFirstChild(grenade.Name) then
+        char.Humanoid:EquipTool(grenade)
+        return grenade
+    end
+    return grenade
+end
+
+-- Throw grenade at brainrot
+local function throwFrostGrenade(brainrot)
+    local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
+    if not hrp then return end
+    local grenade = equipFrostGrenade()
+    if grenade then
+        UseItem:FireServer({
+            Toggle = true,
+            Time = 0.5,
+            Tool = grenade,
+            Pos = hrp.Position
+        })
+    end
+end
+
+-- Modify loop to use Frost Grenade if enabled
+RunService.Heartbeat:Connect(function()
+    if freezeEnabled and selectedRarityAttackEnabled and #selectedRarities > 0 then
+        local target = getNearestSelectedRarityBrainrot()
+        if target then
+            throwFrostGrenade(target)
+        end
+    else
+        -- existing attack logic
+        if followAttackEnabled then
+            local target = getNearestBrainrot()
+            if target then followAndAttack(target) end
+        elseif legendaryAttackEnabled then
+            local target = getNearestLegendaryBrainrot()
+            if target then followAndAttack(target) end
+        elseif selectedRarityAttackEnabled and #selectedRarities > 0 then
+            local target = getNearestSelectedRarityBrainrot()
+            if target then followAndAttack(target) end
+        end
+    end
+
+    if espEnabled then
+        local folder = workspace:FindFirstChild("ScriptedMap") and workspace.ScriptedMap:FindFirstChild("Brainrots")
+        if folder then
+            for _, brainrot in ipairs(folder:GetChildren()) do
+                if brainrot:IsA("Model") then
+                    createESP(brainrot)
+                end
+            end
+        end
+    end
+end)
+
+
+local function equipFrostBlower()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+
+    -- Look in character first
+    local blower = char:FindFirstChildWhichIsA("Tool")
+    if blower and blower.Name:match("Frost Blower") then
+        return blower
+    end
+
+    -- Look in backpack if not equipped
+    for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
+        if tool.Name:match("Frost Blower") then
+            char.Humanoid:EquipTool(tool)
+            return tool
+        end
+    end
+
+    return nil
+end
+
+local function equipBananaGun()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+
+    -- Check if already equipped
+    local gun = char:FindFirstChildWhichIsA("Tool")
+    if gun and gun.Name:match("Banana Gun") then
+        return gun
+    end
+
+    -- Search backpack
+    for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
+        if tool.Name:match("Banana Gun") then
+            char.Humanoid:EquipTool(tool)
+            return tool
+        end
+    end
+
+    return nil
+end
+
+
+--// =========================
+-- Unified Main Loop (Requires Selected Rarity for Freeze / Blower / Banana)
+--// =========================
+RunService.Heartbeat:Connect(function()
+    -- ✅ Freeze Brainrots
+    if freezeEnabled and #selectedRarities > 0 then
+        local target = getNearestSelectedRarityBrainrot()
+        if target then
+            followAndFreeze(target)
+        end
+
+    -- ✅ Frost Blower
+    elseif frostBlowerEnabled and #selectedRarities > 0 then
+        local target = getNearestSelectedRarityBrainrot()
+        if target then
+            local hrp = target:FindFirstChild("HumanoidRootPart") or target:FindFirstChildWhichIsA("BasePart")
+            if hrp then
+                local blower = equipFrostBlower()
+                if blower then
+                    UseItem:FireServer({
+                        Tool = blower,
+                        Toggle = true
+                    })
+                end
+            end
+        end
+
+    -- ✅ Banana Gun
+    elseif bananaGunEnabled and #selectedRarities > 0 then
+        local target = getNearestSelectedRarityBrainrot()
+        if target then
+            local hrp = target:FindFirstChild("HumanoidRootPart") or target:FindFirstChildWhichIsA("BasePart")
+            if hrp then
+                local gun = equipBananaGun()
+                if gun then
+                    UseItem:FireServer({
+                        Toggle = true,
+                        Time = 0.5, -- adjustable firing delay
+                        Tool = gun,
+                        Pos = hrp.Position
+                    })
+                end
+            end
+        end
+        
+        -- ✅ Carrot Launcher
+elseif carrotLauncherEnabled and #selectedRarities > 0 then
+    local target = getNearestSelectedRarityBrainrot()
+    if target then
+        fireCarrotLauncher(target)
+    end
+
+    -- ✅ Normal Attack Modes (don’t need rarity unless selected)
+    else
+        if followAttackEnabled then
+            local target = getNearestBrainrot()
+            if target then followAndAttack(target) end
+        elseif legendaryAttackEnabled then
+            local target = getNearestLegendaryBrainrot()
+            if target then followAndAttack(target) end
+        elseif selectedRarityAttackEnabled and #selectedRarities > 0 then
+            local target = getNearestSelectedRarityBrainrot()
+            if target then followAndAttack(target) end
+        end
+    end
+
+    -- ✅ ESP is always active
     if espEnabled then
         local folder = workspace:FindFirstChild("ScriptedMap") and workspace.ScriptedMap:FindFirstChild("Brainrots")
         if folder then
@@ -335,7 +672,7 @@ BrainrotsTab:Dropdown({
 
 -- Toggle for enabling/disabling the feature
 BrainrotsTab:Toggle({
-    Name = "Enable Selected Rarity Attack",
+    Name = "Enable Selected Rarity Attack (Equip Bat)",
     CurrentValue = false,
     Callback = function(state)
         selectedRarityAttackEnabled = state
@@ -345,6 +682,69 @@ BrainrotsTab:Toggle({
         end
     end
 })
+
+--// Toggle for Freeze
+BrainrotsTab:Toggle({
+    Name = "Freeze Brainrots (Frost Grenade)",
+    CurrentValue = false,
+    Callback = function(state)
+        freezeEnabled = state
+        if state then
+            followAttackEnabled = false
+            legendaryAttackEnabled = false
+        end
+    end
+})
+
+BrainrotsTab:Toggle({
+    Name = "Auto Banana Gun",
+    CurrentValue = false,
+    Callback = function(state)
+        bananaGunEnabled = state
+        if state then
+            followAttackEnabled = false
+            legendaryAttackEnabled = false
+            selectedRarityAttackEnabled = false
+        end
+    end
+})
+
+BrainrotsTab:Toggle({
+    Name = "Auto Frost Blower)",
+    CurrentValue = false,
+    Callback = function(state)
+        frostBlowerEnabled = state
+        if not state then
+            -- turn it off when disabled
+            local blower = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Frost Blower")
+            if blower then
+                UseItem:FireServer({
+                    Tool = blower,
+                    Toggle = false
+                })
+            end
+        end
+    end
+})
+
+--// =========================
+-- UI Toggle for Carrot Launcher
+--// =========================
+BrainrotsTab:Toggle({
+    Name = "Auto Carrot Launcher",
+    CurrentValue = false,
+    Callback = function(state)
+        carrotLauncherEnabled = state
+        if state then
+            followAttackEnabled = false
+            legendaryAttackEnabled = false
+            freezeEnabled = false
+            frostBlowerEnabled = false
+            bananaGunEnabled = false
+        end
+    end
+})
+
 
 --// Toggles
 BrainrotsTab:Toggle({
@@ -695,6 +1095,48 @@ ShopTab:Toggle({
                     for _, gearName in ipairs(selectedGears) do
                         if not autoBuyGearEnabled then break end
                         -- Fire directly with the gearName
+                        remote:FireServer(gearName)
+                        task.wait(0.5)
+                    end
+                end
+            end)
+        end
+    end
+})
+
+ShopTab:Toggle({
+    Name = "Auto Buy All Plants",
+    CurrentValue = false,
+    Callback = function(state)
+        autoBuyAllPlantsEnabled = state
+        if state then
+            task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyItem", 9e9)
+                while autoBuyAllPlantsEnabled do
+                    -- Fire for every seed in the seedsList
+                    for _, seedName in ipairs(seedsList) do
+                        if not autoBuyAllPlantsEnabled then break end
+                        remote:FireServer(seedName)
+                        task.wait(0.5)
+                    end
+                end
+            end)
+        end
+    end
+})
+
+ShopTab:Toggle({
+    Name = "Auto Buy All Gear",
+    CurrentValue = false,
+    Callback = function(state)
+        autoBuyAllGearEnabled = state
+        if state then
+            task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyGear", 9e9)
+                while autoBuyAllGearEnabled do
+                    -- Fire for every gear in gearList
+                    for _, gearName in ipairs(gearList) do
+                        if not autoBuyAllGearEnabled then break end
                         remote:FireServer(gearName)
                         task.wait(0.5)
                     end
