@@ -839,12 +839,15 @@ FarmTab:Toggle({
     end
 })
 
+-- Outside the toggle, at the top of your script
+local turnInEnabled = false
+
 FarmTab:Toggle({
     Name = "Turn In (Manual)",
     CurrentValue = false,
     Callback = function(state)
-        local turnInEnabled = state
-        if turnInEnabled then
+        turnInEnabled = state  -- update the global toggle variable
+        if state then
             task.spawn(function()
                 while turnInEnabled do
                     local success, err = pcall(function()
@@ -854,7 +857,7 @@ FarmTab:Toggle({
                     if not success then
                         warn("Failed to FireServer: ", err)
                     end
-                    task.wait(1) -- fires every 1 second
+                    task.wait(1)
                 end
             end)
         end
