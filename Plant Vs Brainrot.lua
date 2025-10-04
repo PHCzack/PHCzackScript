@@ -50,7 +50,7 @@ local seedsList = {
     "Cactus Seed","Strawberry Seed","Pumpkin Seed","Sunflower Seed",
     "Dragon Fruit Seed","Eggplant Seed","Watermelon Seed","Grape Seed",
     "Cocotank Seed","Carnivorous Plant Seed","Mr Carrot Seed",
-    "Tomatrio Seed","Shroombino Seed"
+    "Tomatrio Seed","Shroombino Seed", "Mango Seed"
 }
 
 local gearList = {
@@ -770,6 +770,97 @@ BrainrotsTab:Toggle({
 --// =========================
 -- Farm Tab
 --// =========================
+--// =========================
+-- Auto Turn In + Auto Equip Each Item (Fixed)
+--// =========================
+local autoTurnInEnabled = false
+local Interact = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("Prison"):WaitForChild("Interact")
+
+-- List of items to auto-equip (partial name match)
+local equipItemsList = {
+    "Alessio", "Orcalero", "Orcala", "Bandito", "Bombirito", "Bombardiro", "Crocodilo",
+    "Brr Brr Patapim", "Ballerina Cappuccina", "Bananita Dolphinita", "Burbaloni Lulliloli",
+    "Cappuccino Assasino", "Svinino Bombondino", "Bombini Gussini", "Elefanto Cocofanto", "Trippi Troppi", "Frigo Camelo", 
+    "Bambini Crostini", "Gangster Footera", "Madung", "Crazylone Pizaione"
+}
+
+FarmTab:Toggle({
+    Name = "Auto Turn In + Equip Each Item",
+    CurrentValue = false,
+    Callback = function(state)
+        autoTurnInEnabled = state
+        if state then
+            task.spawn(function()
+                local player = game.Players.LocalPlayer
+                while autoTurnInEnabled do
+                    local character = player.Character
+                    local backpack = player.Backpack
+                    if character and backpack then
+                        local humanoid = character:FindFirstChildOfClass("Humanoid")
+                        if humanoid then
+                            -- Loop through each item
+                            for _, namePart in ipairs(equipItemsList) do
+                                local toolToEquip = nil
+                                
+                                -- Check Backpack
+                                for _, tool in ipairs(backpack:GetChildren()) do
+                                    if tool:IsA("Tool") and tool.Name:match(namePart) then
+                                        toolToEquip = tool
+                                        break
+                                    end
+                                end
+                                
+                                -- Check Character if not in Backpack
+                                if not toolToEquip then
+                                    for _, tool in ipairs(character:GetChildren()) do
+                                        if tool:IsA("Tool") and tool.Name:match(namePart) then
+                                            toolToEquip = tool
+                                            break
+                                        end
+                                    end
+                                end
+
+                                -- Equip and FireServer if needed
+                                if toolToEquip and humanoid:FindFirstChildOfClass("Tool") ~= toolToEquip then
+                                    humanoid:EquipTool(toolToEquip)
+                                    pcall(function()
+                                        Interact:FireServer("TurnIn") -- Fire every equip
+                                    end)
+                                    task.wait(1) -- small delay between equips
+                                end
+                            end
+                        end
+                    end
+
+                    task.wait(1) -- optional, prevents extremely fast looping
+                end
+            end)
+        end
+    end
+})
+
+FarmTab:Toggle({
+    Name = "Turn In (Manual)",
+    CurrentValue = false,
+    Callback = function(state)
+        local turnInEnabled = state
+        if turnInEnabled then
+            task.spawn(function()
+                while turnInEnabled do
+                    local success, err = pcall(function()
+                        local args = { [1] = "TurnIn" }
+                        game:GetService("ReplicatedStorage").Remotes.Events.Prison.Interact:FireServer(unpack(args))
+                    end)
+                    if not success then
+                        warn("Failed to FireServer: ", err)
+                    end
+                    task.wait(1) -- fires every 1 second
+                end
+            end)
+        end
+    end
+})
+
 FarmTab:Dropdown({
     Name = "Select Plots to Claim",
     Options = {"Plot 1","Plot 2","Plot 3","Plot 4","Plot 5","Plot 6"},
