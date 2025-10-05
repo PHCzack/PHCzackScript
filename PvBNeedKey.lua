@@ -16,7 +16,7 @@ Config = {
 
 local KeySystemData = {
     Name = "PHCzack Key System",
-    DiscordInvite = "https://t.me/PHCzackChannel",
+    DiscordInvite = "PHCzackChannel",
     FileName = "redexecutor/key.txt"
 }
 
@@ -342,9 +342,9 @@ GetKeyButton.MouseButton1Click:Connect(function()
 end)
 
 DiscordButton.MouseButton1Click:Connect(function()
-    setStatus("Opening Discord invite...", Color3.fromRGB(100, 200, 255))
-    setclipboard("https://discord.gg/" .. KeySystemData.DiscordInvite)
-    setStatus("Discord invite copied!", Color3.fromRGB(100, 255, 100))
+    setStatus("Opening Telegram invite...", Color3.fromRGB(100, 200, 255))
+    setclipboard("https://t.me/" .. KeySystemData.DiscordInvite)
+    setStatus("Telegram invite copied!", Color3.fromRGB(100, 255, 100))
 end)
 
 -- Enter key to submit
