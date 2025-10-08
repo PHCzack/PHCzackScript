@@ -211,7 +211,7 @@ NotificationContainer.Parent = MainGui
 local layout = Instance.new("UIListLayout")
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Padding = UDim.new(0, 6)
-layout.VerticalAlignment = Enum.HorizontalAlignment.Top
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Top
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.Parent = NotificationContainer
 
