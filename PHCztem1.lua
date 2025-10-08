@@ -4,7 +4,6 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
 --// Main GUI Library Table
---// CHANGED: Renamed to Rayfield for compatibility with the example script
 local Rayfield = {}
 Rayfield.__index = Rayfield
 
@@ -17,69 +16,66 @@ MainGui.ResetOnSpawn = false
 --// Create the main frame for the UI
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
---// MODIFIED: Kept the smaller size
 MainFrame.Size = UDim2.new(0, 450, 0, 300)
 MainFrame.Position = UDim2.new(0.5, -225, 0.5, -150)
---// MODIFIED: Kept the transparency
 MainFrame.BackgroundTransparency = 0.15
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
---// MODIFIED: Changed border color to a cool blue accent
-MainFrame.BorderColor3 = Color3.fromRGB(0, 120, 255)
-MainFrame.BorderSizePixel = 1 -- A thinner border looks cleaner
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25) -- Neon dark
+MainFrame.BorderColor3 = Color3.fromRGB(0, 255, 200) -- Neon cyan border
+MainFrame.BorderSizePixel = 1
 MainFrame.Active = true
 MainFrame.Visible = true
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = MainGui
 
---// Corner radius for modern look
+--// Corner radius
 local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 8)
 mainCorner.Parent = MainFrame
 
---// Header for title and dragging
+--// Header
 local Header = Instance.new("Frame")
 Header.Name = "Header"
 Header.Size = UDim2.new(1, 0, 0, 30)
-Header.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Header.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
 Header.BorderSizePixel = 0
 Header.Parent = MainFrame
 
---// MODIFIED: Added a cool gradient to the header
+--// Gradient
 local headerGradient = Instance.new("UIGradient")
 headerGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 120, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(120, 0, 255))
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 200)), -- Neon cyan
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 180))  -- Neon pink
 })
-headerGradient.Rotation = 90 -- Makes it a horizontal gradient
+headerGradient.Rotation = 90
 headerGradient.Parent = Header
 
 local headerCorner = Instance.new("UICorner")
 headerCorner.CornerRadius = UDim.new(0, 8)
 headerCorner.Parent = Header
+
 local bottomFix = Instance.new("Frame")
 bottomFix.Size = UDim2.new(1,0,0.5,0)
 bottomFix.Position = UDim2.new(0,0,0.5,0)
 bottomFix.BackgroundColor3 = Header.BackgroundColor3
 bottomFix.BorderSizePixel = 0
 bottomFix.Parent = headerCorner
--- This ensures the bottom half of the corner is a solid color
 local bottomFixGradientClone = headerGradient:Clone()
 bottomFixGradientClone.Parent = bottomFix
 
-
+-- Title
 local Title = Instance.new("TextLabel")
 Title.Name = "Title"
-Title.Size = UDim2.new(1, -100, 1, 0) -- Make space for buttons
+Title.Size = UDim2.new(1, -100, 1, 0)
 Title.Position = UDim2.new(0, 5, 0, 0)
 Title.BackgroundTransparency = 1
 Title.Font = Enum.Font.SourceSansBold
-Title.Text = "My Awesome Game UI"
+Title.Text = "Neon Cyberpunk UI"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 16
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = Header
 
---// Window Controls (Minimize, Zoom, Hide)
+-- Window Controls
 local ControlsFrame = Instance.new("Frame")
 ControlsFrame.Name = "ControlsFrame"
 ControlsFrame.Size = UDim2.new(0, 90, 1, 0)
@@ -97,11 +93,11 @@ controlsLayout.Parent = ControlsFrame
 local function createControlButton(text)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0, 20, 0, 20)
-    btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    btn.BackgroundTransparency = 0.8
+    btn.BackgroundColor3 = Color3.fromRGB(0, 255, 200) -- Neon buttons
+    btn.BackgroundTransparency = 0.2
     btn.Text = text
     btn.Font = Enum.Font.SourceSansBold
-    btn.TextColor3 = Color3.fromRGB(30, 30, 30)
+    btn.TextColor3 = Color3.fromRGB(20, 20, 30)
     btn.TextSize = 14
     btn.Parent = ControlsFrame
     local corner = Instance.new("UICorner")
@@ -114,20 +110,20 @@ local HideButton = createControlButton("X")
 local ZoomButton = createControlButton("❐")
 local MinimizeButton = createControlButton("—")
 
---// Show UI Button (appears when main UI is hidden)
+
+-- Show UI Button
 local ShowButton = Instance.new("TextButton")
 ShowButton.Name = "ShowButton"
 ShowButton.Size = UDim2.new(0, 100, 0, 30)
-ShowButton.Position = UDim2.new(0, 10, 0, 10) -- Positioned top-left
+ShowButton.Position = UDim2.new(0, 10, 0, 10)
 ShowButton.Text = "Show UI"
 ShowButton.TextColor3 = Color3.fromRGB(220, 220, 220)
 ShowButton.Font = Enum.Font.SourceSans
 ShowButton.Visible = false
 ShowButton.ZIndex = 10
 ShowButton.Parent = MainGui
-local showButtonGradient = headerGradient:Clone() -- Reuse the cool gradient
+local showButtonGradient = headerGradient:Clone()
 showButtonGradient.Parent = ShowButton
-
 
 local showCorner = Instance.new("UICorner")
 showCorner.CornerRadius = UDim.new(0, 6)
@@ -138,7 +134,7 @@ ShowButton.MouseButton1Click:Connect(function()
     ShowButton.Visible = false
 end)
 
---// Window state variables
+-- Window state variables
 local isMinimized = false
 local isZoomed = false
 local originalSize = MainFrame.Size
@@ -153,7 +149,7 @@ end)
 MinimizeButton.MouseButton1Click:Connect(function()
     isMinimized = not isMinimized
     if isMinimized then
-        isZoomed = false -- Can't be zoomed and minimized
+        isZoomed = false
         TweenService:Create(MainFrame, TweenInfo.new(0.2), {Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset, 0, Header.AbsoluteSize.Y)}):Play()
     else
         TweenService:Create(MainFrame, TweenInfo.new(0.2), {Size = originalSize}):Play()
@@ -163,7 +159,7 @@ end)
 ZoomButton.MouseButton1Click:Connect(function()
     isZoomed = not isZoomed
     if isZoomed then
-        isMinimized = false -- Can't be minimized and zoomed
+        isMinimized = false
         originalSize = MainFrame.Size
         originalPosition = MainFrame.Position
         TweenService:Create(MainFrame, TweenInfo.new(0.2), { Size = zoomedSize, Position = UDim2.new(0.5, -zoomedSize.X.Offset/2, 0.5, -zoomedSize.Y.Offset/2) }):Play()
@@ -172,13 +168,13 @@ ZoomButton.MouseButton1Click:Connect(function()
     end
 end)
 
---// Tab container
+-- Tab container
 local TabContainer = Instance.new("Frame")
 TabContainer.Name = "TabContainer"
 TabContainer.Size = UDim2.new(0, 120, 1, -30)
 TabContainer.Position = UDim2.new(0, 0, 0, 30)
-TabContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-TabContainer.BackgroundTransparency = 0.15
+TabContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 45) -- Neon panel
+TabContainer.BackgroundTransparency = 0.1
 TabContainer.BorderSizePixel = 0
 TabContainer.Parent = MainFrame
 
@@ -187,13 +183,13 @@ tabLayout.Padding = UDim.new(0, 5)
 tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
 tabLayout.Parent = TabContainer
 
---// Content container
+-- Content container
 local ContentContainer = Instance.new("Frame")
 ContentContainer.Name = "ContentContainer"
 ContentContainer.Size = UDim2.new(1, -120, 1, -30)
 ContentContainer.Position = UDim2.new(0, 120, 0, 30)
-ContentContainer.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-ContentContainer.BackgroundTransparency = 0.15
+ContentContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 55) -- Neon panel
+ContentContainer.BackgroundTransparency = 0.1
 ContentContainer.BorderSizePixel = 0
 ContentContainer.Parent = MainFrame
 
@@ -410,123 +406,206 @@ function Rayfield:CreateWindow(options)
         end
 
         function Tab:Textbox(options)
+            local Input = {}
+            Input.CurrentValue = options.CurrentValue or options.Default or ""
+            
             local container = Instance.new("Frame")
             container.Name = options.Name
-            container.Size = UDim2.new(1, 0, 0, 35)
-            container.BackgroundTransparency = 1
-            container.Parent = contentFrame
-
-            local textbox = Instance.new("TextBox")
-            textbox.Size = UDim2.new(1, 0, 1, 0)
-            textbox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            textbox.PlaceholderText = options.Name
-            textbox.Font = Enum.Font.SourceSans
-            textbox.TextColor3 = Color3.fromRGB(220, 220, 220)
-            textbox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
-            textbox.TextSize = 14
-            textbox.ClearTextOnFocus = false
-            textbox.Parent = container
-
-            local corner = Instance.new("UICorner")
-            corner.CornerRadius = UDim.new(0, 4)
-            corner.Parent = textbox
-
-            textbox.FocusLost:Connect(function(enterPressed)
-                if enterPressed and options.Callback then
-                    options.Callback(textbox.Text)
-                end
-            end)
-        end
-
-        function Tab:Slider(options)
-            local container = Instance.new("Frame")
-            container.Name = options.Name
-            container.Size = UDim2.new(1, 0, 0, 40)
+            container.Size = UDim2.new(1, 0, 0, 45)
             container.BackgroundTransparency = 1
             container.Parent = contentFrame
 
             local label = Instance.new("TextLabel")
-            label.Size = UDim2.new(1, 0, 0, 20)
+            label.Size = UDim2.new(1, 0, 0, 15)
             label.BackgroundTransparency = 1
             label.Font = Enum.Font.SourceSans
+            label.Text = options.Name
             label.TextColor3 = Color3.fromRGB(220, 220, 220)
-            label.TextSize = 16
+            label.TextSize = 14
             label.TextXAlignment = Enum.TextXAlignment.Left
             label.Parent = container
 
-            local sliderFrame = Instance.new("Frame")
-            sliderFrame.Size = UDim2.new(1, 0, 0, 10)
-            sliderFrame.Position = UDim2.new(0, 0, 0, 25)
-            sliderFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            sliderFrame.Parent = container
+            local textboxFrame = Instance.new("Frame")
+            textboxFrame.Size = UDim2.new(1, 0, 0, 28)
+            textboxFrame.Position = UDim2.new(0, 0, 0, 17)
+            textboxFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            textboxFrame.BorderSizePixel = 0
+            textboxFrame.Parent = container
 
-            local sCorner = Instance.new("UICorner")
-            sCorner.CornerRadius = UDim.new(0, 5)
-            sCorner.Parent = sliderFrame
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 4)
+            corner.Parent = textboxFrame
 
-            local fill = Instance.new("Frame")
-            fill.BorderSizePixel = 0
-            fill.Parent = sliderFrame
-            
-            --// MODIFIED: Added a cool gradient to the slider fill
-            local fillGradient = Instance.new("UIGradient")
-            fillGradient.Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 120, 255)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(120, 0, 255))
-            })
-            fillGradient.Parent = fill
+            local textbox = Instance.new("TextBox")
+            textbox.Size = UDim2.new(1, -10, 1, 0)
+            textbox.Position = UDim2.new(0, 5, 0, 0)
+            textbox.BackgroundTransparency = 1
+            textbox.PlaceholderText = options.PlaceholderText or "Enter text..."
+            textbox.Font = Enum.Font.SourceSans
+            textbox.Text = Input.CurrentValue
+            textbox.TextColor3 = Color3.fromRGB(220, 220, 220)
+            textbox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+            textbox.TextSize = 14
+            textbox.TextXAlignment = Enum.TextXAlignment.Left
+            textbox.ClearTextOnFocus = false
+            textbox.Parent = textboxFrame
 
-            local fCorner = Instance.new("UICorner")
-            fCorner.CornerRadius = UDim.new(0, 5)
-            fCorner.Parent = fill
+            -- Optional: Text validation flag
+            local isValid = true
 
-            local handle = Instance.new("TextButton")
-            handle.Size = UDim2.new(0, 16, 0, 16)
-            handle.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
-            handle.Text = ""
-            handle.ZIndex = 2
-            handle.Parent = fill
+            textbox.Focused:Connect(function()
+                TweenService:Create(textboxFrame, TweenInfo.new(0.2), {
+                    BackgroundColor3 = Color3.fromRGB(60, 60, 60),
+                    BorderSizePixel = 1,
+                    BorderColor3 = Color3.fromRGB(0, 120, 255)
+                }):Play()
+            end)
 
-            local hCorner = Instance.new("UICorner")
-            hCorner.CornerRadius = UDim.new(1, 0)
-            hCorner.Parent = handle
+            textbox.FocusLost:Connect(function(enterPressed)
+                TweenService:Create(textboxFrame, TweenInfo.new(0.2), {
+                    BackgroundColor3 = Color3.fromRGB(50, 50, 50),
+                    BorderSizePixel = 0
+                }):Play()
+                
+                if enterPressed or options.RemoveTextAfterFocusLost ~= false then
+                    Input.CurrentValue = textbox.Text
+                    
+                    -- Call callback with the text
+                    if options.Callback then
+                        options.Callback(textbox.Text)
+                    end
+                    
+                    -- Optional: Clear text after focus lost if flag is set
+                    if options.RemoveTextAfterFocusLost then
+                        textbox.Text = ""
+                    end
+                end
+            end)
 
-            local min, max, default = options.Min or 0, options.Max or 100, options.Default or 50
-            local value = default
+            -- Optional: Number-only validation
+            if options.NumbersOnly then
+                textbox:GetPropertyChangedSignal("Text"):Connect(function()
+                    local filtered = textbox.Text:gsub("[^%d%.%-]", "")
+                    if filtered ~= textbox.Text then
+                        textbox.Text = filtered
+                    end
+                end)
+            end
 
-            local function updateSlider(percent)
-                percent = math.clamp(percent, 0, 1)
-                value = min + (max - min) * percent
-                fill.Size = UDim2.new(percent, 0, 1, 0)
-                handle.Position = UDim2.new(1, -8, 0.5, -8) -- Position handle at the end of the fill
-                label.Text = string.format("%s: %.2f", options.Name, value)
+            function Input:Set(value)
+                Input.CurrentValue = value
+                textbox.Text = value
                 if options.Callback then
                     options.Callback(value)
                 end
             end
 
-            updateSlider((default - min) / (max - min))
+            return Input
+        end
 
-            local dragConnection
-            handle.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                    dragConnection = UserInputService.InputChanged:Connect(function(changedInput)
-                        if changedInput.UserInputType == Enum.UserInputType.MouseMovement or changedInput.UserInputType == Enum.UserInputType.Touch then
-                            local mousePos = UserInputService:GetMouseLocation()
-                            local relativePos = mousePos.X - sliderFrame.AbsolutePosition.X
-                            local percent = math.clamp(relativePos / sliderFrame.AbsoluteSize.X, 0, 1)
-                            updateSlider(percent)
-                        end
-                    end)
-                end
-            end)
+        function Tab:Slider(options)
+    local container = Instance.new("Frame")
+    container.Name = options.Name
+    container.Size = UDim2.new(1, 0, 0, 40)
+    container.BackgroundTransparency = 1
+    container.Parent = contentFrame
 
-            handle.InputEnded:Connect(function()
-                if dragConnection then
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 20)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.SourceSans
+    label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    label.TextSize = 16
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = container
+
+    local sliderFrame = Instance.new("Frame")
+    sliderFrame.Size = UDim2.new(1, 0, 0, 10)
+    sliderFrame.Position = UDim2.new(0, 0, 0, 25)
+    sliderFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    sliderFrame.Parent = container
+
+    local sCorner = Instance.new("UICorner")
+    sCorner.CornerRadius = UDim.new(0, 5)
+    sCorner.Parent = sliderFrame
+
+    local fill = Instance.new("Frame")
+    fill.BorderSizePixel = 0
+    fill.Parent = sliderFrame
+    
+    -- Gradient effect for fill
+    local fillGradient = Instance.new("UIGradient")
+    fillGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 120, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(120, 0, 255))
+    })
+    fillGradient.Parent = fill
+
+    local fCorner = Instance.new("UICorner")
+    fCorner.CornerRadius = UDim.new(0, 5)
+    fCorner.Parent = fill
+
+    local handle = Instance.new("TextButton")
+    handle.Size = UDim2.new(0, 16, 0, 16)
+    handle.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
+    handle.Text = ""
+    handle.ZIndex = 2
+    handle.Parent = fill
+
+    local hCorner = Instance.new("UICorner")
+    hCorner.CornerRadius = UDim.new(1, 0)
+    hCorner.Parent = handle
+
+    local min, max, default = options.Min or 0, options.Max or 100, options.Default or 50
+    local value = default
+
+    local function updateSlider(percent)
+        percent = math.clamp(percent, 0, 1)
+        value = min + (max - min) * percent
+        fill.Size = UDim2.new(percent, 0, 1, 0)
+        handle.Position = UDim2.new(percent, -8, 0.5, -8) -- Position handle according to fill
+        label.Text = string.format("%s: %.2f", options.Name, value)
+        if options.Callback then
+            options.Callback(value)
+        end
+    end
+
+    updateSlider((default - min) / (max - min))
+
+    local dragConnection
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local startPos = input.Position
+            local startSize = fill.Size.X.Scale
+
+            dragConnection = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.Change then
+                    local delta = (input.Position.X - startPos.X) / sliderFrame.AbsoluteSize.X
+                    updateSlider(startSize + delta) -- update the slider position
+                elseif input.UserInputState == Enum.UserInputState.End then
                     dragConnection:Disconnect()
                 end
             end)
         end
+    end)
+
+    -- Handle touch drag event
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            local startPos = input.Position
+            local startSize = fill.Size.X.Scale
+
+            dragConnection = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.Change then
+                    local delta = (input.Position.X - startPos.X) / sliderFrame.AbsoluteSize.X
+                    updateSlider(startSize + delta) -- update the slider position
+                elseif input.UserInputState == Enum.UserInputState.End then
+                    dragConnection:Disconnect()
+                end
+            end)
+        end
+    end)
+end
 
         function Tab:Keybind(options)
             local container = Instance.new("Frame")
