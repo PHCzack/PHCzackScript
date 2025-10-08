@@ -203,7 +203,7 @@ local TweenService = game:GetService("TweenService")
 local NotificationContainer = Instance.new("Frame")
 NotificationContainer.Name = "NotificationContainer"
 NotificationContainer.Size = UDim2.new(0, 350, 1, 0)
-NotificationContainer.Position = UDim2.new(0.5, -175, 0, -30)
+NotificationContainer.Position = UDim2.new(0.5, -175, 0, 0)
 NotificationContainer.BackgroundTransparency = 1
 NotificationContainer.ZIndex = 100
 NotificationContainer.Parent = MainGui
@@ -211,7 +211,7 @@ NotificationContainer.Parent = MainGui
 local layout = Instance.new("UIListLayout")
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Padding = UDim.new(0, 6)
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Top
+layout.VerticalAlignment = Enum.VerticalAlignment.Top
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.Parent = NotificationContainer
 
@@ -531,6 +531,20 @@ function Rayfield:CreateWindow(options)
                 local knobPos = state and UDim2.new(1, -22, 0.5, -10) or UDim2.new(0, 2, 0.5, -10)
                 TweenService:Create(switchTrack, TweenInfo.new(0.2), {BackgroundColor3 = trackColor}):Play()
                 TweenService:Create(switchKnob, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = knobPos}):Play()
+                
+                -- Add this after the label creation in Toggle function
+if options.Info then
+    local infoLabel = Instance.new("TextLabel")
+    infoLabel.Size = UDim2.new(1, -60, 0, 12)
+    infoLabel.Position = UDim2.new(0, 0, 0, 18)
+    infoLabel.BackgroundTransparency = 1
+    infoLabel.Font = Enum.Font.SourceSans
+    infoLabel.Text = options.Info
+    infoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    infoLabel.TextSize = 12
+    infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+    infoLabel.Parent = container
+end
                 
                 -- Optional: Show notification if enabled
                 if options.Notify then
