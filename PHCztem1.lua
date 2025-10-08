@@ -196,6 +196,136 @@ ContentContainer.Parent = MainFrame
 local activeTab = nil
 local tabs = {}
 
+--// Notification System
+local NotificationContainer = Instance.new("Frame")
+NotificationContainer.Name = "NotificationContainer"
+NotificationContainer.Size = UDim2.new(0, 350, 0, 0)
+NotificationContainer.Position = UDim2.new(0.5, -175, 0, 10)
+NotificationContainer.BackgroundTransparency = 1
+NotificationContainer.ZIndex = 100
+NotificationContainer.Parent = MainGui
+
+local notificationLayout = Instance.new("UIListLayout")
+notificationLayout.Padding = UDim.new(0, 10)
+notificationLayout.SortOrder = Enum.SortOrder.LayoutOrder
+notificationLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+notificationLayout.Parent = NotificationContainer
+
+local activeNotifications = {}
+
+function Rayfield:Notify(options)
+    local title = options.Title or "Notification"
+    local content = options.Content or ""
+    local duration = options.Duration or 3
+    local image = options.Image or nil
+    
+    local notifFrame = Instance.new("Frame")
+    notifFrame.Size = UDim2.new(1, 0, 0, 0)
+    notifFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 45)
+    notifFrame.BorderSizePixel = 1
+    notifFrame.BorderColor3 = Color3.fromRGB(0, 120, 255)
+    notifFrame.ZIndex = 101
+    notifFrame.Parent = NotificationContainer
+    
+    local notifCorner = Instance.new("UICorner")
+    notifCorner.CornerRadius = UDim.new(0, 6)
+    notifCorner.Parent = notifFrame
+    
+    -- Glow effect
+    local glow = Instance.new("UIStroke")
+    glow.Color = Color3.fromRGB(0, 120, 255)
+    glow.Thickness = 1.5
+    glow.Transparency = 0.5
+    glow.Parent = notifFrame
+    
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Size = UDim2.new(1, -20, 1, -20)
+    contentFrame.Position = UDim2.new(0, 10, 0, 10)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.ZIndex = 102
+    contentFrame.Parent = notifFrame
+    
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, 0, 0, 20)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Font = Enum.Font.SourceSansBold
+    titleLabel.Text = title
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextSize = 16
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.ZIndex = 103
+    titleLabel.Parent = contentFrame
+    
+    local contentLabel = Instance.new("TextLabel")
+    contentLabel.Size = UDim2.new(1, 0, 0, 18)
+    contentLabel.Position = UDim2.new(0, 0, 0, 22)
+    contentLabel.BackgroundTransparency = 1
+    contentLabel.Font = Enum.Font.SourceSans
+    contentLabel.Text = content
+    contentLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    contentLabel.TextSize = 14
+    contentLabel.TextXAlignment = Enum.TextXAlignment.Left
+    contentLabel.TextWrapped = true
+    contentLabel.ZIndex = 103
+    contentLabel.Parent = contentFrame
+    
+    -- Calculate height based on content
+    local textHeight = 50
+    if #content > 40 then
+        textHeight = 70
+    end
+    
+    -- Slide in animation
+    notifFrame.Size = UDim2.new(1, 0, 0, 0)
+    notifFrame.BackgroundTransparency = 1
+    titleLabel.TextTransparency = 1
+    contentLabel.TextTransparency = 1
+    glow.Transparency = 1
+    
+    local slideIn = TweenService:Create(notifFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(1, 0, 0, textHeight),
+        BackgroundTransparency = 0.1
+    })
+    
+    local fadeInTitle = TweenService:Create(titleLabel, TweenInfo.new(0.3), {TextTransparency = 0})
+    local fadeInContent = TweenService:Create(contentLabel, TweenInfo.new(0.3), {TextTransparency = 0})
+    local fadeInGlow = TweenService:Create(glow, TweenInfo.new(0.3), {Transparency = 0.5})
+    
+    slideIn:Play()
+    fadeInTitle:Play()
+    fadeInContent:Play()
+    fadeInGlow:Play()
+    
+    table.insert(activeNotifications, notifFrame)
+    
+    -- Auto dismiss after duration
+    task.delay(duration, function()
+        local slideOut = TweenService:Create(notifFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Size = UDim2.new(1, 0, 0, 0),
+            BackgroundTransparency = 1
+        })
+        
+        local fadeOutTitle = TweenService:Create(titleLabel, TweenInfo.new(0.3), {TextTransparency = 1})
+        local fadeOutContent = TweenService:Create(contentLabel, TweenInfo.new(0.3), {TextTransparency = 1})
+        local fadeOutGlow = TweenService:Create(glow, TweenInfo.new(0.3), {Transparency = 1})
+        
+        slideOut:Play()
+        fadeOutTitle:Play()
+        fadeOutContent:Play()
+        fadeOutGlow:Play()
+        
+        slideOut.Completed:Connect(function()
+            for i, notif in ipairs(activeNotifications) do
+                if notif == notifFrame then
+                    table.remove(activeNotifications, i)
+                    break
+                end
+            end
+            notifFrame:Destroy()
+        end)
+    end)
+end
+
 --// Dragging Logic for Main Window
 local dragging = false
 local dragStart, startPos
@@ -261,6 +391,11 @@ MainGui.Parent = playerGui
 function Rayfield:CreateWindow(options)
     Title.Text = options.Name or "Roblox UI"
     local Window = {}
+    
+    -- Add Notify method to Window
+    function Window:Notify(options)
+        return Rayfield:Notify(options)
+    end
 
     --// CHANGED: Added unused iconId parameter for compatibility
     function Window:CreateTab(name, iconId)
@@ -399,6 +534,16 @@ function Rayfield:CreateWindow(options)
                 local knobPos = state and UDim2.new(1, -22, 0.5, -10) or UDim2.new(0, 2, 0.5, -10)
                 TweenService:Create(switchTrack, TweenInfo.new(0.2), {BackgroundColor3 = trackColor}):Play()
                 TweenService:Create(switchKnob, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = knobPos}):Play()
+                
+                -- Optional: Show notification if enabled
+                if options.Notify then
+                    Rayfield:Notify({
+                        Title = options.Name,
+                        Content = state and "Enabled" or "Disabled",
+                        Duration = 2
+                    })
+                end
+                
                 if options.Callback then
                     options.Callback(state)
                 end
