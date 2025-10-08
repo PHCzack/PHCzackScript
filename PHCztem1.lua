@@ -200,15 +200,18 @@ local tabs = {}
 local NotificationContainer = Instance.new("Frame")
 NotificationContainer.Name = "NotificationContainer"
 NotificationContainer.Size = UDim2.new(0, 350, 0, 0)
-NotificationContainer.Position = UDim2.new(0.5, -175, 0, 10)
+NotificationContainer.AnchorPoint = Vector2.new(0.5, 0) -- center horizontally
+NotificationContainer.Position = UDim2.new(0.5, 0, 0.05, 0) -- top center (5% from top)
 NotificationContainer.BackgroundTransparency = 1
 NotificationContainer.ZIndex = 100
 NotificationContainer.Parent = MainGui
 
+--// Layout for stacking notifications
 local notificationLayout = Instance.new("UIListLayout")
 notificationLayout.Padding = UDim.new(0, 10)
 notificationLayout.SortOrder = Enum.SortOrder.LayoutOrder
 notificationLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+notificationLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 notificationLayout.Parent = NotificationContainer
 
 local activeNotifications = {}
