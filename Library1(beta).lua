@@ -196,24 +196,14 @@ ContentContainer.Parent = MainFrame
 local activeTab = nil
 local tabs = {}
 
---// Notification System (Top-Center of Screen)
-
+--// Notification System
 local NotificationContainer = Instance.new("Frame")
 NotificationContainer.Name = "NotificationContainer"
-NotificationContainer.Size = UDim2.new(0, 350, 1, 0)
-NotificationContainer.AnchorPoint = Vector2.new(0.5, 0)
-NotificationContainer.Position = UDim2.new(0.5, 0, 0, 25) -- Top center
+NotificationContainer.Size = UDim2.new(0, 350, 0, 0)
+NotificationContainer.Position = UDim2.new(0.5, 0, 0, 5)
 NotificationContainer.BackgroundTransparency = 1
-NotificationContainer.ZIndex = 999
-NotificationContainer.Parent = PlayerGui -- Make it appear above all GUIs
-
--- Stack layout
-local layout = Instance.new("UIListLayout")
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Padding = UDim.new(0, 8)
-layout.VerticalAlignment = Enum.VerticalAlignment.Top
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.Parent = NotificationContainer
+NotificationContainer.ZIndex = 100
+NotificationContainer.Parent = MainGui
 
 local activeNotifications = {}
 
@@ -221,34 +211,34 @@ function Rayfield:Notify(options)
     local title = options.Title or "Notification"
     local content = options.Content or ""
     local duration = options.Duration or 3
-
-    -- Main notification frame
+    local image = options.Image or nil
+    
     local notifFrame = Instance.new("Frame")
     notifFrame.Size = UDim2.new(1, 0, 0, 0)
     notifFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 45)
     notifFrame.BorderSizePixel = 1
     notifFrame.BorderColor3 = Color3.fromRGB(0, 120, 255)
-    notifFrame.ZIndex = 1000
-    notifFrame.ClipsDescendants = true
+    notifFrame.ZIndex = 101
     notifFrame.Parent = NotificationContainer
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = notifFrame
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(0, 120, 255)
-    stroke.Thickness = 1.5
-    stroke.Transparency = 0.5
-    stroke.Parent = notifFrame
-
+    
+    local notifCorner = Instance.new("UICorner")
+    notifCorner.CornerRadius = UDim.new(0, 6)
+    notifCorner.Parent = notifFrame
+    
+    -- Glow effect
+    local glow = Instance.new("UIStroke")
+    glow.Color = Color3.fromRGB(0, 120, 255)
+    glow.Thickness = 1.5
+    glow.Transparency = 0.5
+    glow.Parent = notifFrame
+    
     local contentFrame = Instance.new("Frame")
     contentFrame.Size = UDim2.new(1, -20, 1, -20)
     contentFrame.Position = UDim2.new(0, 10, 0, 10)
     contentFrame.BackgroundTransparency = 1
-    contentFrame.ZIndex = 1001
+    contentFrame.ZIndex = 102
     contentFrame.Parent = notifFrame
-
+    
     local titleLabel = Instance.new("TextLabel")
     titleLabel.Size = UDim2.new(1, 0, 0, 20)
     titleLabel.BackgroundTransparency = 1
@@ -257,9 +247,9 @@ function Rayfield:Notify(options)
     titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     titleLabel.TextSize = 16
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    titleLabel.ZIndex = 1002
+    titleLabel.ZIndex = 103
     titleLabel.Parent = contentFrame
-
+    
     local contentLabel = Instance.new("TextLabel")
     contentLabel.Size = UDim2.new(1, 0, 0, 18)
     contentLabel.Position = UDim2.new(0, 0, 0, 22)
@@ -270,45 +260,54 @@ function Rayfield:Notify(options)
     contentLabel.TextSize = 14
     contentLabel.TextXAlignment = Enum.TextXAlignment.Left
     contentLabel.TextWrapped = true
-    contentLabel.ZIndex = 1002
+    contentLabel.ZIndex = 103
     contentLabel.Parent = contentFrame
-
-    -- Animation: slide in from top
+    
+    -- Calculate height based on content
+    local textHeight = 50
+    if #content > 40 then
+        textHeight = 70
+    end
+    
+    -- Slide in animation
+    notifFrame.Size = UDim2.new(1, 0, 0, 0)
     notifFrame.BackgroundTransparency = 1
     titleLabel.TextTransparency = 1
     contentLabel.TextTransparency = 1
-    stroke.Transparency = 1
-
+    glow.Transparency = 1
+    
     local slideIn = TweenService:Create(notifFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(1, 0, 0, 60),
+        Size = UDim2.new(1, 0, 0, textHeight),
         BackgroundTransparency = 0.1
     })
-    local fadeIn = TweenService:Create(titleLabel, TweenInfo.new(0.3), {TextTransparency = 0})
-    local fadeIn2 = TweenService:Create(contentLabel, TweenInfo.new(0.3), {TextTransparency = 0})
-    local fadeStroke = TweenService:Create(stroke, TweenInfo.new(0.3), {Transparency = 0.5})
-
+    
+    local fadeInTitle = TweenService:Create(titleLabel, TweenInfo.new(0.3), {TextTransparency = 0})
+    local fadeInContent = TweenService:Create(contentLabel, TweenInfo.new(0.3), {TextTransparency = 0})
+    local fadeInGlow = TweenService:Create(glow, TweenInfo.new(0.3), {Transparency = 0.5})
+    
     slideIn:Play()
-    fadeIn:Play()
-    fadeIn2:Play()
-    fadeStroke:Play()
-
+    fadeInTitle:Play()
+    fadeInContent:Play()
+    fadeInGlow:Play()
+    
     table.insert(activeNotifications, notifFrame)
-
-    -- Auto remove
+    
+    -- Auto dismiss after duration
     task.delay(duration, function()
         local slideOut = TweenService:Create(notifFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
             Size = UDim2.new(1, 0, 0, 0),
             BackgroundTransparency = 1
         })
-        local fadeOut1 = TweenService:Create(titleLabel, TweenInfo.new(0.3), {TextTransparency = 1})
-        local fadeOut2 = TweenService:Create(contentLabel, TweenInfo.new(0.3), {TextTransparency = 1})
-        local fadeStrokeOut = TweenService:Create(stroke, TweenInfo.new(0.3), {Transparency = 1})
-
+        
+        local fadeOutTitle = TweenService:Create(titleLabel, TweenInfo.new(0.3), {TextTransparency = 1})
+        local fadeOutContent = TweenService:Create(contentLabel, TweenInfo.new(0.3), {TextTransparency = 1})
+        local fadeOutGlow = TweenService:Create(glow, TweenInfo.new(0.3), {Transparency = 1})
+        
         slideOut:Play()
-        fadeOut1:Play()
-        fadeOut2:Play()
-        fadeStrokeOut:Play()
-
+        fadeOutTitle:Play()
+        fadeOutContent:Play()
+        fadeOutGlow:Play()
+        
         slideOut.Completed:Connect(function()
             for i, notif in ipairs(activeNotifications) do
                 if notif == notifFrame then
@@ -320,6 +319,7 @@ function Rayfield:Notify(options)
         end)
     end)
 end
+
 --// Dragging Logic for Main Window
 local dragging = false
 local dragStart, startPos
