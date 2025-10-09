@@ -1,10 +1,17 @@
 --// Load Library
-local PHCzack = loadstring(game:HttpGet("https://raw.githubusercontent.com/PHCzack/PHCzackScript/refs/heads/main/Library1.lua"))()
+local PHCzack = loadstring(game:HttpGet("https://raw.githubusercontent.com/PHCzack/PHCzackScript/refs/heads/main/Library1(beta).lua"))()
 
 --// Create Window
 local Window = PHCzack:CreateWindow({
     Name = "PHCzack Script [Plants Vs Brainrot]",
     Size = 0.7
+})
+
+--// Show a startup notification
+Window:Notify({
+    Title = "Welcome!",
+    Content = "Updated 10/10/25 - Bug Fixed✅",
+    Duration = 7
 })
 
 local FarmTab = Window:CreateTab("Farm")
@@ -687,6 +694,7 @@ BrainrotsTab:Toggle({
 --// Toggle for Freeze
 BrainrotsTab:Toggle({
     Name = "Freeze Brainrots (Frost Grenade)",
+    Info = "Need to Enable = Enable Selected Rarity Attack (Equip Bat)",
     CurrentValue = false,
     Callback = function(state)
         freezeEnabled = state
