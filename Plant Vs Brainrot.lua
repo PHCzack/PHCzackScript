@@ -12,7 +12,6 @@ local ShopTab = Window:CreateTab("Shop")
 local BrainrotsTab = Window:CreateTab("Brainrots")
 local MiscTab = Window:CreateTab("Misc")
 local VisualTab = Window:CreateTab("Visual")
-local PlatformTab = Window:CreateTab("PlatForm") -- Moved PlatformTab creation up
 
 --// Services
 local Players = game:GetService("Players")
@@ -32,22 +31,9 @@ local autoEquipEnabled = false
 local autoBuyEnabled = false
 local autoBuyGearEnabled = false
 local followAttackEnabled = false
+local followAttackEnabled = false  
+local espEnabled = false 
 local legendaryAttackEnabled = false -- NEW toggle flag
-local espEnabled = false
-local frostBlowerEnabled = false
-local bananaGunEnabled = false
-local freezeEnabled = false
-local carrotLauncherEnabled = false
-local autoTurnInEnabled = false
-local turnInEnabled = false
-local autoOpenLuckyEggEnabled = false
-local autoOpenSecretLuckyEggEnabled = false
-local autoOpenMemeLuckyEggEnabled = false
-local autoFuseEnabled = false
-local autoRebirthEnabled = false
-local autoBuyAllPlantsEnabled = false
-local autoBuyAllGearEnabled = false
-local unlimitedJump = false
 local selectedVisuals = {}
 local hiddenObjects = {}
 local selectedPlots = {}
@@ -86,7 +72,7 @@ local function safeGetPlot(id, childName)
     end
 end
 
--- ✅ Safe Visual Targets (unchanged)
+-- ✅ Safe Visual Targets
 local visualTargets = {
     ["Board"] = {
         safeGetPlot(1,"Other") and safeGetPlot(1,"Other"):FindFirstChild("Tier3") and safeGetPlot(1,"Other").Tier3:FindFirstChild("Model"),
@@ -147,40 +133,13 @@ end
 --// =========================
 -- Brainrots Auto Attack
 --// =========================
-local WeaponAttack = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("AttacksServer"):WaitForChild("WeaponAttack")
+local frostBlowerEnabled = false
+local bananaGunEnabled = false
 local WeaponAttack = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("AttacksServer"):WaitForChild("WeaponAttack")
 local weaponName = "Leather Grip Bat"
 
--- Remote for UseItem
-local UseItem = ReplicatedStorage.Remotes:WaitForChild("UseItem")
-local Interact = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("Prison"):WaitForChild("Interact")
 
--- Remote for BuyPlatform
-local buyPlatformRemote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyPlatform", 9e9)
-
--- Remote for Auto Equip Pet
-local equipBestBrainrotsRemote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("EquipBestBrainrots", 9e9)
-
--- Remote for Open Egg
-local openEggRemote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("OpenEgg", 9e9)
-
--- Remote for PromptFuse
-local promptFuseRemote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("PromptFuse", 9e9)
-
--- Remote for Rebirth
-local rebirthRemote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Rebirth", 9e9)
-
--- Remote for ItemSell
-local itemSellRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ItemSell")
-
--- Remote for BuyItem
-local buyItemRemote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyItem", 9e9)
-
--- Remote for BuyGear
-local buyGearRemote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyGear", 9e9)
-
-
---// Helper Functions (unchanged logic, only remote calls are updated later)
+--// Helper Functions
 local function getRarity(brainrot)
     if brainrot then
         local rarity = brainrot:FindFirstChild("Rarity") or brainrot:GetAttribute("Rarity")
@@ -231,7 +190,7 @@ local function equipWeapon()
     end
 end
 
---// Get nearest Brainrot (all) (unchanged)
+--// Get nearest Brainrot (all)
 local function getNearestBrainrot()
     local folder = workspace:FindFirstChild("ScriptedMap") and workspace.ScriptedMap:FindFirstChild("Brainrots")
     if not folder then return nil end
@@ -252,7 +211,7 @@ local function getNearestBrainrot()
     return closest
 end
 
---// Get nearest Legendary Brainrot (rarity filter) (unchanged)
+--// Get nearest Legendary Brainrot (rarity filter)
 local function getNearestLegendaryBrainrot()
     local folder = workspace:FindFirstChild("ScriptedMap") and workspace.ScriptedMap:FindFirstChild("Brainrots")
     if not folder then return nil end
@@ -273,7 +232,7 @@ local function getNearestLegendaryBrainrot()
     return closest
 end
 
---// Attack logic (UPDATED: Added fireRemoteSafely)
+--// Attack logic
 local function followAndAttack(targetBrainrot)
     local brainrot = targetBrainrot
     local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -284,7 +243,7 @@ local function followAndAttack(targetBrainrot)
             root.CFrame = root.CFrame:Lerp(CFrame.new(hrp.Position + Vector3.new(0, 3, 0)), 0.2)
             local uuid = getBrainrotUUID(brainrot)
             if uuid then
-                fireRemoteSafely(WeaponAttack, {{uuid}}) -- ✅ SAFEFIRING
+                WeaponAttack:FireServer({uuid})
             end
         end
     end
@@ -328,7 +287,7 @@ local function createESP(brainrot)
     end
 end
 
--- Get nearest Brainrot from selected rarities (unchanged)
+-- Get nearest Brainrot from selected rarities
 local function getNearestSelectedRarityBrainrot()
     local folder = workspace:FindFirstChild("ScriptedMap") and workspace.ScriptedMap:FindFirstChild("Brainrots")
     if not folder or #selectedRarities == 0 then return nil end
@@ -353,11 +312,38 @@ local function getNearestSelectedRarityBrainrot()
     return closest
 end
 
+
 --// =========================
 -- Freeze Brainrots (Frost Grenade Auto)
 --// =========================
+local UseItem = ReplicatedStorage.Remotes:WaitForChild("UseItem")
+local freezeEnabled = false
 
--- Helper: get target position (prioritize Head) (unchanged)
+-- Follow and Freeze with Frost Grenade
+local function followAndFreeze(brainrot)
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if brainrot and root then
+        local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
+        if hrp then
+            -- Move closer (like auto-follow attack)
+            root.CFrame = root.CFrame:Lerp(CFrame.new(hrp.Position + Vector3.new(0, 3, 0)), 0.2)
+
+            -- Equip & throw grenade
+            local grenade = equipFrostGrenade()
+            if grenade then
+                UseItem:FireServer({
+                    Toggle = true,
+                    Time = 0.5,
+                    Tool = grenade,
+                    Pos = hrp.Position
+                })
+            end
+        end
+    end
+end
+
+
+-- Helper: get target position (prioritize Head)
 local function getTargetPosition(brainrot)
     if not brainrot then return nil end
     local head = brainrot:FindFirstChild("Head")
@@ -371,7 +357,12 @@ local function getTargetPosition(brainrot)
     return nil
 end
 
--- Helper: find Carrot Launcher in Backpack/Character (unchanged)
+--// =========================
+-- Carrot Launcher Support
+--// =========================
+local carrotLauncherEnabled = false
+
+-- Helper: find Carrot Launcher in Backpack/Character
 local function getCarrotLauncher()
     local char = LocalPlayer.Character
     local backpack = LocalPlayer.Backpack
@@ -394,7 +385,7 @@ local function getCarrotLauncher()
     return nil
 end
 
--- Auto equip Carrot Launcher (unchanged)
+-- Auto equip Carrot Launcher
 local function equipCarrotLauncher()
     local char = LocalPlayer.Character
     if not char then return nil end
@@ -406,13 +397,13 @@ local function equipCarrotLauncher()
     return launcher
 end
 
--- Fire Carrot Launcher (UPDATED: Added fireRemoteSafely)
+-- Fire Carrot Launcher
 local function fireCarrotLauncher(brainrot)
     local launcher = equipCarrotLauncher()
     if not launcher then return end
 
     local predictedPos = getPredictedPosition(brainrot, 0.3)
-    fireRemoteSafely(UseItem, { -- ✅ SAFEFIRING
+    UseItem:FireServer({
         Toggle = true,
         Time = 0.3,
         Tool = launcher,
@@ -420,13 +411,13 @@ local function fireCarrotLauncher(brainrot)
     })
 end
 
--- Fire Banana Gun (UPDATED: Added fireRemoteSafely)
+
 local function fireBananaGun(brainrot)
     local launcher = equipBananaGun()
     if not launcher then return end
 
     local predictedPos = getPredictedPosition(brainrot, 0.3)
-    fireRemoteSafely(UseItem, { -- ✅ SAFEFIRING
+    UseItem:FireServer({
         Toggle = true,
         Time = 0.3,
         Tool = launcher,
@@ -434,12 +425,11 @@ local function fireBananaGun(brainrot)
     })
 end
 
--- Follow and Freeze (Frost Grenade) (UPDATED: Added fireRemoteSafely)
 local function followAndFreeze(brainrot)
     local predictedPos = getPredictedPosition(brainrot, 0.5)
     local grenade = equipFrostGrenade()
     if grenade and predictedPos then
-        fireRemoteSafely(UseItem, { -- ✅ SAFEFIRING
+        UseItem:FireServer({
             Toggle = true,
             Time = 0.5,
             Tool = grenade,
@@ -453,7 +443,7 @@ local function fireFrostBlower(brainrot)
     if not targetPos then return end
     local blower = equipFrostBlower()
     if blower then
-        fireRemoteSafely(UseItem, { -- ✅ SAFEFIRING
+        UseItem:FireServer({
             Tool = blower,
             Toggle = true
         })
@@ -461,7 +451,7 @@ local function fireFrostBlower(brainrot)
 end
 
 
--- Helper: find Frost Grenade in Backpack/Character (any quantity) (unchanged)
+-- Helper: find Frost Grenade in Backpack/Character (any quantity)
 local function getFrostGrenade()
     local char = LocalPlayer.Character
     local backpack = LocalPlayer.Backpack
@@ -482,7 +472,7 @@ local function getFrostGrenade()
     return nil
 end
 
--- Auto equip Frost Grenade (unchanged)
+-- Auto equip Frost Grenade
 local function equipFrostGrenade()
     local char = LocalPlayer.Character
     if not char then return nil end
@@ -494,13 +484,13 @@ local function equipFrostGrenade()
     return grenade
 end
 
--- Throw grenade at brainrot (UPDATED: Added fireRemoteSafely)
+-- Throw grenade at brainrot
 local function throwFrostGrenade(brainrot)
     local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
     if not hrp then return end
     local grenade = equipFrostGrenade()
     if grenade then
-        fireRemoteSafely(UseItem, { -- ✅ SAFEFIRING
+        UseItem:FireServer({
             Toggle = true,
             Time = 0.5,
             Tool = grenade,
@@ -509,7 +499,7 @@ local function throwFrostGrenade(brainrot)
     end
 end
 
--- Old Main Loop (kept for function definition, but logic is merged below)
+-- Modify loop to use Frost Grenade if enabled
 RunService.Heartbeat:Connect(function()
     if freezeEnabled and selectedRarityAttackEnabled and #selectedRarities > 0 then
         local target = getNearestSelectedRarityBrainrot()
@@ -589,7 +579,6 @@ end
 --// =========================
 -- Unified Main Loop (Requires Selected Rarity for Freeze / Blower / Banana)
 --// =========================
--- This loop is updated to use fireRemoteSafely for direct remote calls
 RunService.Heartbeat:Connect(function()
     -- ✅ Freeze Brainrots
     if freezeEnabled and #selectedRarities > 0 then
@@ -606,7 +595,7 @@ RunService.Heartbeat:Connect(function()
             if hrp then
                 local blower = equipFrostBlower()
                 if blower then
-                    fireRemoteSafely(UseItem, { -- ✅ SAFEFIRING
+                    UseItem:FireServer({
                         Tool = blower,
                         Toggle = true
                     })
@@ -622,7 +611,7 @@ RunService.Heartbeat:Connect(function()
             if hrp then
                 local gun = equipBananaGun()
                 if gun then
-                    fireRemoteSafely(UseItem, { -- ✅ SAFEFIRING
+                    UseItem:FireServer({
                         Toggle = true,
                         Time = 0.5, -- adjustable firing delay
                         Tool = gun,
@@ -632,12 +621,12 @@ RunService.Heartbeat:Connect(function()
             end
         end
         
-    -- ✅ Carrot Launcher
-    elseif carrotLauncherEnabled and #selectedRarities > 0 then
-        local target = getNearestSelectedRarityBrainrot()
-        if target then
-            fireCarrotLauncher(target)
-        end
+        -- ✅ Carrot Launcher
+elseif carrotLauncherEnabled and #selectedRarities > 0 then
+    local target = getNearestSelectedRarityBrainrot()
+    if target then
+        fireCarrotLauncher(target)
+    end
 
     -- ✅ Normal Attack Modes (don’t need rarity unless selected)
     else
@@ -653,7 +642,7 @@ RunService.Heartbeat:Connect(function()
         end
     end
 
-    -- ✅ ESP is always active (unchanged)
+    -- ✅ ESP is always active
     if espEnabled then
         local folder = workspace:FindFirstChild("ScriptedMap") and workspace.ScriptedMap:FindFirstChild("Brainrots")
         if folder then
@@ -691,6 +680,7 @@ BrainrotsTab:Toggle({
             followAttackEnabled = false
             legendaryAttackEnabled = false
         end
+        if selectedRarityAttackEnabled then task.wait(1.0) end
     end
 })
 
@@ -704,6 +694,7 @@ BrainrotsTab:Toggle({
             followAttackEnabled = false
             legendaryAttackEnabled = false
         end
+        if freezeEnabled then task.wait(1.0) end
     end
 })
 
@@ -717,6 +708,7 @@ BrainrotsTab:Toggle({
             legendaryAttackEnabled = false
             selectedRarityAttackEnabled = false
         end
+        if bananaGunEnabled then task.wait(1.0) end
     end
 })
 
@@ -726,14 +718,15 @@ BrainrotsTab:Toggle({
     Callback = function(state)
         frostBlowerEnabled = state
         if not state then
-            -- turn it off when disabled (UPDATED: Added fireRemoteSafely)
+            -- turn it off when disabled
             local blower = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Frost Blower")
             if blower then
-                fireRemoteSafely(UseItem, { -- ✅ SAFEFIRING
+                UseItem:FireServer({
                     Tool = blower,
                     Toggle = false
                 })
             end
+            if frostBlowerEnabled then task.wait(1.0) end
         end
     end
 })
@@ -753,6 +746,7 @@ BrainrotsTab:Toggle({
             frostBlowerEnabled = false
             bananaGunEnabled = false
         end
+        if carrotLauncherEnabled then task.wait(1.0) end
     end
 })
 
@@ -764,7 +758,9 @@ BrainrotsTab:Toggle({
     Callback = function(state)
         followAttackEnabled = state
         if state then legendaryAttackEnabled = false end -- avoid conflict
+        if followAttackEnabled then task.wait(1.0) end
     end
+    
 })
 
 BrainrotsTab:Toggle({
@@ -782,8 +778,12 @@ BrainrotsTab:Toggle({
 -- Farm Tab
 --// =========================
 --// =========================
--- Auto Turn In + Auto Equip Each Item (Fixed) (UPDATED: Added fireRemoteSafely)
+-- Auto Turn In + Auto Equip Each Item (Fixed)
 --// =========================
+local autoTurnInEnabled = false
+local Interact = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("Prison"):WaitForChild("Interact")
+
+-- List of items to auto-equip (partial name match)
 local equipItemsList = {
     "Alessio", "Orcalero", "Orcala", "Bandito", "Bombirito", "Bombardiro", "Crocodilo",
     "Brr Brr Patapim", "Ballerina Cappuccina", "Bananita Dolphinita", "Burbaloni Lulliloli",
@@ -830,8 +830,9 @@ FarmTab:Toggle({
                                 -- Equip and FireServer if needed
                                 if toolToEquip and humanoid:FindFirstChildOfClass("Tool") ~= toolToEquip then
                                     humanoid:EquipTool(toolToEquip)
-                                    -- Use fireRemoteSafely
-                                    fireRemoteSafely(Interact, {"TurnIn"}) -- ✅ SAFEFIRING
+                                    pcall(function()
+                                        Interact:FireServer("TurnIn") -- Fire every equip
+                                    end)
                                     task.wait(1) -- small delay between equips
                                 end
                             end
@@ -845,6 +846,8 @@ FarmTab:Toggle({
     end
 })
 
+-- Outside the toggle, at the top of your script
+local turnInEnabled = false
 
 FarmTab:Toggle({
     Name = "Turn In (Manual)",
@@ -854,8 +857,13 @@ FarmTab:Toggle({
         if state then
             task.spawn(function()
                 while turnInEnabled do
-                    -- Use fireRemoteSafely
-                    fireRemoteSafely(Interact, {"TurnIn"}) -- ✅ SAFEFIRING
+                    local success, err = pcall(function()
+                        local args = { [1] = "TurnIn" }
+                        game:GetService("ReplicatedStorage").Remotes.Events.Prison.Interact:FireServer(unpack(args))
+                    end)
+                    if not success then
+                        warn("Failed to FireServer: ", err)
+                    end
                     task.wait(1)
                 end
             end)
@@ -921,7 +929,7 @@ FarmTab:Toggle({
 
 
 
--- Dropdown for Equip Time (unchanged)
+-- Dropdown for Equip Time
 FarmTab:Dropdown({
     Name = "Equip Time",
     Options = {"5 Seconds", "10 Seconds", "30 Seconds", "1 Minute", "5 Minutes", "10 Minutes", "15 Minutes"},
@@ -945,7 +953,7 @@ FarmTab:Dropdown({
     end
 })
 
--- Auto Equip Brainrots Pet Toggle (UPDATED: Added fireRemoteSafely)
+-- Auto Equip Brainrots Pet Toggle
 FarmTab:Toggle({
     Name = "Auto Equip Brainrots Pet",
     CurrentValue = false,
@@ -953,16 +961,19 @@ FarmTab:Toggle({
         autoEquipEnabled = state
         if state then
             task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("EquipBestBrainrots", 9e9)
+
                 while autoEquipEnabled do
-                    fireRemoteSafely(equipBestBrainrotsRemote, {}) -- ✅ SAFEFIRING
+                    remote:FireServer() -- ✅ Updated Remote
                     task.wait(equipDelay)
                 end
+                if autoEquipEnabled then task.wait(1.0) end
             end)
         end
     end
 })
 
--- Auto Open Lucky Egg Toggle (UPDATED: Added fireRemoteSafely)
+-- Auto Open Lucky Egg Toggle
 FarmTab:Toggle({
     Name = "Auto Open Lucky Egg",
     CurrentValue = false,
@@ -970,16 +981,18 @@ FarmTab:Toggle({
         autoOpenLuckyEggEnabled = state
         if state then
             task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("OpenEgg", 9e9)
+
                 while autoOpenLuckyEggEnabled do
-                    fireRemoteSafely(openEggRemote, {"Godly Lucky Egg"}) -- ✅ SAFEFIRING
-                    task.wait(1) -- ⏳ opens every 1s
+                    remote:FireServer("Godly Lucky Egg") -- ✅ Open Lucky Egg
+                    task.wait(1) -- ⏳ opens every 0.5s
                 end
             end)
         end
     end
 })
 
--- Auto Open Secret Lucky Egg Toggle (UPDATED: Added fireRemoteSafely)
+-- Auto Open Secret Lucky Egg Toggle
 FarmTab:Toggle({
     Name = "Auto Open Secret Lucky Egg",
     CurrentValue = false,
@@ -987,8 +1000,10 @@ FarmTab:Toggle({
         autoOpenSecretLuckyEggEnabled = state
         if state then
             task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("OpenEgg", 9e9)
+
                 while autoOpenSecretLuckyEggEnabled do
-                    fireRemoteSafely(openEggRemote, {"Secret Lucky Egg"}) -- ✅ SAFEFIRING
+                    remote:FireServer("Secret Lucky Egg")
                     task.wait(1) -- ⏳ every 1s
                 end
             end)
@@ -996,7 +1011,7 @@ FarmTab:Toggle({
     end
 })
 
--- Auto Open Meme Lucky Egg Toggle (UPDATED: Added fireRemoteSafely)
+-- Auto Open Meme Lucky Egg Toggle
 FarmTab:Toggle({
     Name = "Auto Open Meme Lucky Egg",
     CurrentValue = false,
@@ -1004,17 +1019,20 @@ FarmTab:Toggle({
         autoOpenMemeLuckyEggEnabled = state
         if state then
             task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("OpenEgg", 9e9)
+
                 while autoOpenMemeLuckyEggEnabled do
-                    fireRemoteSafely(openEggRemote, {"Meme Lucky Egg"}) -- ✅ SAFEFIRING
+                    remote:FireServer("Meme Lucky Egg")
                     task.wait(1) -- ⏳ every 1s
                 end
+                 if autoOpenMemeLuckyEggEnabled then task.wait(1.0) end
             end)
         end
     end
 })
 
 
--- Auto Fuse Toggle (UPDATED: Added fireRemoteSafely and increased wait time)
+-- Auto Fuse Toggle
 FarmTab:Toggle({
     Name = "Auto Fuse",
     CurrentValue = false,
@@ -1022,16 +1040,19 @@ FarmTab:Toggle({
         autoFuseEnabled = state
         if state then
             task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("PromptFuse", 9e9)
+
                 while autoFuseEnabled do
-                    fireRemoteSafely(promptFuseRemote, {}) -- ✅ SAFEFIRING
-                    task.wait(1) -- ⏳ Increased wait from 0.5s to 1s for safety
+                    remote:FireServer() -- ✅ Fire fuse remote
+                    task.wait(0.5) -- ⏳ now runs every 0.5 seconds
                 end
+                if autoFuseEnabled then task.wait(1.0) end
             end)
         end
     end
 })
 
--- Auto Rebirth Toggle (UPDATED: Added fireRemoteSafely)
+-- Auto Rebirth Toggle
 FarmTab:Toggle({
     Name = "Auto Rebirth",
     CurrentValue = false,
@@ -1039,16 +1060,18 @@ FarmTab:Toggle({
         autoRebirthEnabled = state
         if state then
             task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Rebirth", 9e9)
+
                 while autoRebirthEnabled do
-                    fireRemoteSafely(rebirthRemote, {}) -- ✅ SAFEFIRING
+                    remote:FireServer({}) -- ✅ Fire Rebirth remote
                     task.wait(1) -- ⏳ every 1s (adjust if needed)
                 end
+                if autoRebirthEnabled then task.wait(1.0) end
             end)
         end
     end
 })
 
--- Auto Sell Brainrot (UPDATED: Increased wait time)
 FarmTab:Toggle({
     Name = "Auto Sell Brainrot",
     CurrentValue = false,
@@ -1056,16 +1079,16 @@ FarmTab:Toggle({
         autoSellEnabled = state
         if state then
             task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ItemSell")
                 while autoSellEnabled do
-                    fireRemoteSafely(itemSellRemote,{})
-                    task.wait(0.5) -- ⏳ Increased wait from 0.05s to 0.2s for safety
+                    fireRemoteSafely(remote,{})
+                    task.wait(0.05)
                 end
             end)
         end
     end
 })
 
--- Auto Sell Plants (UPDATED: Increased wait time)
 FarmTab:Toggle({
     Name = "Auto Sell Plants",
     CurrentValue = false,
@@ -1073,9 +1096,10 @@ FarmTab:Toggle({
         autoSellPlantsEnabled = state
         if state then
             task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ItemSell")
                 while autoSellPlantsEnabled do
-                    fireRemoteSafely(itemSellRemote,{[2]=true})
-                    task.wait(0.5) -- ⏳ Increased wait from 0.05s to 0.2s for safety
+                    fireRemoteSafely(remote,{[2]=true})
+                    task.wait(0.05)
                 end
             end)
         end
@@ -1085,24 +1109,28 @@ FarmTab:Toggle({
 --// =========================
 -- PlatForm Tab
 --// =========================
+local PlatformTab = Window:CreateTab("PlatForm")
 
--- 🔥 Master Button: Buy all 1-30 (UPDATED: Added fireRemoteSafely)
+-- Remote reference
+local buyPlatformRemote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyPlatform", 9e9)
+
+-- 🔥 Master Button: Buy all 1-30
 PlatformTab:Button({
     Name = "Buy All Platforms (Beta Can buy already Own)",
     Callback = function()
         for i = 1, 30 do
-            fireRemoteSafely(buyPlatformRemote, {tostring(i)}) -- ✅ SAFEFIRING
+            buyPlatformRemote:FireServer(tostring(i))
             task.wait(0.2) -- ⏳ small delay to prevent remote flood
         end
     end
 })
 
--- 📌 Individual Buttons: 1 to 30 (UPDATED: Added fireRemoteSafely)
+-- 📌 Individual Buttons: 1 to 30
 for i = 1, 30 do
     PlatformTab:Button({
         Name = "Buy Platform " .. i,
         Callback = function()
-            fireRemoteSafely(buyPlatformRemote, {tostring(i)}) -- ✅ SAFEFIRING
+            buyPlatformRemote:FireServer(tostring(i))
         end
     })
 end
@@ -1122,7 +1150,11 @@ ShopTab:Dropdown({
     Callback = function(list) selectedSeeds = list end
 })
 
--- Auto Buy Seeds Toggle (UPDATED: Added fireRemoteSafely and increased wait time)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Original code with 'Safefire' modifications applied.
+
+-- Auto Buy Seeds Toggle
 ShopTab:Toggle({
     Name = "Auto Buy Seeds",
     CurrentValue = false,
@@ -1130,12 +1162,18 @@ ShopTab:Toggle({
         autoBuyEnabled = state
         if state then
             task.spawn(function()
+                -- ✅ Updated Remote Path
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyItem", 9e9)
+
                 while autoBuyEnabled do
                     for _, seedName in ipairs(selectedSeeds) do
                         if not autoBuyEnabled then break end
-                        fireRemoteSafely(buyItemRemote, {seedName}) -- ✅ SAFEFIRING
-                        task.wait(1) -- ⏳ Increased wait from 0.5s to 1s for safety
+                        remote:FireServer(seedName)
+                        -- 🔥 INCREASED DELAY: Ensures only one fire per 0.75 seconds.
+                        task.wait(0.75) 
                     end
+                    -- 🔥 OUTER DELAY: Wait after completing a full loop of selected items.
+                    if autoBuyEnabled then task.wait(1.0) end
                 end
             end)
         end
@@ -1150,9 +1188,9 @@ ShopTab:Dropdown({
     Callback = function(list) selectedGears = list end
 })
 
+---
 
-
--- Auto Buy Gear Toggle (UPDATED: Added fireRemoteSafely and increased wait time)
+-- Auto Buy Gear Toggle
 ShopTab:Toggle({
     Name = "Auto Buy Gear",
     CurrentValue = false,
@@ -1160,20 +1198,28 @@ ShopTab:Toggle({
         autoBuyGearEnabled = state
         if state then
             task.spawn(function()
+                -- ✅ Updated Remote Path
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyGear", 9e9)
+
                 while autoBuyGearEnabled do
                     for _, gearName in ipairs(selectedGears) do
                         if not autoBuyGearEnabled then break end
                         -- Fire directly with the gearName
-                        fireRemoteSafely(buyGearRemote, {gearName}) -- ✅ SAFEFIRING
-                        task.wait(1) -- ⏳ Increased wait from 0.5s to 1s for safety
+                        remote:FireServer(gearName)
+                        -- 🔥 INCREASED DELAY: Ensures only one fire per 0.75 seconds.
+                        task.wait(0.75) 
                     end
+                    -- 🔥 OUTER DELAY: Wait after completing a full loop of selected items.
+                    if autoBuyGearEnabled then task.wait(1.0) end
                 end
             end)
         end
     end
 })
 
--- Auto Buy All Plants (UPDATED: Added fireRemoteSafely and increased wait time)
+---
+
+-- Auto Buy All Plants (Higher Risk due to loop size)
 ShopTab:Toggle({
     Name = "Auto Buy All Plants",
     CurrentValue = false,
@@ -1181,20 +1227,26 @@ ShopTab:Toggle({
         autoBuyAllPlantsEnabled = state
         if state then
             task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyItem", 9e9)
                 while autoBuyAllPlantsEnabled do
                     -- Fire for every seed in the seedsList
                     for _, seedName in ipairs(seedsList) do
                         if not autoBuyAllPlantsEnabled then break end
-                        fireRemoteSafely(buyItemRemote, {seedName}) -- ✅ SAFEFIRING
-                        task.wait(1) -- ⏳ Increased wait from 0.5s to 1s for safety
+                        remote:FireServer(seedName)
+                        -- 🔥 INCREASED DELAY: Set to 1.0s to reduce risk when buying many items.
+                        task.wait(1.0) 
                     end
+                    -- 🔥 OUTER DELAY: Wait after completing a full loop.
+                    if autoBuyAllPlantsEnabled then task.wait(1.0) end
                 end
             end)
         end
     end
 })
 
--- Auto Buy All Gear (UPDATED: Added fireRemoteSafely and increased wait time)
+---
+
+-- Auto Buy All Gear (Higher Risk due to loop size)
 ShopTab:Toggle({
     Name = "Auto Buy All Gear",
     CurrentValue = false,
@@ -1202,13 +1254,17 @@ ShopTab:Toggle({
         autoBuyAllGearEnabled = state
         if state then
             task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyGear", 9e9)
                 while autoBuyAllGearEnabled do
                     -- Fire for every gear in gearList
                     for _, gearName in ipairs(gearList) do
                         if not autoBuyAllGearEnabled then break end
-                        fireRemoteSafely(buyGearRemote, {gearName}) -- ✅ SAFEFIRING
-                        task.wait(1) -- ⏳ Increased wait from 0.5s to 1s for safety
+                        remote:FireServer(gearName)
+                        -- 🔥 INCREASED DELAY: Set to 1.0s to reduce risk when buying many items.
+                        task.wait(1.0) 
                     end
+                    -- 🔥 OUTER DELAY: Wait after completing a full loop.
+                    if autoBuyAllGearEnabled then task.wait(1.0) end
                 end
             end)
         end
@@ -1216,8 +1272,9 @@ ShopTab:Toggle({
 })
 
 --// =========================
--- Misc Tab (unchanged logic)
+-- Misc Tab
 --// =========================
+local unlimitedJump = false
 MiscTab:Toggle({
     Name = "Unlimited Jump",
     CurrentValue = false,
@@ -1290,7 +1347,7 @@ MiscTab:Toggle({
 })
 
 --// =========================
--- Visual Tab (unchanged logic)
+-- Visual Tab
 --// =========================
 VisualTab:Dropdown({
     Name = "Select Visual(s)",
@@ -1340,11 +1397,10 @@ VisualTab:Toggle({
 
 --- Special Misc
 --// =========================
--- Anti AFK System (unchanged logic)
+-- Anti AFK System
 --// =========================
 local antiAFKEnabled = false
 local afkConnection = nil
-local VirtualUser = game:GetService("VirtualUser") -- Need this service for the backup
 
 local function antiAFK()
     if antiAFKEnabled and LocalPlayer.Character then
@@ -1392,3 +1448,4 @@ MiscTab:Toggle({
         end
     end
 })
+
