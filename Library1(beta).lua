@@ -574,109 +574,83 @@ end
             end)
         end
 
-        function Tab:Textbox(options)
-    local Input = {}
-    Input.CurrentValue = options.CurrentValue or options.Default or ""
-    
-    local container = Instance.new("Frame")
-    container.Name = options.Name
-    container.Size = UDim2.new(1, 0, 0, 45)
-    container.BackgroundTransparency = 1
-    container.Parent = contentFrame
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 0, 15)
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.SourceSans
-    label.Text = options.Name
-    label.TextColor3 = Color3.fromRGB(220, 220, 220)
-    label.TextSize = 14
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = container
-
-    -- Add description if provided
-    if options.Info then
-        local infoLabel = Instance.new("TextLabel")
-        infoLabel.Size = UDim2.new(1, 0, 0, 12)
-        infoLabel.Position = UDim2.new(0, 0, 1, 2)
-        infoLabel.BackgroundTransparency = 1
-        infoLabel.Font = Enum.Font.SourceSans
-        infoLabel.Text = options.Info
-        infoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-        infoLabel.TextSize = 12
-        infoLabel.TextXAlignment = Enum.TextXAlignment.Left
-        infoLabel.Parent = container
         
-        -- Adjust container size to accommodate description
-        container.Size = UDim2.new(1, 0, 0, 60)
-    end
-
-    local textboxFrame = Instance.new("Frame")
-    textboxFrame.Size = UDim2.new(1, 0, 0, 28)
-    textboxFrame.Position = UDim2.new(0, 0, 0, 17)
-    textboxFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    textboxFrame.BorderSizePixel = 0
-    textboxFrame.Parent = container
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 4)
-    corner.Parent = textboxFrame
-
-    local textbox = Instance.new("TextBox")
-    textbox.Size = UDim2.new(1, -10, 1, 0)
-    textbox.Position = UDim2.new(0, 5, 0, 0)
-    textbox.BackgroundTransparency = 1
-    textbox.PlaceholderText = options.PlaceholderText or "Enter text..."
-    textbox.Font = Enum.Font.SourceSans
-    textbox.Text = Input.CurrentValue
-    textbox.TextColor3 = Color3.fromRGB(220, 220, 220)
-    textbox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
-    textbox.TextSize = 14
-    textbox.TextXAlignment = Enum.TextXAlignment.Left
-    textbox.ClearTextOnFocus = false
-    textbox.Parent = textboxFrame
-
-    -- Optional: Text validation flag
-    local isValid = true
-
-    textbox.Focused:Connect(function()
-        TweenService:Create(textboxFrame, TweenInfo.new(0.2), {
-            BackgroundColor3 = Color3.fromRGB(60, 60, 60),
-            BorderSizePixel = 1,
-            BorderColor3 = Color3.fromRGB(0, 120, 255)
-        }):Play()
-    end)
-
-    textbox.FocusLost:Connect(function(enterPressed)
-        TweenService:Create(textboxFrame, TweenInfo.new(0.2), {
-            BackgroundColor3 = Color3.fromRGB(50, 50, 50),
-            BorderSizePixel = 0
-        }):Play()
-        
-        if enterPressed or options.RemoveTextAfterFocusLost ~= false then
-            Input.CurrentValue = textbox.Text
+function Tab:Textbox(options)
+            local Input = {}
+            Input.CurrentValue = options.CurrentValue or options.Default or ""
             
-            -- Call callback with the text
-            if options.Callback then
-                options.Callback(textbox.Text)
-            end
-            
-            -- Optional: Clear text after focus lost if flag is set
-            if options.RemoveTextAfterFocusLost then
-                textbox.Text = ""
-            end
-        end
-    end)
+            local container = Instance.new("Frame")
+            container.Name = options.Name
+            container.Size = UDim2.new(1, 0, 0, 45)
+            container.BackgroundTransparency = 1
+            container.Parent = contentFrame
 
-    -- Optional: Number-only validation
-    if options.NumbersOnly then
-        textbox:GetPropertyChangedSignal("Text"):Connect(function()
-            local filtered = textbox.Text:gsub("[^%d%.%-]", "")
-            if filtered ~= textbox.Text then
-                textbox.Text = filtered
-            end
-        end)
-    end
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(1, 0, 0, 15)
+            label.BackgroundTransparency = 1
+            label.Font = Enum.Font.SourceSans
+            label.Text = options.Name
+            label.TextColor3 = Color3.fromRGB(220, 220, 220)
+            label.TextSize = 14
+            label.TextXAlignment = Enum.TextXAlignment.Left
+            label.Parent = container
+
+            local textboxFrame = Instance.new("Frame")
+            textboxFrame.Size = UDim2.new(1, 0, 0, 28)
+            textboxFrame.Position = UDim2.new(0, 0, 0, 17)
+            textboxFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            textboxFrame.BorderSizePixel = 0
+            textboxFrame.Parent = container
+
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 4)
+            corner.Parent = textboxFrame
+
+            local textbox = Instance.new("TextBox")
+            textbox.Size = UDim2.new(1, -10, 1, 0)
+            textbox.Position = UDim2.new(0, 5, 0, 0)
+            textbox.BackgroundTransparency = 1
+            textbox.PlaceholderText = options.PlaceholderText or "Enter text..."
+            textbox.Font = Enum.Font.SourceSans
+            textbox.Text = Input.CurrentValue
+            textbox.TextColor3 = Color3.fromRGB(220, 220, 220)
+            textbox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+            textbox.TextSize = 14
+            textbox.TextXAlignment = Enum.TextXAlignment.Left
+            textbox.ClearTextOnFocus = false
+            textbox.Parent = textboxFrame
+
+            -- Optional: Text validation flag
+            local isValid = true
+
+            textbox.Focused:Connect(function()
+                TweenService:Create(textboxFrame, TweenInfo.new(0.2), {
+                    BackgroundColor3 = Color3.fromRGB(60, 60, 60),
+                    BorderSizePixel = 1,
+                    BorderColor3 = Color3.fromRGB(0, 120, 255)
+                }):Play()
+            end)
+
+            textbox.FocusLost:Connect(function(enterPressed)
+                TweenService:Create(textboxFrame, TweenInfo.new(0.2), {
+                    BackgroundColor3 = Color3.fromRGB(50, 50, 50),
+                    BorderSizePixel = 0
+                }):Play()
+                
+                if enterPressed or options.RemoveTextAfterFocusLost ~= false then
+                    Input.CurrentValue = textbox.Text
+                    
+                    -- Call callback with the text
+                    if options.Callback then
+                        options.Callback(textbox.Text)
+                    end
+                    
+                    -- Optional: Clear text after focus lost if flag is set
+                    if options.RemoveTextAfterFocusLost then
+                        textbox.Text = ""
+                    end
+                end
+            end)
 
     function Input:Set(value)
         Input.CurrentValue = value
@@ -689,7 +663,8 @@ end
     return Input
 end
 
-function Tab:Slider(options)
+
+     function Tab:Slider(options)
     local container = Instance.new("Frame")
     container.Name = options.Name
     container.Size = UDim2.new(1, 0, 0, 40)
@@ -704,24 +679,6 @@ function Tab:Slider(options)
     label.TextSize = 16
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = container
-
-    -- Add description if provided
-    if options.Info then
-        local infoLabel = Instance.new("TextLabel")
-        infoLabel.Size = UDim2.new(1, 0, 0, 12)
-        infoLabel.Position = UDim2.new(0, 0, 0, -15)
-        infoLabel.BackgroundTransparency = 1
-        infoLabel.Font = Enum.Font.SourceSans
-        infoLabel.Text = options.Info
-        infoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-        infoLabel.TextSize = 12
-        infoLabel.TextXAlignment = Enum.TextXAlignment.Left
-        infoLabel.Parent = container
-        
-        -- Adjust container size to accommodate description
-        container.Size = UDim2.new(1, 0, 0, 55)
-        sliderFrame.Position = UDim2.new(0, 0, 0, 40)
-    end
 
     local sliderFrame = Instance.new("Frame")
     sliderFrame.Size = UDim2.new(1, 0, 0, 10)
@@ -855,7 +812,10 @@ end
             end)
         end
 
-                function Tab:CreateDropdown(options)
+                
+
+
+function Tab:CreateDropdown(options)
             local Dropdown = {}
             local isOpen = false
 
@@ -865,25 +825,6 @@ end
             container.BackgroundTransparency = 1
             container.ZIndex = 2
             container.Parent = contentFrame
-
-            -- Add description if provided
-            if options.Info then
-                local infoLabel = Instance.new("TextLabel")
-                infoLabel.Size = UDim2.new(1, 0, 0, 12)
-                infoLabel.Position = UDim2.new(0, 0, 0, -15)
-                infoLabel.BackgroundTransparency = 1
-                infoLabel.Font = Enum.Font.SourceSans
-                infoLabel.Text = options.Info
-                infoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-                infoLabel.TextSize = 12
-                infoLabel.TextXAlignment = Enum.TextXAlignment.Left
-                infoLabel.Parent = container
-                
-                -- Adjust container size to accommodate description
-                container.Size = UDim2.new(1, 0, 0, 50)
-                mainButton.Position = UDim2.new(0, 0, 0, 15)
-                dropdownFrame.Position = UDim2.new(0, 0, 1, -20)
-            end
 
             local mainButton = Instance.new("TextButton")
             mainButton.Name = "MainButton"
