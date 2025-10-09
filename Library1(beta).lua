@@ -545,58 +545,18 @@ end
                 TweenService:Create(switchTrack, TweenInfo.new(0.2), {BackgroundColor3 = trackColor}):Play()
                 TweenService:Create(switchKnob, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = knobPos}):Play()
                 
- -- Add this after the label creation in Toggle function
+                -- Add this after the label creation in Toggle function
 if options.Info then
-    local infoButton = Instance.new("TextButton")
-    infoButton.Size = UDim2.new(0, 16, 0, 16)
-    infoButton.Position = UDim2.new(1, -40, 0.5, -8)
-    infoButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-    infoButton.Text = "i"
-    infoButton.Font = Enum.Font.SourceSansBold
-    infoButton.TextColor3 = Color3.fromRGB(220, 220, 220)
-    infoButton.TextSize = 12
-    infoButton.Parent = container
-    
-    local infoCorner = Instance.new("UICorner")
-    infoCorner.CornerRadius = UDim.new(1, 0)
-    infoCorner.Parent = infoButton
-    
-    local infoFrame = Instance.new("Frame")
-    infoFrame.Size = UDim2.new(0, 200, 0, 0)
-    infoFrame.Position = UDim2.new(1, 5, 0, 0)
-    infoFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-    infoFrame.BorderSizePixel = 1
-    infoFrame.BorderColor3 = Color3.fromRGB(0, 120, 255)
-    infoFrame.Visible = false
-    infoFrame.ZIndex = 5
-    infoFrame.Parent = container
-    
-    local infoCorner2 = Instance.new("UICorner")
-    infoCorner2.CornerRadius = UDim.new(0, 6)
-    infoCorner2.Parent = infoFrame
-    
-    local infoText = Instance.new("TextLabel")
-    infoText.Size = UDim2.new(1, -10, 1, -10)
-    infoText.Position = UDim2.new(0, 5, 0, 5)
-    infoText.BackgroundTransparency = 1
-    infoText.Font = Enum.Font.SourceSans
-    infoText.Text = options.Info
-    infoText.TextColor3 = Color3.fromRGB(220, 220, 220)
-    infoText.TextSize = 12
-    infoText.TextWrapped = true
-    infoText.TextXAlignment = Enum.TextXAlignment.Left
-    infoText.TextYAlignment = Enum.TextYAlignment.Top
-    infoText.ZIndex = 6
-    infoText.Parent = infoFrame
-    
-    infoButton.MouseButton1Click:Connect(function()
-        infoFrame.Visible = not infoFrame.Visible
-        if infoFrame.Visible then
-            infoText.Size = UDim2.new(1, -10, 0, 0)
-            infoText.AutomaticSize = Enum.AutomaticSize.Y
-            infoFrame.Size = UDim2.new(0, 200, 0, infoText.TextBounds.Y + 15)
-        end
-    end)
+    local infoLabel = Instance.new("TextLabel")
+    infoLabel.Size = UDim2.new(1, -60, 0, 12)
+    infoLabel.Position = UDim2.new(0, 0, 0, 18)
+    infoLabel.BackgroundTransparency = 1
+    infoLabel.Font = Enum.Font.SourceSans
+    infoLabel.Text = options.Info
+    infoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    infoLabel.TextSize = 12
+    infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+    infoLabel.Parent = container
 end
                 
                 -- Optional: Show notification if enabled
