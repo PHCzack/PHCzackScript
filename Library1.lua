@@ -444,11 +444,9 @@ function Rayfield:CreateWindow(options)
         end
         
         --// NEW: CreateSection function for categories
-        function Tab:CreateSection(sectionName, Open)
-            local SectionOpen = Open or false
-      --  function Tab:CreateSection(sectionName)
+          function Tab:CreateSection(sectionName)
             local Section = {}
-            local isExpanded = true
+            local isExpanded = false 
             
             -- Section Header Container
             local sectionContainer = Instance.new("Frame")
@@ -513,7 +511,8 @@ function Rayfield:CreateWindow(options)
             sectionHeader.MouseButton1Click:Connect(function()
                 isExpanded = not isExpanded
                 sectionContent.Visible = isExpanded
-                arrow.Text = isExpanded and "▼" or "▶"
+                sectionContent.Visible = false
+                arrow.Text = isExpanded and "▶" or "▼"
                 
                 TweenService:Create(arrow, TweenInfo.new(0.2), {
                     Rotation = isExpanded and 0 or -90
