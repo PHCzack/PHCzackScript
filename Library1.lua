@@ -444,7 +444,9 @@ function Rayfield:CreateWindow(options)
         end
         
         --// NEW: CreateSection function for categories
-        function Tab:CreateSection(sectionName)
+        function Tab:CreateSection(sectionName, Open)
+            local SectionOpen = Open or false
+      --  function Tab:CreateSection(sectionName)
             local Section = {}
             local isExpanded = true
             
