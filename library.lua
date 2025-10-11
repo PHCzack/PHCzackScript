@@ -990,9 +990,9 @@ function Rayfield:CreateWindow(options)
             -- Dropdown container with search bar (POSITIONED ON THE RIGHT)
             local dropdownContainer = Instance.new("Frame")
             dropdownContainer.Name = "DropdownContainer"
-            dropdownContainer.Size = UDim2.new(0, 300, 0, 300) -- Fixed width dropdown
-            dropdownContainer.Position = UDim2.new(1, 10, 0, 0) -- Position to the right of the button
-            dropdownContainer.BackgroundColor3 = Color3.fromRGB(35, 25, 50) -- Neon purple/dark
+            dropdownContainer.Size = UDim2.new(0, 300, 0, 350) -- Fixed width, positioned to the right
+            dropdownContainer.Position = UDim2.new(1, 10, 0, 0) -- Position to the RIGHT of the button
+            dropdownContainer.BackgroundColor3 = Color3.fromRGB(35, 25, 50) -- Neon purple/dark background
             dropdownContainer.BorderSizePixel = 2
             dropdownContainer.BorderColor3 = Color3.fromRGB(0, 120, 255) -- Neon cyan border
             dropdownContainer.Visible = false
@@ -1003,12 +1003,12 @@ function Rayfield:CreateWindow(options)
             dropContainerCorner.CornerRadius = UDim.new(0, 8)
             dropContainerCorner.Parent = dropdownContainer
             
-            -- Add glow effect
-            local glow = Instance.new("UIStroke")
-            glow.Color = Color3.fromRGB(0, 200, 255) -- Neon cyan glow
-            glow.Thickness = 2
-            glow.Transparency = 0.3
-            glow.Parent = dropdownContainer
+            -- Add neon glow effect
+            local dropGlow = Instance.new("UIStroke")
+            dropGlow.Color = Color3.fromRGB(0, 200, 255) -- Neon cyan glow
+            dropGlow.Thickness = 2
+            dropGlow.Transparency = 0.3
+            dropGlow.Parent = dropdownContainer
 
             -- Search bar at the top
             local searchFrame = Instance.new("Frame")
@@ -1017,7 +1017,7 @@ function Rayfield:CreateWindow(options)
             searchFrame.Position = UDim2.new(0, 10, 0, 10)
             searchFrame.BackgroundColor3 = Color3.fromRGB(25, 20, 40)
             searchFrame.BorderSizePixel = 1
-            searchFrame.BorderColor3 = Color3.fromRGB(0, 150, 255)
+            searchFrame.BorderColor3 = Color3.fromRGB(0, 120, 255)
             searchFrame.ZIndex = 51
             searchFrame.Parent = dropdownContainer
 
@@ -1025,14 +1025,27 @@ function Rayfield:CreateWindow(options)
             searchCorner.CornerRadius = UDim.new(0, 6)
             searchCorner.Parent = searchFrame
 
+            -- "Search" label
+            local searchLabel = Instance.new("TextLabel")
+            searchLabel.Size = UDim2.new(1, 0, 0, 15)
+            searchLabel.Position = UDim2.new(0, 0, 0, -18)
+            searchLabel.BackgroundTransparency = 1
+            searchLabel.Font = Enum.Font.SourceSansBold
+            searchLabel.Text = "Search"
+            searchLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+            searchLabel.TextSize = 13
+            searchLabel.TextXAlignment = Enum.TextXAlignment.Left
+            searchLabel.ZIndex = 51
+            searchLabel.Parent = searchFrame
+
             local searchBox = Instance.new("TextBox")
             searchBox.Name = "SearchBox"
-            searchBox.Size = UDim2.new(1, -20, 1, 0)
-            searchBox.Position = UDim2.new(0, 10, 0, 0)
+            searchBox.Size = UDim2.new(1, -15, 1, 0)
+            searchBox.Position = UDim2.new(0, 8, 0, 0)
             searchBox.BackgroundTransparency = 1
-            searchBox.Font = Enum.Font.SourceSansBold
-            searchBox.PlaceholderText = "Search"
-            searchBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 150)
+            searchBox.Font = Enum.Font.SourceSans
+            searchBox.PlaceholderText = ""
+            searchBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
             searchBox.Text = ""
             searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
             searchBox.TextSize = 15
@@ -1044,14 +1057,14 @@ function Rayfield:CreateWindow(options)
             -- Scrolling frame for options
             local dropdownFrame = Instance.new("ScrollingFrame")
             dropdownFrame.Name = "DropdownFrame"
-            dropdownFrame.Size = UDim2.new(1, -20, 1, -60)
-            dropdownFrame.Position = UDim2.new(0, 10, 0, 50)
+            dropdownFrame.Size = UDim2.new(1, -20, 1, -65)
+            dropdownFrame.Position = UDim2.new(0, 10, 0, 55)
             dropdownFrame.BackgroundTransparency = 1
             dropdownFrame.BorderSizePixel = 0
             dropdownFrame.Visible = true
             dropdownFrame.ZIndex = 51
             dropdownFrame.ScrollBarThickness = 6
-            dropdownFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 150, 255)
+            dropdownFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 120, 255)
             dropdownFrame.Parent = dropdownContainer
 
             local dropdownLayout = Instance.new("UIListLayout")
@@ -1081,38 +1094,33 @@ function Rayfield:CreateWindow(options)
                     for _, optionName in ipairs(newOptions or options.Options) do
                         local optionButton = Instance.new("TextButton")
                         optionButton.Name = optionName
-                        optionButton.Size = UDim2.new(1, 0, 0, 35)
+                        optionButton.Size = UDim2.new(1, 0, 0, 30)
                         optionButton.Text = optionName
                         optionButton.Font = Enum.Font.SourceSans
                         optionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-                        optionButton.TextSize = 15
+                        optionButton.TextSize = 14
                         optionButton.TextXAlignment = Enum.TextXAlignment.Left
-                        optionButton.ZIndex = 52
+                        optionButton.ZIndex = 7
                         optionButton.Parent = dropdownFrame
                         
-                        -- Add padding for text
-                        local padding = Instance.new("UIPadding")
-                        padding.PaddingLeft = UDim.new(0, 10)
-                        padding.Parent = optionButton
-                        
                         local optCorner = Instance.new("UICorner")
-                        optCorner.CornerRadius = UDim.new(0, 6)
+                        optCorner.CornerRadius = UDim.new(0, 4)
                         optCorner.Parent = optionButton
 
                         local isSelected = table.find(selectedOptions, optionName)
-                        optionButton.BackgroundColor3 = isSelected and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(40, 30, 60)
+                        optionButton.BackgroundColor3 = isSelected and Color3.fromRGB(100, 50, 50) or Color3.fromRGB(70, 25, 25)
 
                         table.insert(allOptionButtons, {button = optionButton, name = optionName})
 
                         optionButton.MouseEnter:Connect(function() 
                             if not table.find(selectedOptions, optionName) then 
-                                optionButton.BackgroundColor3 = Color3.fromRGB(50, 40, 80)
+                                optionButton.BackgroundColor3 = Color3.fromRGB(90, 35, 35) 
                             end 
                         end)
                         
                         optionButton.MouseLeave:Connect(function() 
                             if not table.find(selectedOptions, optionName) then 
-                                optionButton.BackgroundColor3 = Color3.fromRGB(40, 30, 60)
+                                optionButton.BackgroundColor3 = Color3.fromRGB(70, 25, 25) 
                             end 
                         end)
 
@@ -1120,16 +1128,16 @@ function Rayfield:CreateWindow(options)
                             local foundIndex = table.find(selectedOptions, optionName)
                             if foundIndex then
                                 table.remove(selectedOptions, foundIndex)
-                                optionButton.BackgroundColor3 = Color3.fromRGB(40, 30, 60)
+                                optionButton.BackgroundColor3 = Color3.fromRGB(70, 25, 25)
                             else
                                 table.insert(selectedOptions, optionName)
-                                optionButton.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+                                optionButton.BackgroundColor3 = Color3.fromRGB(100, 50, 50)
                             end
                             updateMainButtonText()
                             if options.Callback then options.Callback(selectedOptions) end
                         end)
                     end
-                    dropdownFrame.CanvasSize = UDim2.new(0,0,0,dropdownLayout.AbsoluteContentSize.Y + 10)
+                    dropdownFrame.CanvasSize = UDim2.new(0,0,0,dropdownLayout.AbsoluteContentSize.Y)
                 end
                 
                 -- Search functionality
@@ -1163,33 +1171,28 @@ function Rayfield:CreateWindow(options)
                     for _, optionName in ipairs(newOptions) do
                         local optionButton = Instance.new("TextButton")
                         optionButton.Name = optionName
-                        optionButton.Size = UDim2.new(1, 0, 0, 35)
-                        optionButton.BackgroundColor3 = Color3.fromRGB(40, 30, 60)
+                        optionButton.Size = UDim2.new(1, 0, 0, 30)
+                        optionButton.BackgroundColor3 = Color3.fromRGB(70, 25, 25)
                         optionButton.Text = optionName
                         optionButton.Font = Enum.Font.SourceSans
                         optionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-                        optionButton.TextSize = 15
+                        optionButton.TextSize = 14
                         optionButton.TextXAlignment = Enum.TextXAlignment.Left
-                        optionButton.ZIndex = 52
+                        optionButton.ZIndex = 7
                         optionButton.Parent = dropdownFrame
                         
-                        -- Add padding for text
-                        local padding = Instance.new("UIPadding")
-                        padding.PaddingLeft = UDim.new(0, 10)
-                        padding.Parent = optionButton
-                        
                         local optCorner = Instance.new("UICorner")
-                        optCorner.CornerRadius = UDim.new(0, 6)
+                        optCorner.CornerRadius = UDim.new(0, 4)
                         optCorner.Parent = optionButton
 
                         table.insert(allOptionButtons, {button = optionButton, name = optionName})
                         
                         optionButton.MouseEnter:Connect(function() 
-                            optionButton.BackgroundColor3 = Color3.fromRGB(50, 40, 80)
+                            optionButton.BackgroundColor3 = Color3.fromRGB(90, 35, 35) 
                         end)
                         
                         optionButton.MouseLeave:Connect(function() 
-                            optionButton.BackgroundColor3 = Color3.fromRGB(40, 30, 60)
+                            optionButton.BackgroundColor3 = Color3.fromRGB(70, 25, 25) 
                         end)
 
                         optionButton.MouseButton1Click:Connect(function()
@@ -1201,7 +1204,7 @@ function Rayfield:CreateWindow(options)
                             if options.Callback then options.Callback(optionName) end
                         end)
                     end
-                    dropdownFrame.CanvasSize = UDim2.new(0,0,0,dropdownLayout.AbsoluteContentSize.Y + 10)
+                    dropdownFrame.CanvasSize = UDim2.new(0,0,0,dropdownLayout.AbsoluteContentSize.Y)
                 end
                 
                 -- Search functionality
@@ -1224,7 +1227,7 @@ function Rayfield:CreateWindow(options)
             mainButton.MouseButton1Click:Connect(function()
                 isOpen = not isOpen
                 dropdownContainer.Visible = isOpen
-                container.ZIndex = isOpen and 100 or 2
+                container.ZIndex = isOpen and 10 or 2
             end)
             return Dropdown
         end
