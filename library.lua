@@ -972,6 +972,7 @@ function Rayfield:CreateWindow(options)
             container.Size = UDim2.new(1, 0, 0, 35)
             container.BackgroundTransparency = 1
             container.ZIndex = 2
+            container.ClipsDescendants = false -- IMPORTANT: Allow dropdown to show outside
             container.Parent = contentFrame
 
             local mainButton = Instance.new("TextButton")
@@ -987,25 +988,24 @@ function Rayfield:CreateWindow(options)
             corner.CornerRadius = UDim.new(0, 4)
             corner.Parent = mainButton
 
-            -- Dropdown container with search bar (POSITIONED ON THE RIGHT)
+            -- Create dropdown in MainGui instead of container so it's not clipped
             local dropdownContainer = Instance.new("Frame")
             dropdownContainer.Name = "DropdownContainer"
-            dropdownContainer.Size = UDim2.new(0, 300, 0, 350) -- Fixed width, positioned to the right
-            dropdownContainer.Position = UDim2.new(1, 10, 0, 0) -- Position to the RIGHT of the button
-            dropdownContainer.BackgroundColor3 = Color3.fromRGB(35, 25, 50) -- Neon purple/dark background
+            dropdownContainer.Size = UDim2.new(0, 300, 0, 350)
+            dropdownContainer.Position = UDim2.new(0, 0, 0, 0) -- Will be updated dynamically
+            dropdownContainer.BackgroundColor3 = Color3.fromRGB(35, 25, 50)
             dropdownContainer.BorderSizePixel = 2
-            dropdownContainer.BorderColor3 = Color3.fromRGB(0, 120, 255) -- Neon cyan border
+            dropdownContainer.BorderColor3 = Color3.fromRGB(0, 120, 255)
             dropdownContainer.Visible = false
-            dropdownContainer.ZIndex = 50
-            dropdownContainer.Parent = container
+            dropdownContainer.ZIndex = 1000
+            dropdownContainer.Parent = MainGui -- Parent to MainGui instead
             
             local dropContainerCorner = Instance.new("UICorner")
             dropContainerCorner.CornerRadius = UDim.new(0, 8)
             dropContainerCorner.Parent = dropdownContainer
             
-            -- Add neon glow effect
             local dropGlow = Instance.new("UIStroke")
-            dropGlow.Color = Color3.fromRGB(0, 200, 255) -- Neon cyan glow
+            dropGlow.Color = Color3.fromRGB(0, 200, 255)
             dropGlow.Thickness = 2
             dropGlow.Transparency = 0.3
             dropGlow.Parent = dropdownContainer
@@ -1018,14 +1018,13 @@ function Rayfield:CreateWindow(options)
             searchFrame.BackgroundColor3 = Color3.fromRGB(25, 20, 40)
             searchFrame.BorderSizePixel = 1
             searchFrame.BorderColor3 = Color3.fromRGB(0, 120, 255)
-            searchFrame.ZIndex = 51
+            searchFrame.ZIndex = 1001
             searchFrame.Parent = dropdownContainer
 
             local searchCorner = Instance.new("UICorner")
             searchCorner.CornerRadius = UDim.new(0, 6)
             searchCorner.Parent = searchFrame
 
-            -- "Search" label
             local searchLabel = Instance.new("TextLabel")
             searchLabel.Size = UDim2.new(1, 0, 0, 15)
             searchLabel.Position = UDim2.new(0, 0, 0, -18)
@@ -1035,7 +1034,7 @@ function Rayfield:CreateWindow(options)
             searchLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
             searchLabel.TextSize = 13
             searchLabel.TextXAlignment = Enum.TextXAlignment.Left
-            searchLabel.ZIndex = 51
+            searchLabel.ZIndex = 1001
             searchLabel.Parent = searchFrame
 
             local searchBox = Instance.new("TextBox")
@@ -1051,10 +1050,9 @@ function Rayfield:CreateWindow(options)
             searchBox.TextSize = 15
             searchBox.TextXAlignment = Enum.TextXAlignment.Left
             searchBox.ClearTextOnFocus = false
-            searchBox.ZIndex = 52
+            searchBox.ZIndex = 1002
             searchBox.Parent = searchFrame
 
-            -- Scrolling frame for options
             local dropdownFrame = Instance.new("ScrollingFrame")
             dropdownFrame.Name = "DropdownFrame"
             dropdownFrame.Size = UDim2.new(1, -20, 1, -65)
@@ -1062,7 +1060,7 @@ function Rayfield:CreateWindow(options)
             dropdownFrame.BackgroundTransparency = 1
             dropdownFrame.BorderSizePixel = 0
             dropdownFrame.Visible = true
-            dropdownFrame.ZIndex = 51
+            dropdownFrame.ZIndex = 1001
             dropdownFrame.ScrollBarThickness = 6
             dropdownFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 120, 255)
             dropdownFrame.Parent = dropdownContainer
@@ -1071,6 +1069,14 @@ function Rayfield:CreateWindow(options)
             dropdownLayout.SortOrder = Enum.SortOrder.LayoutOrder
             dropdownLayout.Padding = UDim.new(0, 4)
             dropdownLayout.Parent = dropdownFrame
+            
+            -- Function to update dropdown position
+            local function updateDropdownPosition()
+                local buttonPos = mainButton.AbsolutePosition
+                local buttonSize = mainButton.AbsoluteSize
+                -- Position to the right of the button
+                dropdownContainer.Position = UDim2.new(0, buttonPos.X + buttonSize.X + 10, 0, buttonPos.Y)
+            end
 
             if options.MultiSelection then
                 local selectedOptions = {}
