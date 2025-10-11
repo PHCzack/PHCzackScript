@@ -972,7 +972,6 @@ function Rayfield:CreateWindow(options)
             container.Size = UDim2.new(1, 0, 0, 35)
             container.BackgroundTransparency = 1
             container.ZIndex = 2
-            container.ClipsDescendants = false -- IMPORTANT: Allow dropdown to show outside
             container.Parent = contentFrame
 
             local mainButton = Instance.new("TextButton")
@@ -988,95 +987,76 @@ function Rayfield:CreateWindow(options)
             corner.CornerRadius = UDim.new(0, 4)
             corner.Parent = mainButton
 
-            -- Create dropdown in MainGui instead of container so it's not clipped
+            -- Dropdown container with search bar
             local dropdownContainer = Instance.new("Frame")
             dropdownContainer.Name = "DropdownContainer"
-            dropdownContainer.Size = UDim2.new(0, 300, 0, 350)
-            dropdownContainer.Position = UDim2.new(0, 0, 0, 0) -- Will be updated dynamically
-            dropdownContainer.BackgroundColor3 = Color3.fromRGB(35, 25, 50)
+            dropdownContainer.Size = UDim2.new(1, 0, 0, 200)
+            dropdownContainer.Position = UDim2.new(0, 0, 1, 5)
+            dropdownContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 45) -- Neon dark matching your theme
             dropdownContainer.BorderSizePixel = 2
-            dropdownContainer.BorderColor3 = Color3.fromRGB(0, 120, 255)
+            dropdownContainer.BorderColor3 = Color3.fromRGB(0, 120, 255) -- Neon blue border
             dropdownContainer.Visible = false
-            dropdownContainer.ZIndex = 1000
-            dropdownContainer.Parent = MainGui -- Parent to MainGui instead
+            dropdownContainer.ZIndex = 5
+            dropdownContainer.Parent = container
             
             local dropContainerCorner = Instance.new("UICorner")
-            dropContainerCorner.CornerRadius = UDim.new(0, 8)
+            dropContainerCorner.CornerRadius = UDim.new(0, 6)
             dropContainerCorner.Parent = dropdownContainer
             
-            local dropGlow = Instance.new("UIStroke")
-            dropGlow.Color = Color3.fromRGB(0, 200, 255)
-            dropGlow.Thickness = 2
-            dropGlow.Transparency = 0.3
-            dropGlow.Parent = dropdownContainer
+            -- Add glow effect
+            local dropdownGlow = Instance.new("UIStroke")
+            dropdownGlow.Color = Color3.fromRGB(0, 120, 255)
+            dropdownGlow.Thickness = 1.5
+            dropdownGlow.Transparency = 0.5
+            dropdownGlow.Parent = dropdownContainer
 
             -- Search bar at the top
             local searchFrame = Instance.new("Frame")
             searchFrame.Name = "SearchFrame"
-            searchFrame.Size = UDim2.new(1, -20, 0, 35)
-            searchFrame.Position = UDim2.new(0, 10, 0, 10)
-            searchFrame.BackgroundColor3 = Color3.fromRGB(25, 20, 40)
-            searchFrame.BorderSizePixel = 1
-            searchFrame.BorderColor3 = Color3.fromRGB(0, 120, 255)
-            searchFrame.ZIndex = 1001
+            searchFrame.Size = UDim2.new(1, -10, 0, 30)
+            searchFrame.Position = UDim2.new(0, 5, 0, 5)
+            searchFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 60) -- Neon dark
+            searchFrame.BorderSizePixel = 0
+            searchFrame.ZIndex = 6
             searchFrame.Parent = dropdownContainer
 
             local searchCorner = Instance.new("UICorner")
-            searchCorner.CornerRadius = UDim.new(0, 6)
+            searchCorner.CornerRadius = UDim.new(0, 4)
             searchCorner.Parent = searchFrame
-
-            local searchLabel = Instance.new("TextLabel")
-            searchLabel.Size = UDim2.new(1, 0, 0, 15)
-            searchLabel.Position = UDim2.new(0, 0, 0, -18)
-            searchLabel.BackgroundTransparency = 1
-            searchLabel.Font = Enum.Font.SourceSansBold
-            searchLabel.Text = "Search"
-            searchLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-            searchLabel.TextSize = 13
-            searchLabel.TextXAlignment = Enum.TextXAlignment.Left
-            searchLabel.ZIndex = 1001
-            searchLabel.Parent = searchFrame
 
             local searchBox = Instance.new("TextBox")
             searchBox.Name = "SearchBox"
-            searchBox.Size = UDim2.new(1, -15, 1, 0)
-            searchBox.Position = UDim2.new(0, 8, 0, 0)
+            searchBox.Size = UDim2.new(1, -10, 1, 0)
+            searchBox.Position = UDim2.new(0, 5, 0, 0)
             searchBox.BackgroundTransparency = 1
             searchBox.Font = Enum.Font.SourceSans
-            searchBox.PlaceholderText = ""
-            searchBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+            searchBox.PlaceholderText = "Search"
+            searchBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
             searchBox.Text = ""
             searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-            searchBox.TextSize = 15
+            searchBox.TextSize = 14
             searchBox.TextXAlignment = Enum.TextXAlignment.Left
             searchBox.ClearTextOnFocus = false
-            searchBox.ZIndex = 1002
+            searchBox.ZIndex = 7
             searchBox.Parent = searchFrame
 
+            -- Scrolling frame for options
             local dropdownFrame = Instance.new("ScrollingFrame")
             dropdownFrame.Name = "DropdownFrame"
-            dropdownFrame.Size = UDim2.new(1, -20, 1, -65)
-            dropdownFrame.Position = UDim2.new(0, 10, 0, 55)
+            dropdownFrame.Size = UDim2.new(1, -10, 1, -45)
+            dropdownFrame.Position = UDim2.new(0, 5, 0, 40)
             dropdownFrame.BackgroundTransparency = 1
             dropdownFrame.BorderSizePixel = 0
             dropdownFrame.Visible = true
-            dropdownFrame.ZIndex = 1001
-            dropdownFrame.ScrollBarThickness = 6
-            dropdownFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 120, 255)
+            dropdownFrame.ZIndex = 6
+            dropdownFrame.ScrollBarThickness = 4
+            dropdownFrame.ScrollBarImageColor3 = Color3.fromRGB(120, 40, 40)
             dropdownFrame.Parent = dropdownContainer
 
             local dropdownLayout = Instance.new("UIListLayout")
             dropdownLayout.SortOrder = Enum.SortOrder.LayoutOrder
-            dropdownLayout.Padding = UDim.new(0, 4)
+            dropdownLayout.Padding = UDim.new(0, 2)
             dropdownLayout.Parent = dropdownFrame
-            
-            -- Function to update dropdown position
-            local function updateDropdownPosition()
-                local buttonPos = mainButton.AbsolutePosition
-                local buttonSize = mainButton.AbsoluteSize
-                -- Position to the right of the button
-                dropdownContainer.Position = UDim2.new(0, buttonPos.X + buttonSize.X + 10, 0, buttonPos.Y)
-            end
 
             if options.MultiSelection then
                 local selectedOptions = {}
@@ -1114,19 +1094,19 @@ function Rayfield:CreateWindow(options)
                         optCorner.Parent = optionButton
 
                         local isSelected = table.find(selectedOptions, optionName)
-                        optionButton.BackgroundColor3 = isSelected and Color3.fromRGB(100, 50, 50) or Color3.fromRGB(70, 25, 25)
+                        optionButton.BackgroundColor3 = isSelected and Color3.fromRGB(0, 80, 170) or Color3.fromRGB(40, 40, 65) -- Neon colors
 
                         table.insert(allOptionButtons, {button = optionButton, name = optionName})
 
                         optionButton.MouseEnter:Connect(function() 
                             if not table.find(selectedOptions, optionName) then 
-                                optionButton.BackgroundColor3 = Color3.fromRGB(90, 35, 35) 
+                                optionButton.BackgroundColor3 = Color3.fromRGB(50, 50, 80) -- Neon hover
                             end 
                         end)
                         
                         optionButton.MouseLeave:Connect(function() 
                             if not table.find(selectedOptions, optionName) then 
-                                optionButton.BackgroundColor3 = Color3.fromRGB(70, 25, 25) 
+                                optionButton.BackgroundColor3 = Color3.fromRGB(40, 40, 65) -- Neon base
                             end 
                         end)
 
@@ -1134,10 +1114,10 @@ function Rayfield:CreateWindow(options)
                             local foundIndex = table.find(selectedOptions, optionName)
                             if foundIndex then
                                 table.remove(selectedOptions, foundIndex)
-                                optionButton.BackgroundColor3 = Color3.fromRGB(70, 25, 25)
+                                optionButton.BackgroundColor3 = Color3.fromRGB(40, 40, 65)
                             else
                                 table.insert(selectedOptions, optionName)
-                                optionButton.BackgroundColor3 = Color3.fromRGB(100, 50, 50)
+                                optionButton.BackgroundColor3 = Color3.fromRGB(0, 80, 170) -- Neon blue selected
                             end
                             updateMainButtonText()
                             if options.Callback then options.Callback(selectedOptions) end
@@ -1178,7 +1158,7 @@ function Rayfield:CreateWindow(options)
                         local optionButton = Instance.new("TextButton")
                         optionButton.Name = optionName
                         optionButton.Size = UDim2.new(1, 0, 0, 30)
-                        optionButton.BackgroundColor3 = Color3.fromRGB(70, 25, 25)
+                        optionButton.BackgroundColor3 = Color3.fromRGB(40, 40, 65) -- Neon dark
                         optionButton.Text = optionName
                         optionButton.Font = Enum.Font.SourceSans
                         optionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1194,11 +1174,11 @@ function Rayfield:CreateWindow(options)
                         table.insert(allOptionButtons, {button = optionButton, name = optionName})
                         
                         optionButton.MouseEnter:Connect(function() 
-                            optionButton.BackgroundColor3 = Color3.fromRGB(90, 35, 35) 
+                            optionButton.BackgroundColor3 = Color3.fromRGB(50, 50, 80) -- Neon hover
                         end)
                         
                         optionButton.MouseLeave:Connect(function() 
-                            optionButton.BackgroundColor3 = Color3.fromRGB(70, 25, 25) 
+                            optionButton.BackgroundColor3 = Color3.fromRGB(40, 40, 65) -- Neon base
                         end)
 
                         optionButton.MouseButton1Click:Connect(function()
