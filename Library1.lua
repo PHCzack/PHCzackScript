@@ -448,7 +448,7 @@ function Rayfield:CreateWindow(options)
             local SectionOpen = Open or false
       --  function Tab:CreateSection(sectionName)
             local Section = {}
-            local isExpanded = true
+            local isExpanded = false
             
             -- Section Header Container
             local sectionContainer = Instance.new("Frame")
@@ -457,6 +457,7 @@ function Rayfield:CreateWindow(options)
             sectionContainer.BackgroundTransparency = 1
             sectionContainer.AutomaticSize = Enum.AutomaticSize.Y
             sectionContainer.Parent = contentFrame
+            sectionContent.Visible = false
             
             -- Section Header Button
             local sectionHeader = Instance.new("TextButton")
