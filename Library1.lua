@@ -448,13 +448,15 @@ function Rayfield:CreateWindow(options)
             local Section = {}
             local isExpanded = false 
             
-            -- Section Header Container
-            local sectionContainer = Instance.new("Frame")
-            sectionContainer.Name = sectionName .. "Section"
-            sectionContainer.Size = UDim2.new(1, 0, 0, 0)
-            sectionContainer.BackgroundTransparency = 1
-            sectionContainer.AutomaticSize = Enum.AutomaticSize.Y
-            sectionContainer.Parent = contentFrame
+            -- Section Content Container
+local sectionContent = Instance.new("Frame")
+sectionContent.Name = "Content"
+sectionContent.Size = UDim2.new(1, 0, 0, 0)
+sectionContent.Position = UDim2.new(0, 0, 0, 40)
+sectionContent.BackgroundTransparency = 1
+sectionContent.AutomaticSize = Enum.AutomaticSize.Y
+sectionContent.Parent = sectionContainer
+sectionContent.Visible = false
             
             -- Section Header Button
             local sectionHeader = Instance.new("TextButton")
@@ -511,7 +513,6 @@ function Rayfield:CreateWindow(options)
             sectionHeader.MouseButton1Click:Connect(function()
                 isExpanded = not isExpanded
                 sectionContent.Visible = isExpanded
-                sectionContent.Visible = false
                 arrow.Text = isExpanded and "▶" or "▼"
                 
                 TweenService:Create(arrow, TweenInfo.new(0.2), {
