@@ -443,10 +443,10 @@ function Rayfield:CreateWindow(options)
             activeTab = contentFrame
         end
         
-        --// NEW: CreateSection function for categories
+        --// NEW: CreateSection function for categories (DEFAULT CLOSED)
         function Tab:CreateSection(sectionName)
             local Section = {}
-            local isExpanded = false
+            local isExpanded = false -- CHANGED: Default to closed
             
             -- Section Header Container
             local sectionContainer = Instance.new("Frame")
@@ -455,7 +455,6 @@ function Rayfield:CreateWindow(options)
             sectionContainer.BackgroundTransparency = 1
             sectionContainer.AutomaticSize = Enum.AutomaticSize.Y
             sectionContainer.Parent = contentFrame
-            sectionContent.Visible = false
             
             -- Section Header Button
             local sectionHeader = Instance.new("TextButton")
@@ -483,24 +482,26 @@ function Rayfield:CreateWindow(options)
             sectionTitle.TextXAlignment = Enum.TextXAlignment.Left
             sectionTitle.Parent = sectionHeader
             
-            -- Arrow Indicator
+            -- Arrow Indicator (CHANGED: Starts with ▶ since it's closed)
             local arrow = Instance.new("TextLabel")
             arrow.Size = UDim2.new(0, 20, 1, 0)
             arrow.Position = UDim2.new(1, -30, 0, 0)
             arrow.BackgroundTransparency = 1
             arrow.Font = Enum.Font.SourceSansBold
-            arrow.Text = "▼"
+            arrow.Text = "▶" -- CHANGED: Starts closed
             arrow.TextColor3 = Color3.fromRGB(0, 120, 255)
             arrow.TextSize = 14
+            arrow.Rotation = -90 -- CHANGED: Starts rotated
             arrow.Parent = sectionHeader
             
-            -- Section Content Container
+            -- Section Content Container (CHANGED: Starts hidden)
             local sectionContent = Instance.new("Frame")
             sectionContent.Name = "Content"
             sectionContent.Size = UDim2.new(1, 0, 0, 0)
             sectionContent.Position = UDim2.new(0, 0, 0, 40)
             sectionContent.BackgroundTransparency = 1
             sectionContent.AutomaticSize = Enum.AutomaticSize.Y
+            sectionContent.Visible = false -- CHANGED: Starts hidden
             sectionContent.Parent = sectionContainer
             
             local sectionLayout = Instance.new("UIListLayout")
