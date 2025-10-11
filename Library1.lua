@@ -987,24 +987,68 @@ function Rayfield:CreateWindow(options)
             corner.CornerRadius = UDim.new(0, 4)
             corner.Parent = mainButton
 
+            -- Dropdown container with search bar
+            local dropdownContainer = Instance.new("Frame")
+            dropdownContainer.Name = "DropdownContainer"
+            dropdownContainer.Size = UDim2.new(1, 0, 0, 200)
+            dropdownContainer.Position = UDim2.new(0, 0, 1, 5)
+            dropdownContainer.BackgroundColor3 = Color3.fromRGB(80, 30, 30) -- Dark red background
+            dropdownContainer.BorderSizePixel = 2
+            dropdownContainer.BorderColor3 = Color3.fromRGB(120, 40, 40)
+            dropdownContainer.Visible = false
+            dropdownContainer.ZIndex = 5
+            dropdownContainer.Parent = container
+            
+            local dropContainerCorner = Instance.new("UICorner")
+            dropContainerCorner.CornerRadius = UDim.new(0, 6)
+            dropContainerCorner.Parent = dropdownContainer
+
+            -- Search bar at the top
+            local searchFrame = Instance.new("Frame")
+            searchFrame.Name = "SearchFrame"
+            searchFrame.Size = UDim2.new(1, -10, 0, 30)
+            searchFrame.Position = UDim2.new(0, 5, 0, 5)
+            searchFrame.BackgroundColor3 = Color3.fromRGB(60, 20, 20)
+            searchFrame.BorderSizePixel = 0
+            searchFrame.ZIndex = 6
+            searchFrame.Parent = dropdownContainer
+
+            local searchCorner = Instance.new("UICorner")
+            searchCorner.CornerRadius = UDim.new(0, 4)
+            searchCorner.Parent = searchFrame
+
+            local searchBox = Instance.new("TextBox")
+            searchBox.Name = "SearchBox"
+            searchBox.Size = UDim2.new(1, -10, 1, 0)
+            searchBox.Position = UDim2.new(0, 5, 0, 0)
+            searchBox.BackgroundTransparency = 1
+            searchBox.Font = Enum.Font.SourceSans
+            searchBox.PlaceholderText = "Search"
+            searchBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+            searchBox.Text = ""
+            searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+            searchBox.TextSize = 14
+            searchBox.TextXAlignment = Enum.TextXAlignment.Left
+            searchBox.ClearTextOnFocus = false
+            searchBox.ZIndex = 7
+            searchBox.Parent = searchFrame
+
+            -- Scrolling frame for options
             local dropdownFrame = Instance.new("ScrollingFrame")
             dropdownFrame.Name = "DropdownFrame"
-            dropdownFrame.Size = UDim2.new(1, 0, 0, 120)
-            dropdownFrame.Position = UDim2.new(0, 0, 1, 5)
-            dropdownFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-            dropdownFrame.BorderSizePixel = 1
-            dropdownFrame.BorderColor3 = Color3.fromRGB(60, 60, 60)
-            dropdownFrame.Visible = false
-            dropdownFrame.ZIndex = 3
-            dropdownFrame.ClipsDescendants = true
-            dropdownFrame.Parent = container
-            
-            local dCorner = Instance.new("UICorner")
-            dCorner.CornerRadius = UDim.new(0, 4)
-            dCorner.Parent = dropdownFrame
+            dropdownFrame.Size = UDim2.new(1, -10, 1, -45)
+            dropdownFrame.Position = UDim2.new(0, 5, 0, 40)
+            dropdownFrame.BackgroundTransparency = 1
+            dropdownFrame.BorderSizePixel = 0
+            dropdownFrame.Visible = true
+            dropdownFrame.ZIndex = 6
+            dropdownFrame.ScrollBarThickness = 4
+            dropdownFrame.ScrollBarImageColor3 = Color3.fromRGB(120, 40, 40)
+            dropdownFrame.Parent = dropdownContainer
 
             local dropdownLayout = Instance.new("UIListLayout")
             dropdownLayout.SortOrder = Enum.SortOrder.LayoutOrder
+            dropdownLayout.Padding = UDim.new(0, 2)
             dropdownLayout.Parent = dropdownFrame
 
             if options.MultiSelection then
@@ -1018,32 +1062,55 @@ function Rayfield:CreateWindow(options)
                     else mainButton.Text = count .. " Selected" end
                 end
 
+                local allOptionButtons = {}
+
                 local function refreshOptions(newOptions)
-                    for _, child in ipairs(dropdownFrame:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
+                    for _, child in ipairs(dropdownFrame:GetChildren()) do 
+                        if child:IsA("TextButton") then child:Destroy() end 
+                    end
+                    allOptionButtons = {}
+                    
                     for _, optionName in ipairs(newOptions or options.Options) do
                         local optionButton = Instance.new("TextButton")
                         optionButton.Name = optionName
                         optionButton.Size = UDim2.new(1, 0, 0, 30)
                         optionButton.Text = optionName
                         optionButton.Font = Enum.Font.SourceSans
-                        optionButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+                        optionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
                         optionButton.TextSize = 14
+                        optionButton.TextXAlignment = Enum.TextXAlignment.Left
+                        optionButton.ZIndex = 7
                         optionButton.Parent = dropdownFrame
+                        
+                        local optCorner = Instance.new("UICorner")
+                        optCorner.CornerRadius = UDim.new(0, 4)
+                        optCorner.Parent = optionButton
 
                         local isSelected = table.find(selectedOptions, optionName)
-                        optionButton.BackgroundColor3 = isSelected and Color3.fromRGB(0, 80, 170) or Color3.fromRGB(45, 45, 45)
+                        optionButton.BackgroundColor3 = isSelected and Color3.fromRGB(100, 50, 50) or Color3.fromRGB(70, 25, 25)
 
-                        optionButton.MouseEnter:Connect(function() if not table.find(selectedOptions, optionName) then optionButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60) end end)
-                        optionButton.MouseLeave:Connect(function() if not table.find(selectedOptions, optionName) then optionButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45) end end)
+                        table.insert(allOptionButtons, {button = optionButton, name = optionName})
+
+                        optionButton.MouseEnter:Connect(function() 
+                            if not table.find(selectedOptions, optionName) then 
+                                optionButton.BackgroundColor3 = Color3.fromRGB(90, 35, 35) 
+                            end 
+                        end)
+                        
+                        optionButton.MouseLeave:Connect(function() 
+                            if not table.find(selectedOptions, optionName) then 
+                                optionButton.BackgroundColor3 = Color3.fromRGB(70, 25, 25) 
+                            end 
+                        end)
 
                         optionButton.MouseButton1Click:Connect(function()
                             local foundIndex = table.find(selectedOptions, optionName)
                             if foundIndex then
                                 table.remove(selectedOptions, foundIndex)
-                                optionButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+                                optionButton.BackgroundColor3 = Color3.fromRGB(70, 25, 25)
                             else
                                 table.insert(selectedOptions, optionName)
-                                optionButton.BackgroundColor3 = Color3.fromRGB(0, 80, 170)
+                                optionButton.BackgroundColor3 = Color3.fromRGB(100, 50, 50)
                             end
                             updateMainButtonText()
                             if options.Callback then options.Callback(selectedOptions) end
@@ -1051,46 +1118,95 @@ function Rayfield:CreateWindow(options)
                     end
                     dropdownFrame.CanvasSize = UDim2.new(0,0,0,dropdownLayout.AbsoluteContentSize.Y)
                 end
+                
+                -- Search functionality
+                searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+                    local searchText = searchBox.Text:lower()
+                    for _, optionData in ipairs(allOptionButtons) do
+                        local btn = optionData.button
+                        local name = optionData.name:lower()
+                        if searchText == "" or name:find(searchText, 1, true) then
+                            btn.Visible = true
+                        else
+                            btn.Visible = false
+                        end
+                    end
+                end)
+                
                 updateMainButtonText()
                 refreshOptions(options.Options)
             else
                 Dropdown.CurrentOption = options.CurrentOption or options.Options[1]
                 mainButton.Text = Dropdown.CurrentOption
 
+                local allOptionButtons = {}
+
                 local function refreshOptions(newOptions)
-                    for _, child in ipairs(dropdownFrame:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
+                    for _, child in ipairs(dropdownFrame:GetChildren()) do 
+                        if child:IsA("TextButton") then child:Destroy() end 
+                    end
+                    allOptionButtons = {}
+                    
                     for _, optionName in ipairs(newOptions) do
                         local optionButton = Instance.new("TextButton")
                         optionButton.Name = optionName
                         optionButton.Size = UDim2.new(1, 0, 0, 30)
-                        optionButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+                        optionButton.BackgroundColor3 = Color3.fromRGB(70, 25, 25)
                         optionButton.Text = optionName
                         optionButton.Font = Enum.Font.SourceSans
-                        optionButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+                        optionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
                         optionButton.TextSize = 14
+                        optionButton.TextXAlignment = Enum.TextXAlignment.Left
+                        optionButton.ZIndex = 7
                         optionButton.Parent = dropdownFrame
                         
-                        optionButton.MouseEnter:Connect(function() optionButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60) end)
-                        optionButton.MouseLeave:Connect(function() optionButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45) end)
+                        local optCorner = Instance.new("UICorner")
+                        optCorner.CornerRadius = UDim.new(0, 4)
+                        optCorner.Parent = optionButton
+
+                        table.insert(allOptionButtons, {button = optionButton, name = optionName})
+                        
+                        optionButton.MouseEnter:Connect(function() 
+                            optionButton.BackgroundColor3 = Color3.fromRGB(90, 35, 35) 
+                        end)
+                        
+                        optionButton.MouseLeave:Connect(function() 
+                            optionButton.BackgroundColor3 = Color3.fromRGB(70, 25, 25) 
+                        end)
 
                         optionButton.MouseButton1Click:Connect(function()
                             Dropdown.CurrentOption = optionName
                             mainButton.Text = optionName
                             isOpen = false
-                            dropdownFrame.Visible = false
+                            dropdownContainer.Visible = false
                             container.ZIndex = 2
                             if options.Callback then options.Callback(optionName) end
                         end)
                     end
                     dropdownFrame.CanvasSize = UDim2.new(0,0,0,dropdownLayout.AbsoluteContentSize.Y)
                 end
+                
+                -- Search functionality
+                searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+                    local searchText = searchBox.Text:lower()
+                    for _, optionData in ipairs(allOptionButtons) do
+                        local btn = optionData.button
+                        local name = optionData.name:lower()
+                        if searchText == "" or name:find(searchText, 1, true) then
+                            btn.Visible = true
+                        else
+                            btn.Visible = false
+                        end
+                    end
+                end)
+                
                 refreshOptions(options.Options)
             end
 
             mainButton.MouseButton1Click:Connect(function()
                 isOpen = not isOpen
-                dropdownFrame.Visible = isOpen
-                container.ZIndex = isOpen and 4 or 2
+                dropdownContainer.Visible = isOpen
+                container.ZIndex = isOpen and 10 or 2
             end)
             return Dropdown
         end
