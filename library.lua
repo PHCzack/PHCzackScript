@@ -914,16 +914,85 @@ function Rayfield:CreateWindow(options)
                 textPadding.PaddingRight = UDim.new(0, 30)
                 textPadding.Parent = mainButton
 
-                -- Create dropdown container in the separate DropdownGui instead
+                -- Create dropdown window frame (40% size)
+                local dropdownWindowFrame = Instance.new("Frame")
+                dropdownWindowFrame.Name = "DropdownWindow"
+                dropdownWindowFrame.Size = UDim2.new(0, 180, 0, 240)
+                dropdownWindowFrame.Position = UDim2.new(0.5, -90, 0.5, -120)
+                dropdownWindowFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
+                dropdownWindowFrame.BorderSizePixel = 2
+                dropdownWindowFrame.BorderColor3 = Color3.fromRGB(0, 255, 200)
+                dropdownWindowFrame.Visible = false
+                dropdownWindowFrame.ZIndex = 100
+                dropdownWindowFrame.Parent = DropdownGui
+
+                local windowCorner = Instance.new("UICorner")
+                windowCorner.CornerRadius = UDim.new(0, 6)
+                windowCorner.Parent = dropdownWindowFrame
+
+                -- Header for dropdown window
+                local dropdownHeader = Instance.new("Frame")
+                dropdownHeader.Name = "Header"
+                dropdownHeader.Size = UDim2.new(1, 0, 0, 30)
+                dropdownHeader.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
+                dropdownHeader.BorderSizePixel = 0
+                dropdownHeader.Parent = dropdownWindowFrame
+
+                local headerCorner = Instance.new("UICorner")
+                headerCorner.CornerRadius = UDim.new(0, 6)
+                headerCorner.Parent = dropdownHeader
+
+                local headerGradient = Instance.new("UIGradient")
+                headerGradient.Color = ColorSequence.new({
+                    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 200, 180)),
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 150, 200))
+                })
+                headerGradient.Rotation = 90
+                headerGradient.Parent = dropdownHeader
+
+                local headerTitle = Instance.new("TextLabel")
+                headerTitle.Name = "Title"
+                headerTitle.Size = UDim2.new(1, -10, 1, 0)
+                headerTitle.Position = UDim2.new(0, 5, 0, 0)
+                headerTitle.BackgroundTransparency = 1
+                headerTitle.Font = Enum.Font.SourceSansBold
+                headerTitle.Text = options.Name
+                headerTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+                headerTitle.TextSize = 12
+                headerTitle.TextXAlignment = Enum.TextXAlignment.Left
+                headerTitle.Parent = dropdownHeader
+
+                -- Dragging logic for dropdown window
+                dropdownHeader.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dropdownDragging = true
+                        dropdownDragStart = input.Position
+                        dropdownStartPos = dropdownWindowFrame.Position
+                        input.Changed:Connect(function()
+                            if input.UserInputState == Enum.UserInputState.End then
+                                dropdownDragging = false
+                            end
+                        end)
+                    end
+                end)
+
+                dropdownHeader.InputChanged:Connect(function(input)
+                    if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and dropdownDragging then
+                        local delta = input.Position - dropdownDragStart
+                        dropdownWindowFrame.Position = UDim2.new(dropdownStartPos.X.Scale, dropdownStartPos.X.Offset + delta.X, dropdownStartPos.Y.Scale, dropdownStartPos.Y.Offset + delta.Y)
+                    end
+                end)
+
+                -- Create dropdown container inside the window
                 local dropdownContainer = Instance.new("Frame")
                 dropdownContainer.Name = "DropdownContainer"
-                dropdownContainer.Size = UDim2.new(1, 0, 0, 200)
+                dropdownContainer.Size = UDim2.new(1, 0, 1, -35)
+                dropdownContainer.Position = UDim2.new(0, 0, 0, 30)
                 dropdownContainer.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
-                dropdownContainer.BorderSizePixel = 2
-                dropdownContainer.BorderColor3 = Color3.fromRGB(0, 255, 200)
-                dropdownContainer.Visible = false
+                dropdownContainer.BorderSizePixel = 0
+                dropdownContainer.Visible = true
                 dropdownContainer.ZIndex = 100
-                dropdownContainer.Parent = DropdownGui
+                dropdownContainer.Parent = dropdownWindowFrame
                 
                 local dropContainerCorner = Instance.new("UICorner")
                 dropContainerCorner.CornerRadius = UDim.new(0, 6)
@@ -1167,7 +1236,7 @@ function Rayfield:CreateWindow(options)
 
                 mainButton.MouseButton1Click:Connect(function()
                     isOpen = not isOpen
-                    dropdownContainer.Visible = isOpen
+                    dropdownWindowFrame.Visible = isOpen
                     container.ZIndex = isOpen and 100 or 2
                     updateDropdownPosition()
                 end)
