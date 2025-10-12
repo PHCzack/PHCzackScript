@@ -875,10 +875,12 @@ function Rayfield:CreateWindow(options)
                 local mainButton = Instance.new("TextButton")
                 mainButton.Name = "MainButton"
                 mainButton.Size = UDim2.new(1, 0, 1, 0)
-                mainButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+                mainButton.BackgroundColor3 = Color3.fromRGB(40, 40, 65)
+                mainButton.BorderSizePixel = 1
+                mainButton.BorderColor3 = Color3.fromRGB(0, 120, 255)
                 mainButton.Font = Enum.Font.SourceSans
-                mainButton.TextColor3 = Color3.fromRGB(220, 220, 220)
-                mainButton.TextSize = 14
+                mainButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+                mainButton.TextSize = 13
                 mainButton.TextXAlignment = Enum.TextXAlignment.Left
                 mainButton.Parent = container
 
@@ -889,14 +891,21 @@ function Rayfield:CreateWindow(options)
                 -- Add dropdown arrow indicator
                 local arrowLabel = Instance.new("TextLabel")
                 arrowLabel.Name = "Arrow"
-                arrowLabel.Size = UDim2.new(0, 30, 1, 0)
-                arrowLabel.Position = UDim2.new(1, -30, 0, 0)
+                arrowLabel.Size = UDim2.new(0, 25, 1, 0)
+                arrowLabel.Position = UDim2.new(1, -25, 0, 0)
                 arrowLabel.BackgroundTransparency = 1
                 arrowLabel.Font = Enum.Font.SourceSansBold
                 arrowLabel.Text = "▼"
-                arrowLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-                arrowLabel.TextSize = 12
+                arrowLabel.TextColor3 = Color3.fromRGB(100, 150, 255)
+                arrowLabel.TextSize = 10
                 arrowLabel.Parent = mainButton
+                
+                -- Add padding to text so it doesn't overlap arrow
+                mainButton.TextXAlignment = Enum.TextXAlignment.Left
+                local textPadding = Instance.new("UIPadding")
+                textPadding.PaddingLeft = UDim.new(0, 10)
+                textPadding.PaddingRight = UDim.new(0, 30)
+                textPadding.Parent = mainButton
 
                 -- Create dropdown container OUTSIDE the section to avoid clipping
                 local dropdownContainer = Instance.new("Frame")
@@ -978,12 +987,14 @@ function Rayfield:CreateWindow(options)
                         
                         -- Calculate available space
                         local spaceBelow = screenSize - (buttonAbsPos.Y - screenTop + buttonAbsSize.Y)
+                        local spaceAbove = buttonAbsPos.Y - screenTop
                         
                         -- Position dropdown relative to contentFrame
                         local relativeButtonX = buttonAbsPos.X - contentFrame.AbsolutePosition.X
                         local relativeButtonY = buttonAbsPos.Y - contentFrame.AbsolutePosition.Y
                         
-                        if spaceBelow < dropdownHeight then
+                        -- Prefer showing above if there's enough space, otherwise below
+                        if spaceAbove > dropdownHeight then
                             -- Show above the button
                             dropdownContainer.Position = UDim2.new(0, relativeButtonX, 0, relativeButtonY - dropdownHeight - 5)
                         else
