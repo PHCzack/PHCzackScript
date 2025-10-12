@@ -190,6 +190,7 @@ ContentContainer.Position = UDim2.new(0, 120, 0, 30)
 ContentContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 55)
 ContentContainer.BackgroundTransparency = 0.1
 ContentContainer.BorderSizePixel = 0
+ContentContainer.ClipsDescendants = false
 ContentContainer.Parent = MainFrame
 
 local activeTab = nil
@@ -398,6 +399,7 @@ function Rayfield:CreateWindow(options)
         contentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
         contentFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 120, 255)
         contentFrame.ScrollBarThickness = 6
+        contentFrame.ClipsDescendants = false
         contentFrame.Parent = ContentContainer
 
         local contentLayout = Instance.new("UIListLayout")
@@ -454,6 +456,7 @@ function Rayfield:CreateWindow(options)
             sectionContainer.Size = UDim2.new(1, 0, 0, 0)
             sectionContainer.BackgroundTransparency = 1
             sectionContainer.AutomaticSize = Enum.AutomaticSize.Y
+            sectionContainer.ClipsDescendants = false
             sectionContainer.Parent = contentFrame
             
             -- Section Header Button
@@ -869,16 +872,16 @@ function Rayfield:CreateWindow(options)
                 corner.CornerRadius = UDim.new(0, 4)
                 corner.Parent = mainButton
 
+                -- Create dropdown container OUTSIDE the section to avoid clipping
                 local dropdownContainer = Instance.new("Frame")
                 dropdownContainer.Name = "DropdownContainer"
                 dropdownContainer.Size = UDim2.new(1, 0, 0, 200)
-                dropdownContainer.Position = UDim2.new(0, 0, 1, 5)
                 dropdownContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 45)
                 dropdownContainer.BorderSizePixel = 2
                 dropdownContainer.BorderColor3 = Color3.fromRGB(0, 120, 255)
                 dropdownContainer.Visible = false
                 dropdownContainer.ZIndex = 100
-                dropdownContainer.Parent = container
+                dropdownContainer.Parent = contentFrame  -- Parent to contentFrame, not container!
                 
                 local dropContainerCorner = Instance.new("UICorner")
                 dropContainerCorner.CornerRadius = UDim.new(0, 6)
@@ -937,19 +940,29 @@ function Rayfield:CreateWindow(options)
                 dropdownLayout.Padding = UDim.new(0, 2)
                 dropdownLayout.Parent = dropdownFrame
 
-                local function positionDropdown()
+                local function updateDropdownPosition()
                     if isOpen then
-                        local mainButtonAbsPos = mainButton.AbsolutePosition.Y
-                        local mainButtonAbsSize = mainButton.AbsoluteSize.Y
+                        local buttonAbsPos = mainButton.AbsolutePosition
+                        local buttonAbsSize = mainButton.AbsoluteSize
                         local dropdownHeight = 200
-                        local screenHeight = contentFrame.AbsoluteSize.Y + contentFrame.AbsolutePosition.Y
                         
-                        local spaceBelow = screenHeight - (mainButtonAbsPos + mainButtonAbsSize)
+                        -- Get the screen bounds
+                        local screenSize = contentFrame.Parent.AbsoluteSize.Y
+                        local screenTop = contentFrame.Parent.AbsolutePosition.Y
+                        
+                        -- Calculate available space
+                        local spaceBelow = screenSize - (buttonAbsPos.Y - screenTop + buttonAbsSize.Y)
+                        
+                        -- Position dropdown relative to contentFrame
+                        local relativeButtonX = buttonAbsPos.X - contentFrame.AbsolutePosition.X
+                        local relativeButtonY = buttonAbsPos.Y - contentFrame.AbsolutePosition.Y
                         
                         if spaceBelow < dropdownHeight then
-                            dropdownContainer.Position = UDim2.new(0, 0, 0, -(dropdownHeight + 5))
+                            -- Show above the button
+                            dropdownContainer.Position = UDim2.new(0, relativeButtonX, 0, relativeButtonY - dropdownHeight - 5)
                         else
-                            dropdownContainer.Position = UDim2.new(0, 0, 1, 5)
+                            -- Show below the button
+                            dropdownContainer.Position = UDim2.new(0, relativeButtonX, 0, relativeButtonY + buttonAbsSize.Y + 5)
                         end
                     end
                 end
@@ -1108,9 +1121,9 @@ function Rayfield:CreateWindow(options)
                     isOpen = not isOpen
                     dropdownContainer.Visible = isOpen
                     container.ZIndex = isOpen and 100 or 2
-                    positionDropdown()
+                    updateDropdownPosition()
                 end)
-                
+
                 return Dropdown
             end
             Section.Dropdown = Section.CreateDropdown
@@ -1207,27 +1220,6 @@ function Rayfield:CreateWindow(options)
                 TweenService:Create(switchTrack, TweenInfo.new(0.2), {BackgroundColor3 = trackColor}):Play()
                 TweenService:Create(switchKnob, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = knobPos}):Play()
                 
-                if options.Info then
-                    local infoLabel = Instance.new("TextLabel")
-                    infoLabel.Size = UDim2.new(1, -60, 0, 12)
-                    infoLabel.Position = UDim2.new(0, 0, 0, 18)
-                    infoLabel.BackgroundTransparency = 1
-                    infoLabel.Font = Enum.Font.SourceSans
-                    infoLabel.Text = options.Info
-                    infoLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-                    infoLabel.TextSize = 12
-                    infoLabel.TextXAlignment = Enum.TextXAlignment.Left
-                    infoLabel.Parent = container
-                end
-                
-                if options.Notify then
-                    Rayfield:Notify({
-                        Title = options.Name,
-                        Content = state and "Enabled" or "Disabled",
-                        Duration = 2
-                    })
-                end
-                
                 if options.Callback then
                     options.Callback(state)
                 end
@@ -1278,8 +1270,6 @@ function Rayfield:CreateWindow(options)
             textbox.TextXAlignment = Enum.TextXAlignment.Left
             textbox.ClearTextOnFocus = false
             textbox.Parent = textboxFrame
-
-            local isValid = true
 
             textbox.Focused:Connect(function()
                 TweenService:Create(textboxFrame, TweenInfo.new(0.2), {
@@ -1490,7 +1480,6 @@ function Rayfield:CreateWindow(options)
             corner.CornerRadius = UDim.new(0, 4)
             corner.Parent = mainButton
 
-            -- Dropdown container with search bar
             local dropdownContainer = Instance.new("Frame")
             dropdownContainer.Name = "DropdownContainer"
             dropdownContainer.Size = UDim2.new(1, 0, 0, 200)
@@ -1506,7 +1495,6 @@ function Rayfield:CreateWindow(options)
             dropContainerCorner.CornerRadius = UDim.new(0, 6)
             dropContainerCorner.Parent = dropdownContainer
             
-            -- Add glow effect
             local dropdownGlow = Instance.new("UIStroke")
             dropdownGlow.Color = Color3.fromRGB(0, 120, 255)
             dropdownGlow.Thickness = 1.5
@@ -1514,7 +1502,6 @@ function Rayfield:CreateWindow(options)
             dropdownGlow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
             dropdownGlow.Parent = dropdownContainer
 
-            -- Search bar at the top
             local searchFrame = Instance.new("Frame")
             searchFrame.Name = "SearchFrame"
             searchFrame.Size = UDim2.new(1, -10, 0, 30)
@@ -1544,7 +1531,6 @@ function Rayfield:CreateWindow(options)
             searchBox.ZIndex = 7
             searchBox.Parent = searchFrame
 
-            -- Scrolling frame for options
             local dropdownFrame = Instance.new("ScrollingFrame")
             dropdownFrame.Name = "DropdownFrame"
             dropdownFrame.Size = UDim2.new(1, -10, 1, -45)
@@ -1630,7 +1616,6 @@ function Rayfield:CreateWindow(options)
                     dropdownFrame.CanvasSize = UDim2.new(0,0,0,dropdownLayout.AbsoluteContentSize.Y)
                 end
                 
-                -- Search functionality
                 searchBox:GetPropertyChangedSignal("Text"):Connect(function()
                     local searchText = searchBox.Text:lower()
                     for _, optionData in ipairs(allOptionButtons) do
@@ -1697,7 +1682,6 @@ function Rayfield:CreateWindow(options)
                     dropdownFrame.CanvasSize = UDim2.new(0,0,0,dropdownLayout.AbsoluteContentSize.Y)
                 end
                 
-                -- Search functionality
                 searchBox:GetPropertyChangedSignal("Text"):Connect(function()
                     local searchText = searchBox.Text:lower()
                     for _, optionData in ipairs(allOptionButtons) do
@@ -1718,29 +1702,12 @@ function Rayfield:CreateWindow(options)
                 isOpen = not isOpen
                 dropdownContainer.Visible = isOpen
                 container.ZIndex = isOpen and 100 or 2
-                
-                -- Smart positioning: Check if dropdown would go off-screen
-                if isOpen then
-                    local mainButtonAbsPos = mainButton.AbsolutePosition.Y
-                    local mainButtonAbsSize = mainButton.AbsoluteSize.Y
-                    local dropdownHeight = 200
-                    local screenHeight = contentFrame.AbsoluteSize.Y + contentFrame.AbsolutePosition.Y
-                    
-                    -- Check if there's enough space below
-                    local spaceBelow = screenHeight - (mainButtonAbsPos + mainButtonAbsSize)
-                    
-                    if spaceBelow < dropdownHeight then
-                        -- Not enough space below, show above instead
-                        dropdownContainer.Position = UDim2.new(0, 0, 0, -(dropdownHeight + 5))
-                    else
-                        -- Enough space below, show normally
-                        dropdownContainer.Position = UDim2.new(0, 0, 1, 5)
-                    end
-                end
             end)
+            
             return Dropdown
         end
         Tab.Dropdown = Tab.CreateDropdown
+        
         return Tab
     end
     return Window
