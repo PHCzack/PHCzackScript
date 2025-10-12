@@ -514,17 +514,20 @@ function Rayfield:CreateWindow(options)
             sectionLayout.SortOrder = Enum.SortOrder.LayoutOrder
             sectionLayout.Parent = sectionContent
             
+            -- Track all dropdowns in this section
+            local sectionDropdowns = {}
+            
             -- Toggle expand/collapse
             sectionHeader.MouseButton1Click:Connect(function()
                 isExpanded = not isExpanded
                 sectionContent.Visible = isExpanded
                 arrow.Text = isExpanded and "▼" or "▶"
                 
-                -- Hide any open dropdowns in this section when collapsing
+                -- Hide all dropdowns in this section when collapsing
                 if not isExpanded then
-                    for _, child in ipairs(sectionContent:GetChildren()) do
-                        if child:FindFirstChild("DropdownContainer") then
-                            child.DropdownContainer.Visible = false
+                    for _, dropdown in ipairs(sectionDropdowns) do
+                        if dropdown and dropdown.Parent then
+                            dropdown.Visible = false
                         end
                     end
                 end
@@ -891,7 +894,7 @@ function Rayfield:CreateWindow(options)
                 dropdownContainer.BorderColor3 = Color3.fromRGB(0, 120, 255)
                 dropdownContainer.Visible = false
                 dropdownContainer.ZIndex = 100
-                dropdownContainer.Parent = contentFrame  -- Parent to contentFrame, not container!
+                dropdownContainer.Parent = contentFrame
                 
                 local dropContainerCorner = Instance.new("UICorner")
                 dropContainerCorner.CornerRadius = UDim.new(0, 6)
@@ -1133,6 +1136,9 @@ function Rayfield:CreateWindow(options)
                     container.ZIndex = isOpen and 100 or 2
                     updateDropdownPosition()
                 end)
+
+                -- Add this dropdown to the section's tracking list
+                table.insert(sectionDropdowns, dropdownContainer)
 
                 return Dropdown
             end
