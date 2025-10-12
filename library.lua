@@ -914,16 +914,17 @@ function Rayfield:CreateWindow(options)
                 textPadding.PaddingRight = UDim.new(0, 30)
                 textPadding.Parent = mainButton
 
-                -- Create dropdown window frame (40% size)
+                -- Create dropdown window frame (auto-sizing)
                 local dropdownWindowFrame = Instance.new("Frame")
                 dropdownWindowFrame.Name = "DropdownWindow"
-                dropdownWindowFrame.Size = UDim2.new(0, 180, 0, 240)
-                dropdownWindowFrame.Position = UDim2.new(0.5, -90, 0.5, -120)
+                dropdownWindowFrame.Size = UDim2.new(0, 200, 0, 0)
+                dropdownWindowFrame.Position = UDim2.new(0.5, -100, 0.5, -120)
                 dropdownWindowFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
                 dropdownWindowFrame.BorderSizePixel = 2
                 dropdownWindowFrame.BorderColor3 = Color3.fromRGB(0, 255, 200)
                 dropdownWindowFrame.Visible = false
                 dropdownWindowFrame.ZIndex = 100
+                dropdownWindowFrame.AutomaticSize = Enum.AutomaticSize.Y
                 dropdownWindowFrame.Parent = DropdownGui
 
                 local windowCorner = Instance.new("UICorner")
@@ -988,13 +989,19 @@ function Rayfield:CreateWindow(options)
                 -- Create dropdown container inside the window
                 local dropdownContainer = Instance.new("Frame")
                 dropdownContainer.Name = "DropdownContainer"
-                dropdownContainer.Size = UDim2.new(1, 0, 1, -35)
+                dropdownContainer.Size = UDim2.new(1, 0, 0, 0)
                 dropdownContainer.Position = UDim2.new(0, 0, 0, 30)
                 dropdownContainer.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
                 dropdownContainer.BorderSizePixel = 0
                 dropdownContainer.Visible = true
+                dropdownContainer.AutomaticSize = Enum.AutomaticSize.Y
                 dropdownContainer.ZIndex = 100
                 dropdownContainer.Parent = dropdownWindowFrame
+                
+                local containerLayout = Instance.new("UIListLayout")
+                containerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+                containerLayout.Padding = UDim.new(0, 0)
+                containerLayout.Parent = dropdownContainer
                 
                 local dropContainerCorner = Instance.new("UICorner")
                 dropContainerCorner.CornerRadius = UDim.new(0, 6)
@@ -1014,6 +1021,7 @@ function Rayfield:CreateWindow(options)
                 searchFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
                 searchFrame.BorderSizePixel = 1
                 searchFrame.BorderColor3 = Color3.fromRGB(0, 200, 180)
+                searchFrame.LayoutOrder = 1
                 searchFrame.ZIndex = 6
                 searchFrame.Parent = dropdownContainer
 
@@ -1042,16 +1050,16 @@ function Rayfield:CreateWindow(options)
                 searchPadding.PaddingRight = UDim.new(0, 8)
                 searchPadding.Parent = searchBox
 
-                local dropdownFrame = Instance.new("ScrollingFrame")
+                local dropdownFrame = Instance.new("Frame")
                 dropdownFrame.Name = "DropdownFrame"
-                dropdownFrame.Size = UDim2.new(1, 0, 1, -30)
-                dropdownFrame.Position = UDim2.new(0, 0, 0, 30)
+                dropdownFrame.Size = UDim2.new(1, 0, 0, 0)
+                dropdownFrame.Position = UDim2.new(0, 0, 0, 0)
                 dropdownFrame.BackgroundTransparency = 1
                 dropdownFrame.BorderSizePixel = 0
                 dropdownFrame.Visible = true
                 dropdownFrame.ZIndex = 6
-                dropdownFrame.ScrollBarThickness = 4
-                dropdownFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 200, 180)
+                dropdownFrame.AutomaticSize = Enum.AutomaticSize.Y
+                dropdownFrame.LayoutOrder = 2
                 dropdownFrame.Parent = dropdownContainer
 
                 local dropdownLayout = Instance.new("UIListLayout")
@@ -1124,6 +1132,10 @@ function Rayfield:CreateWindow(options)
                             local optCorner = Instance.new("UICorner")
                             optCorner.CornerRadius = UDim.new(0, 3)
                             optCorner.Parent = optionButton
+                            
+                            local optPadding = Instance.new("UIPadding")
+                            optPadding.PaddingLeft = UDim.new(0, 10)
+                            optPadding.Parent = optionButton
 
                             local isSelected = table.find(selectedOptions, optionName)
                             optionButton.BackgroundColor3 = isSelected and Color3.fromRGB(0, 150, 130) or Color3.fromRGB(25, 25, 50)
@@ -1202,6 +1214,10 @@ function Rayfield:CreateWindow(options)
                             local optCorner = Instance.new("UICorner")
                             optCorner.CornerRadius = UDim.new(0, 3)
                             optCorner.Parent = optionButton
+                            
+                            local optPadding = Instance.new("UIPadding")
+                            optPadding.PaddingLeft = UDim.new(0, 10)
+                            optPadding.Parent = optionButton
 
                             table.insert(allOptionButtons, {button = optionButton, name = optionName})
                             
