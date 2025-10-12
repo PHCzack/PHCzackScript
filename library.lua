@@ -502,6 +502,7 @@ function Rayfield:CreateWindow(options)
             sectionContent.BackgroundTransparency = 1
             sectionContent.AutomaticSize = Enum.AutomaticSize.Y
             sectionContent.Visible = false -- CHANGED: Starts hidden
+            sectionContent.ClipsDescendants = false
             sectionContent.Parent = sectionContainer
             
             local sectionLayout = Instance.new("UIListLayout")
@@ -727,6 +728,7 @@ function Rayfield:CreateWindow(options)
                 container.Size = UDim2.new(1, 0, 0, 35)
                 container.BackgroundTransparency = 1
                 container.ZIndex = 2
+                container.ClipsDescendants = false
                 container.Parent = sectionContent
             
                 local mainButton = Instance.new("TextButton")
@@ -751,7 +753,7 @@ function Rayfield:CreateWindow(options)
                 dropdownContainer.BorderSizePixel = 2
                 dropdownContainer.BorderColor3 = Color3.fromRGB(0, 120, 255) 
                 dropdownContainer.Visible = false
-                dropdownContainer.ZIndex = 5
+                dropdownContainer.ZIndex = 100
                 dropdownContainer.Parent = container
                 
                 local dropContainerCorner = Instance.new("UICorner")
@@ -763,6 +765,7 @@ function Rayfield:CreateWindow(options)
                 dropdownGlow.Color = Color3.fromRGB(0, 120, 255)
                 dropdownGlow.Thickness = 1.5
                 dropdownGlow.Transparency = 0.5
+                dropdownGlow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
                 dropdownGlow.Parent = dropdownContainer
             
                 -- Search bar at the top
@@ -883,7 +886,26 @@ function Rayfield:CreateWindow(options)
                 mainButton.MouseButton1Click:Connect(function()
                     isOpen = not isOpen
                     dropdownContainer.Visible = isOpen
-                    container.ZIndex = isOpen and 10 or 2
+                    container.ZIndex = isOpen and 100 or 2
+                    
+                    -- Smart positioning: Check if dropdown would go off-screen
+                    if isOpen then
+                        local mainButtonAbsPos = mainButton.AbsolutePosition.Y
+                        local mainButtonAbsSize = mainButton.AbsoluteSize.Y
+                        local dropdownHeight = 200
+                        local screenHeight = contentFrame.AbsoluteSize.Y + contentFrame.AbsolutePosition.Y
+                        
+                        -- Check if there's enough space below
+                        local spaceBelow = screenHeight - (mainButtonAbsPos + mainButtonAbsSize)
+                        
+                        if spaceBelow < dropdownHeight then
+                            -- Not enough space below, show above instead
+                            dropdownContainer.Position = UDim2.new(0, 0, 0, -(dropdownHeight + 5))
+                        else
+                            -- Enough space below, show normally
+                            dropdownContainer.Position = UDim2.new(0, 0, 1, 5)
+                        end
+                    end
                 end)
             
                 function Dropdown:Set(value)
@@ -1311,6 +1333,7 @@ function Rayfield:CreateWindow(options)
             container.Size = UDim2.new(1, 0, 0, 35)
             container.BackgroundTransparency = 1
             container.ZIndex = 2
+            container.ClipsDescendants = false
             container.Parent = contentFrame
 
             local mainButton = Instance.new("TextButton")
@@ -1331,11 +1354,11 @@ function Rayfield:CreateWindow(options)
             dropdownContainer.Name = "DropdownContainer"
             dropdownContainer.Size = UDim2.new(1, 0, 0, 200)
             dropdownContainer.Position = UDim2.new(0, 0, 1, 5)
-            dropdownContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 45) -- Neon dark matching your theme
+            dropdownContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 45)
             dropdownContainer.BorderSizePixel = 2
-            dropdownContainer.BorderColor3 = Color3.fromRGB(0, 120, 255) -- Neon blue border
+            dropdownContainer.BorderColor3 = Color3.fromRGB(0, 120, 255)
             dropdownContainer.Visible = false
-            dropdownContainer.ZIndex = 5
+            dropdownContainer.ZIndex = 100
             dropdownContainer.Parent = container
             
             local dropContainerCorner = Instance.new("UICorner")
@@ -1347,6 +1370,7 @@ function Rayfield:CreateWindow(options)
             dropdownGlow.Color = Color3.fromRGB(0, 120, 255)
             dropdownGlow.Thickness = 1.5
             dropdownGlow.Transparency = 0.5
+            dropdownGlow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
             dropdownGlow.Parent = dropdownContainer
 
             -- Search bar at the top
@@ -1354,7 +1378,7 @@ function Rayfield:CreateWindow(options)
             searchFrame.Name = "SearchFrame"
             searchFrame.Size = UDim2.new(1, -10, 0, 30)
             searchFrame.Position = UDim2.new(0, 5, 0, 5)
-            searchFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 60) -- Neon dark
+            searchFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 60)
             searchFrame.BorderSizePixel = 0
             searchFrame.ZIndex = 6
             searchFrame.Parent = dropdownContainer
@@ -1433,19 +1457,19 @@ function Rayfield:CreateWindow(options)
                         optCorner.Parent = optionButton
 
                         local isSelected = table.find(selectedOptions, optionName)
-                        optionButton.BackgroundColor3 = isSelected and Color3.fromRGB(0, 80, 170) or Color3.fromRGB(40, 40, 65) -- Neon colors
+                        optionButton.BackgroundColor3 = isSelected and Color3.fromRGB(0, 80, 170) or Color3.fromRGB(40, 40, 65)
 
                         table.insert(allOptionButtons, {button = optionButton, name = optionName})
 
                         optionButton.MouseEnter:Connect(function() 
                             if not table.find(selectedOptions, optionName) then 
-                                optionButton.BackgroundColor3 = Color3.fromRGB(50, 50, 80) -- Neon hover
+                                optionButton.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
                             end 
                         end)
                         
                         optionButton.MouseLeave:Connect(function() 
                             if not table.find(selectedOptions, optionName) then 
-                                optionButton.BackgroundColor3 = Color3.fromRGB(40, 40, 65) -- Neon base
+                                optionButton.BackgroundColor3 = Color3.fromRGB(40, 40, 65)
                             end 
                         end)
 
@@ -1456,7 +1480,7 @@ function Rayfield:CreateWindow(options)
                                 optionButton.BackgroundColor3 = Color3.fromRGB(40, 40, 65)
                             else
                                 table.insert(selectedOptions, optionName)
-                                optionButton.BackgroundColor3 = Color3.fromRGB(0, 80, 170) -- Neon blue selected
+                                optionButton.BackgroundColor3 = Color3.fromRGB(0, 80, 170)
                             end
                             updateMainButtonText()
                             if options.Callback then options.Callback(selectedOptions) end
@@ -1497,7 +1521,7 @@ function Rayfield:CreateWindow(options)
                         local optionButton = Instance.new("TextButton")
                         optionButton.Name = optionName
                         optionButton.Size = UDim2.new(1, 0, 0, 30)
-                        optionButton.BackgroundColor3 = Color3.fromRGB(40, 40, 65) -- Neon dark
+                        optionButton.BackgroundColor3 = Color3.fromRGB(40, 40, 65)
                         optionButton.Text = optionName
                         optionButton.Font = Enum.Font.SourceSans
                         optionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -1513,11 +1537,11 @@ function Rayfield:CreateWindow(options)
                         table.insert(allOptionButtons, {button = optionButton, name = optionName})
                         
                         optionButton.MouseEnter:Connect(function() 
-                            optionButton.BackgroundColor3 = Color3.fromRGB(50, 50, 80) -- Neon hover
+                            optionButton.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
                         end)
                         
                         optionButton.MouseLeave:Connect(function() 
-                            optionButton.BackgroundColor3 = Color3.fromRGB(40, 40, 65) -- Neon base
+                            optionButton.BackgroundColor3 = Color3.fromRGB(40, 40, 65)
                         end)
 
                         optionButton.MouseButton1Click:Connect(function()
@@ -1552,7 +1576,26 @@ function Rayfield:CreateWindow(options)
             mainButton.MouseButton1Click:Connect(function()
                 isOpen = not isOpen
                 dropdownContainer.Visible = isOpen
-                container.ZIndex = isOpen and 10 or 2
+                container.ZIndex = isOpen and 100 or 2
+                
+                -- Smart positioning: Check if dropdown would go off-screen
+                if isOpen then
+                    local mainButtonAbsPos = mainButton.AbsolutePosition.Y
+                    local mainButtonAbsSize = mainButton.AbsoluteSize.Y
+                    local dropdownHeight = 200
+                    local screenHeight = contentFrame.AbsoluteSize.Y + contentFrame.AbsolutePosition.Y
+                    
+                    -- Check if there's enough space below
+                    local spaceBelow = screenHeight - (mainButtonAbsPos + mainButtonAbsSize)
+                    
+                    if spaceBelow < dropdownHeight then
+                        -- Not enough space below, show above instead
+                        dropdownContainer.Position = UDim2.new(0, 0, 0, -(dropdownHeight + 5))
+                    else
+                        -- Enough space below, show normally
+                        dropdownContainer.Position = UDim2.new(0, 0, 1, 5)
+                    end
+                end
             end)
             return Dropdown
         end
