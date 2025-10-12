@@ -521,26 +521,11 @@ function Rayfield:CreateWindow(options)
             sectionLayout.SortOrder = Enum.SortOrder.LayoutOrder
             sectionLayout.Parent = sectionContent
             
-            -- Track all dropdowns in this section
-            local sectionDropdowns = {}
-            
             -- Toggle expand/collapse
             sectionHeader.MouseButton1Click:Connect(function()
                 isExpanded = not isExpanded
                 sectionContent.Visible = isExpanded
                 arrow.Text = isExpanded and "▼" or "▶"
-                
-                -- Hide all dropdowns in this section when collapsing
-                if not isExpanded then
-                    for _, dropdownInfo in ipairs(sectionDropdowns) do
-                        if dropdownInfo and dropdownInfo.window then
-                            dropdownInfo.window.Visible = false
-                            if currentOpenDropdown == dropdownInfo.window then
-                                currentOpenDropdown = nil
-                            end
-                        end
-                    end
-                end
                 
                 TweenService:Create(arrow, TweenInfo.new(0.2), {
                     Rotation = isExpanded and 0 or -90
@@ -1260,7 +1245,7 @@ function Rayfield:CreateWindow(options)
                 end)
 
                 -- Add this dropdown to the section's tracking list
-                table.insert(sectionDropdowns, { window = dropdownWindowFrame })
+                table.insert(sectionDropdowns, dropdownWindowFrame)
 
                 return Dropdown
             end
