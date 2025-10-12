@@ -399,7 +399,8 @@ function Rayfield:CreateWindow(options)
         contentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
         contentFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 120, 255)
         contentFrame.ScrollBarThickness = 6
-        contentFrame.ClipsDescendants = false
+        contentFrame.ClipsDescendants = true
+        contentFrame.ScrollingDirection = Enum.ScrollingDirection.Y
         contentFrame.Parent = ContentContainer
 
         local contentLayout = Instance.new("UIListLayout")
@@ -518,6 +519,15 @@ function Rayfield:CreateWindow(options)
                 isExpanded = not isExpanded
                 sectionContent.Visible = isExpanded
                 arrow.Text = isExpanded and "▼" or "▶"
+                
+                -- Hide any open dropdowns in this section when collapsing
+                if not isExpanded then
+                    for _, child in ipairs(sectionContent:GetChildren()) do
+                        if child:FindFirstChild("DropdownContainer") then
+                            child.DropdownContainer.Visible = false
+                        end
+                    end
+                end
                 
                 TweenService:Create(arrow, TweenInfo.new(0.2), {
                     Rotation = isExpanded and 0 or -90
