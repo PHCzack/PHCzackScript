@@ -879,11 +879,24 @@ function Rayfield:CreateWindow(options)
                 mainButton.Font = Enum.Font.SourceSans
                 mainButton.TextColor3 = Color3.fromRGB(220, 220, 220)
                 mainButton.TextSize = 14
+                mainButton.TextXAlignment = Enum.TextXAlignment.Left
                 mainButton.Parent = container
 
                 local corner = Instance.new("UICorner")
                 corner.CornerRadius = UDim.new(0, 4)
                 corner.Parent = mainButton
+
+                -- Add dropdown arrow indicator
+                local arrowLabel = Instance.new("TextLabel")
+                arrowLabel.Name = "Arrow"
+                arrowLabel.Size = UDim2.new(0, 30, 1, 0)
+                arrowLabel.Position = UDim2.new(1, -30, 0, 0)
+                arrowLabel.BackgroundTransparency = 1
+                arrowLabel.Font = Enum.Font.SourceSansBold
+                arrowLabel.Text = "▼"
+                arrowLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+                arrowLabel.TextSize = 12
+                arrowLabel.Parent = mainButton
 
                 -- Create dropdown container OUTSIDE the section to avoid clipping
                 local dropdownContainer = Instance.new("Frame")
