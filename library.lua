@@ -521,11 +521,23 @@ function Rayfield:CreateWindow(options)
             sectionLayout.SortOrder = Enum.SortOrder.LayoutOrder
             sectionLayout.Parent = sectionContent
             
+            -- Track all dropdowns in this section
+            local sectionDropdowns = {}
+            
             -- Toggle expand/collapse
             sectionHeader.MouseButton1Click:Connect(function()
                 isExpanded = not isExpanded
                 sectionContent.Visible = isExpanded
                 arrow.Text = isExpanded and "▼" or "▶"
+                
+                -- Hide all dropdowns in this section when collapsing
+                if not isExpanded then
+                    for _, dropdown in ipairs(sectionDropdowns) do
+                        if dropdown and dropdown.Parent then
+                            dropdown.Visible = false
+                        end
+                    end
+                end
                 
                 TweenService:Create(arrow, TweenInfo.new(0.2), {
                     Rotation = isExpanded and 0 or -90
@@ -906,7 +918,7 @@ function Rayfield:CreateWindow(options)
                 local dropdownWindowFrame = Instance.new("Frame")
                 dropdownWindowFrame.Name = "DropdownWindow"
                 dropdownWindowFrame.Size = UDim2.new(0, 180, 0, 240)
-                dropdownWindowFrame.Position = lastDropdownPosition
+                dropdownWindowFrame.Position = UDim2.new(0.5, -90, 0.5, -120)
                 dropdownWindowFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
                 dropdownWindowFrame.BorderSizePixel = 2
                 dropdownWindowFrame.BorderColor3 = Color3.fromRGB(0, 255, 200)
@@ -959,8 +971,6 @@ function Rayfield:CreateWindow(options)
                         input.Changed:Connect(function()
                             if input.UserInputState == Enum.UserInputState.End then
                                 dropdownDragging = false
-                                -- Save the last position
-                                lastDropdownPosition = dropdownWindowFrame.Position
                             end
                         end)
                     end
@@ -970,13 +980,15 @@ function Rayfield:CreateWindow(options)
                     if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and dropdownDragging then
                         local delta = input.Position - dropdownDragStart
                         dropdownWindowFrame.Position = UDim2.new(dropdownStartPos.X.Scale, dropdownStartPos.X.Offset + delta.X, dropdownStartPos.Y.Scale, dropdownStartPos.Y.Offset + delta.Y)
+                        -- Save the last position
+                        lastDropdownPosition = dropdownWindowFrame.Position
                     end
                 end)
 
-                -- Create dropdown container inside the window (no gap)
+                -- Create dropdown container inside the window
                 local dropdownContainer = Instance.new("Frame")
                 dropdownContainer.Name = "DropdownContainer"
-                dropdownContainer.Size = UDim2.new(1, 0, 1, -30)
+                dropdownContainer.Size = UDim2.new(1, 0, 1, -35)
                 dropdownContainer.Position = UDim2.new(0, 0, 0, 30)
                 dropdownContainer.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
                 dropdownContainer.BorderSizePixel = 0
@@ -997,8 +1009,8 @@ function Rayfield:CreateWindow(options)
 
                 local searchFrame = Instance.new("Frame")
                 searchFrame.Name = "SearchFrame"
-                searchFrame.Size = UDim2.new(1, -10, 0, 30)
-                searchFrame.Position = UDim2.new(0, 5, 0, 5)
+                searchFrame.Size = UDim2.new(1, 0, 0, 30)
+                searchFrame.Position = UDim2.new(0, 0, 0, 0)
                 searchFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
                 searchFrame.BorderSizePixel = 1
                 searchFrame.BorderColor3 = Color3.fromRGB(0, 200, 180)
@@ -1011,30 +1023,35 @@ function Rayfield:CreateWindow(options)
 
                 local searchBox = Instance.new("TextBox")
                 searchBox.Name = "SearchBox"
-                searchBox.Size = UDim2.new(1, -10, 1, 0)
-                searchBox.Position = UDim2.new(0, 5, 0, 0)
+                searchBox.Size = UDim2.new(1, 0, 1, 0)
+                searchBox.Position = UDim2.new(0, 0, 0, 0)
                 searchBox.BackgroundTransparency = 1
                 searchBox.Font = Enum.Font.SourceSans
                 searchBox.PlaceholderText = "Search"
                 searchBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
                 searchBox.Text = ""
                 searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-                searchBox.TextSize = 14
+                searchBox.TextSize = 12
                 searchBox.TextXAlignment = Enum.TextXAlignment.Left
                 searchBox.ClearTextOnFocus = false
                 searchBox.ZIndex = 7
                 searchBox.Parent = searchFrame
+                
+                local searchPadding = Instance.new("UIPadding")
+                searchPadding.PaddingLeft = UDim.new(0, 8)
+                searchPadding.PaddingRight = UDim.new(0, 8)
+                searchPadding.Parent = searchBox
 
                 local dropdownFrame = Instance.new("ScrollingFrame")
                 dropdownFrame.Name = "DropdownFrame"
-                dropdownFrame.Size = UDim2.new(1, -10, 1, -45)
-                dropdownFrame.Position = UDim2.new(0, 5, 0, 40)
+                dropdownFrame.Size = UDim2.new(1, 0, 1, -30)
+                dropdownFrame.Position = UDim2.new(0, 0, 0, 30)
                 dropdownFrame.BackgroundTransparency = 1
                 dropdownFrame.BorderSizePixel = 0
                 dropdownFrame.Visible = true
                 dropdownFrame.ZIndex = 6
                 dropdownFrame.ScrollBarThickness = 4
-                dropdownFrame.ScrollBarImageColor3 = Color3.fromRGB(120, 40, 40)
+                dropdownFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 200, 180)
                 dropdownFrame.Parent = dropdownContainer
 
                 local dropdownLayout = Instance.new("UIListLayout")
@@ -1225,27 +1242,28 @@ function Rayfield:CreateWindow(options)
                 end
 
                 mainButton.MouseButton1Click:Connect(function()
-                    isOpen = not isOpen
-                    
-                    -- Close any other open dropdown
-                    if isOpen and currentOpenDropdown and currentOpenDropdown ~= dropdownWindowFrame then
+                    -- Close any currently open dropdown
+                    if currentOpenDropdown and currentOpenDropdown ~= dropdownWindowFrame then
                         currentOpenDropdown.Visible = false
                     end
                     
+                    isOpen = not isOpen
                     dropdownWindowFrame.Visible = isOpen
+                    container.ZIndex = isOpen and 100 or 2
                     
                     if isOpen then
                         currentOpenDropdown = dropdownWindowFrame
-                        -- Save position for next dropdown
+                        -- Position at last saved location
                         dropdownWindowFrame.Position = lastDropdownPosition
+                    else
+                        currentOpenDropdown = nil
                     end
                     
-                    container.ZIndex = isOpen and 100 or 2
                     updateDropdownPosition()
                 end)
 
                 -- Add this dropdown to the section's tracking list
-                table.insert(sectionDropdowns, dropdownWindowFrame)
+                table.insert(sectionDropdowns, dropdownContainer)
 
                 return Dropdown
             end
