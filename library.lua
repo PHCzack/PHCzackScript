@@ -377,6 +377,13 @@ local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 MainGui.Parent = playerGui
 
+--// Create a separate ScreenGui for dropdowns
+local DropdownGui = Instance.new("ScreenGui")
+DropdownGui.Name = "DropdownGui"
+DropdownGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+DropdownGui.ResetOnSpawn = false
+DropdownGui.Parent = playerGui
+
 --// Window Object
 function Rayfield:CreateWindow(options)
     Title.Text = options.Name or "Roblox UI"
@@ -907,7 +914,7 @@ function Rayfield:CreateWindow(options)
                 textPadding.PaddingRight = UDim.new(0, 30)
                 textPadding.Parent = mainButton
 
-                -- Create dropdown container in ContentContainer instead of contentFrame to avoid clipping
+                -- Create dropdown container in the separate DropdownGui instead
                 local dropdownContainer = Instance.new("Frame")
                 dropdownContainer.Name = "DropdownContainer"
                 dropdownContainer.Size = UDim2.new(1, 0, 0, 200)
@@ -916,7 +923,7 @@ function Rayfield:CreateWindow(options)
                 dropdownContainer.BorderColor3 = Color3.fromRGB(0, 255, 200)
                 dropdownContainer.Visible = false
                 dropdownContainer.ZIndex = 100
-                dropdownContainer.Parent = ContentContainer
+                dropdownContainer.Parent = DropdownGui
                 
                 local dropContainerCorner = Instance.new("UICorner")
                 dropContainerCorner.CornerRadius = UDim.new(0, 6)
