@@ -532,9 +532,12 @@ function Rayfield:CreateWindow(options)
                 
                 -- Hide all dropdowns in this section when collapsing
                 if not isExpanded then
-                    for _, dropdown in ipairs(sectionDropdowns) do
-                        if dropdown and dropdown.Parent then
-                            dropdown.Visible = false
+                    for _, dropdownInfo in ipairs(sectionDropdowns) do
+                        if dropdownInfo and dropdownInfo.window then
+                            dropdownInfo.window.Visible = false
+                            if currentOpenDropdown == dropdownInfo.window then
+                                currentOpenDropdown = nil
+                            end
                         end
                     end
                 end
@@ -918,7 +921,7 @@ function Rayfield:CreateWindow(options)
                 local dropdownWindowFrame = Instance.new("Frame")
                 dropdownWindowFrame.Name = "DropdownWindow"
                 dropdownWindowFrame.Size = UDim2.new(0, 180, 0, 240)
-                dropdownWindowFrame.Position = UDim2.new(0.5, -90, 0.5, -120)
+                dropdownWindowFrame.Position = lastDropdownPosition
                 dropdownWindowFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
                 dropdownWindowFrame.BorderSizePixel = 2
                 dropdownWindowFrame.BorderColor3 = Color3.fromRGB(0, 255, 200)
@@ -971,6 +974,8 @@ function Rayfield:CreateWindow(options)
                         input.Changed:Connect(function()
                             if input.UserInputState == Enum.UserInputState.End then
                                 dropdownDragging = false
+                                -- Save the last position
+                                lastDropdownPosition = dropdownWindowFrame.Position
                             end
                         end)
                     end
@@ -983,10 +988,10 @@ function Rayfield:CreateWindow(options)
                     end
                 end)
 
-                -- Create dropdown container inside the window
+                -- Create dropdown container inside the window (no gap)
                 local dropdownContainer = Instance.new("Frame")
                 dropdownContainer.Name = "DropdownContainer"
-                dropdownContainer.Size = UDim2.new(1, 0, 1, -35)
+                dropdownContainer.Size = UDim2.new(1, 0, 1, -30)
                 dropdownContainer.Position = UDim2.new(0, 0, 0, 30)
                 dropdownContainer.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
                 dropdownContainer.BorderSizePixel = 0
@@ -1236,13 +1241,26 @@ function Rayfield:CreateWindow(options)
 
                 mainButton.MouseButton1Click:Connect(function()
                     isOpen = not isOpen
+                    
+                    -- Close any other open dropdown
+                    if isOpen and currentOpenDropdown and currentOpenDropdown ~= dropdownWindowFrame then
+                        currentOpenDropdown.Visible = false
+                    end
+                    
                     dropdownWindowFrame.Visible = isOpen
+                    
+                    if isOpen then
+                        currentOpenDropdown = dropdownWindowFrame
+                        -- Save position for next dropdown
+                        dropdownWindowFrame.Position = lastDropdownPosition
+                    end
+                    
                     container.ZIndex = isOpen and 100 or 2
                     updateDropdownPosition()
                 end)
 
                 -- Add this dropdown to the section's tracking list
-                table.insert(sectionDropdowns, dropdownContainer)
+                table.insert(sectionDropdowns, { window = dropdownWindowFrame })
 
                 return Dropdown
             end
