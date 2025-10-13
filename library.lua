@@ -914,21 +914,29 @@ function Rayfield:CreateWindow(options)
                 textPadding.PaddingRight = UDim.new(0, 30)
                 textPadding.Parent = mainButton
 
-                -- Create dropdown window frame (40% size)
+                -- Create dropdown window frame (40% size with auto-height)
                 local dropdownWindowFrame = Instance.new("Frame")
                 dropdownWindowFrame.Name = "DropdownWindow"
-                dropdownWindowFrame.Size = UDim2.new(0, 180, 0, 240)
+                dropdownWindowFrame.Size = UDim2.new(0, 180, 0, 0)
                 dropdownWindowFrame.Position = UDim2.new(0.5, -90, 0.5, -120)
                 dropdownWindowFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
                 dropdownWindowFrame.BorderSizePixel = 2
                 dropdownWindowFrame.BorderColor3 = Color3.fromRGB(0, 255, 200)
                 dropdownWindowFrame.Visible = false
                 dropdownWindowFrame.ZIndex = 100
+                dropdownWindowFrame.AutomaticSize = Enum.AutomaticSize.Y
                 dropdownWindowFrame.Parent = DropdownGui
 
                 local windowCorner = Instance.new("UICorner")
                 windowCorner.CornerRadius = UDim.new(0, 6)
                 windowCorner.Parent = dropdownWindowFrame
+
+                -- Add layout to auto-size window
+                local windowLayout = Instance.new("UIListLayout")
+                windowLayout.FillDirection = Enum.FillDirection.Vertical
+                windowLayout.SortOrder = Enum.SortOrder.LayoutOrder
+                windowLayout.Padding = UDim.new(0, 0)
+                windowLayout.Parent = dropdownWindowFrame
 
                 -- Header for dropdown window
                 local dropdownHeader = Instance.new("Frame")
@@ -936,6 +944,7 @@ function Rayfield:CreateWindow(options)
                 dropdownHeader.Size = UDim2.new(1, 0, 0, 30)
                 dropdownHeader.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
                 dropdownHeader.BorderSizePixel = 0
+                dropdownHeader.LayoutOrder = 1
                 dropdownHeader.Parent = dropdownWindowFrame
 
                 local headerCorner = Instance.new("UICorner")
@@ -952,7 +961,7 @@ function Rayfield:CreateWindow(options)
 
                 local headerTitle = Instance.new("TextLabel")
                 headerTitle.Name = "Title"
-                headerTitle.Size = UDim2.new(1, -10, 1, 0)
+                headerTitle.Size = UDim2.new(1, -10, 0, 30)
                 headerTitle.Position = UDim2.new(0, 5, 0, 0)
                 headerTitle.BackgroundTransparency = 1
                 headerTitle.Font = Enum.Font.SourceSansBold
@@ -960,6 +969,7 @@ function Rayfield:CreateWindow(options)
                 headerTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
                 headerTitle.TextSize = 12
                 headerTitle.TextXAlignment = Enum.TextXAlignment.Left
+                headerTitle.LayoutOrder = 1
                 headerTitle.Parent = dropdownHeader
 
                 -- Dragging logic for dropdown window
@@ -988,13 +998,20 @@ function Rayfield:CreateWindow(options)
                 -- Create dropdown container inside the window
                 local dropdownContainer = Instance.new("Frame")
                 dropdownContainer.Name = "DropdownContainer"
-                dropdownContainer.Size = UDim2.new(1, 0, 1, -35)
-                dropdownContainer.Position = UDim2.new(0, 0, 0, 30)
+                dropdownContainer.Size = UDim2.new(1, 0, 0, 0)
                 dropdownContainer.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
                 dropdownContainer.BorderSizePixel = 0
                 dropdownContainer.Visible = true
                 dropdownContainer.ZIndex = 100
+                dropdownContainer.AutomaticSize = Enum.AutomaticSize.Y
+                dropdownContainer.LayoutOrder = 2
                 dropdownContainer.Parent = dropdownWindowFrame
+                
+                local containerLayout = Instance.new("UIListLayout")
+                containerLayout.FillDirection = Enum.FillDirection.Vertical
+                containerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+                containerLayout.Padding = UDim.new(0, 0)
+                containerLayout.Parent = dropdownContainer
                 
                 local dropContainerCorner = Instance.new("UICorner")
                 dropContainerCorner.CornerRadius = UDim.new(0, 6)
@@ -1015,6 +1032,7 @@ function Rayfield:CreateWindow(options)
                 searchFrame.BorderSizePixel = 1
                 searchFrame.BorderColor3 = Color3.fromRGB(0, 200, 180)
                 searchFrame.ZIndex = 6
+                searchFrame.LayoutOrder = 1
                 searchFrame.Parent = dropdownContainer
 
                 local searchCorner = Instance.new("UICorner")
@@ -1044,20 +1062,28 @@ function Rayfield:CreateWindow(options)
 
                 local dropdownFrame = Instance.new("ScrollingFrame")
                 dropdownFrame.Name = "DropdownFrame"
-                dropdownFrame.Size = UDim2.new(1, 0, 1, -30)
-                dropdownFrame.Position = UDim2.new(0, 0, 0, 30)
+                dropdownFrame.Size = UDim2.new(1, 0, 0, 150)
+                dropdownFrame.Position = UDim2.new(0, 0, 0, 0)
                 dropdownFrame.BackgroundTransparency = 1
                 dropdownFrame.BorderSizePixel = 0
                 dropdownFrame.Visible = true
                 dropdownFrame.ZIndex = 6
                 dropdownFrame.ScrollBarThickness = 4
                 dropdownFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 200, 180)
+                dropdownFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+                dropdownFrame.LayoutOrder = 2
                 dropdownFrame.Parent = dropdownContainer
 
                 local dropdownLayout = Instance.new("UIListLayout")
                 dropdownLayout.SortOrder = Enum.SortOrder.LayoutOrder
                 dropdownLayout.Padding = UDim.new(0, 2)
                 dropdownLayout.Parent = dropdownFrame
+                
+                -- Update canvas size when content changes
+                local function updateDropdownFrameSize()
+                    dropdownFrame.CanvasSize = UDim2.new(0, 0, 0, dropdownLayout.AbsoluteContentSize.Y + 4)
+                end
+                dropdownLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateDropdownFrameSize)
 
                 local function updateDropdownPosition()
                     if isOpen then
