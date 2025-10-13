@@ -530,12 +530,17 @@ function Rayfield:CreateWindow(options)
                 sectionContent.Visible = isExpanded
                 arrow.Text = isExpanded and "▼" or "▶"
                 
-                -- Hide all dropdowns in this section when collapsing
+                -- Close all dropdowns in this section when collapsing
                 if not isExpanded then
-                    for _, dropdown in ipairs(sectionDropdowns) do
-                        if dropdown and dropdown.Parent then
-                            dropdown.Visible = false
+                    for _, dropdownWindow in ipairs(sectionDropdowns) do
+                        if dropdownWindow and dropdownWindow.Parent then
+                            dropdownWindow.Visible = false
                         end
+                    end
+                    -- Also clear the current open dropdown reference
+                    if currentOpenDropdown then
+                        currentOpenDropdown.Visible = false
+                        currentOpenDropdown = nil
                     end
                 end
                 
@@ -1274,22 +1279,25 @@ function Rayfield:CreateWindow(options)
                     end
                     
                     isOpen = not isOpen
-                    dropdownWindowFrame.Visible = isOpen
-                    container.ZIndex = isOpen and 100 or 2
                     
                     if isOpen then
+                        dropdownWindowFrame.Visible = true
                         currentOpenDropdown = dropdownWindowFrame
                         -- Position at last saved location
                         dropdownWindowFrame.Position = lastDropdownPosition
+                        updateDropdownPosition()
                     else
-                        currentOpenDropdown = nil
+                        dropdownWindowFrame.Visible = false
+                        if currentOpenDropdown == dropdownWindowFrame then
+                            currentOpenDropdown = nil
+                        end
                     end
                     
-                    updateDropdownPosition()
+                    container.ZIndex = isOpen and 100 or 2
                 end)
 
-                -- Add this dropdown to the section's tracking list
-                table.insert(sectionDropdowns, dropdownContainer)
+                -- Add this dropdown window to the section's tracking list
+                table.insert(sectionDropdowns, dropdownWindowFrame)
 
                 return Dropdown
             end
