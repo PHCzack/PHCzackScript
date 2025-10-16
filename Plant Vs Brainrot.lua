@@ -1,10 +1,9 @@
 --// Load Library
-local PHCzack = loadstring(game:HttpGet("https://raw.githubusercontent.com/PHCzack/PHCzackScript/refs/heads/main/Library1(beta).lua"))()
+local PHCzack = loadstring(game:HttpGet("https://raw.githubusercontent.com/PHCzack/PHCzackScript/refs/heads/main/library.lua"))()
 
 --// Create Window
 local Window = PHCzack:CreateWindow({
-    Name = "PHCzack Script [Plants Vs Brainrot]",
-    Size = 0.7
+    Name = "PHCzack Script [Plants Vs Brainrot]"
 })
 
 --// Show a startup notification
@@ -14,11 +13,13 @@ Window:Notify({
     Duration = 7
 })
 
+--// Create Tabs
 local FarmTab = Window:CreateTab("Farm")
 local ShopTab = Window:CreateTab("Shop")
 local BrainrotsTab = Window:CreateTab("Brainrots")
 local MiscTab = Window:CreateTab("Misc")
 local VisualTab = Window:CreateTab("Visual")
+local PlatformTab = Window:CreateTab("PlatForm")
 
 --// Services
 local Players = game:GetService("Players")
@@ -38,9 +39,8 @@ local autoEquipEnabled = false
 local autoBuyEnabled = false
 local autoBuyGearEnabled = false
 local followAttackEnabled = false
-local followAttackEnabled = false  
 local espEnabled = false 
-local legendaryAttackEnabled = false -- NEW toggle flag
+local legendaryAttackEnabled = false
 local selectedVisuals = {}
 local hiddenObjects = {}
 local selectedPlots = {}
@@ -50,8 +50,24 @@ local claimInterval = 0.1
 local originalPosition = nil
 local selectedRarities = {}
 local equipDelay = 5  
-
 local selectedRarityAttackEnabled = false
+local frostBlowerEnabled = false
+local bananaGunEnabled = false
+local carrotLauncherEnabled = false
+local freezeEnabled = false
+local autoOpenLuckyEggEnabled = false
+local autoOpenSecretLuckyEggEnabled = false
+local autoOpenMemeLuckyEggEnabled = false
+local autoFuseEnabled = false
+local autoRebirthEnabled = false
+local autoBuyAllPlantsEnabled = false
+local autoBuyAllGearEnabled = false
+local unlimitedJump = false
+local antiAFKEnabled = false
+local afkConnection = nil
+local limitedAttackEnabled = false
+
+
 -- Seeds & Gear List
 local seedsList = {
     "Cactus Seed","Strawberry Seed","Pumpkin Seed","Sunflower Seed",
@@ -115,8 +131,7 @@ local visualTargets = {
     }
 }
 
-
--- Plots teleport points (unchanged)
+-- Plots teleport points
 local plotLocations = {
     ["Plot 1"] = {Vector3.new(94,10,685),Vector3.new(93,10,697),Vector3.new(93,10,707)},
     ["Plot 2"] = {Vector3.new(-7,10,685),Vector3.new(-7,10,697),Vector3.new(-6,10,707)},
@@ -127,7 +142,7 @@ local plotLocations = {
 }
 
 --// =========================
--- Helpers
+-- Helper Functions
 --// =========================
 local function fireRemoteSafely(remote, args)
     local success, err = pcall(function()
@@ -137,16 +152,6 @@ local function fireRemoteSafely(remote, args)
     return success
 end
 
---// =========================
--- Brainrots Auto Attack
---// =========================
-local frostBlowerEnabled = false
-local bananaGunEnabled = false
-local WeaponAttack = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("AttacksServer"):WaitForChild("WeaponAttack")
-local weaponName = "Leather Grip Bat"
-
-
---// Helper Functions
 local function getRarity(brainrot)
     if brainrot then
         local rarity = brainrot:FindFirstChild("Rarity") or brainrot:GetAttribute("Rarity")
@@ -176,14 +181,28 @@ local function getPredictedPosition(brainrot, delay)
     local speedValue = brainrot:FindFirstChild("Speed")
     local velocity = hrp.Velocity
     local speed = speedValue and speedValue.Value or velocity.Magnitude
-
-    -- Estimate movement direction
     local direction = velocity.Magnitude > 0 and velocity.Unit or Vector3.zero
-
-    -- Predict where the target will be after delay seconds
     local predicted = hrp.Position + direction * (speed * delay)
     return predicted
 end
+
+local function getTargetPosition(brainrot)
+    if not brainrot then return nil end
+    local head = brainrot:FindFirstChild("Head")
+    if head and head:IsA("BasePart") then
+        return head.Position
+    end
+    local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
+    if hrp then
+        return hrp.Position + Vector3.new(0, 2, 0)
+    end
+    return nil
+end
+
+--// Weapon & Gear Equip Functions
+local WeaponAttack = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("AttacksServer"):WaitForChild("WeaponAttack")
+local UseItem = ReplicatedStorage.Remotes:WaitForChild("UseItem")
+local weaponName = "Leather Grip Bat"
 
 local function equipWeapon()
     local char = LocalPlayer.Character
@@ -197,7 +216,95 @@ local function equipWeapon()
     end
 end
 
---// Get nearest Brainrot (all)
+local function getFrostGrenade()
+    local char = LocalPlayer.Character
+    local backpack = LocalPlayer.Backpack
+    if not char or not backpack then return nil end
+    for _, tool in ipairs(char:GetChildren()) do
+        if tool:IsA("Tool") and string.find(tool.Name, "Frost Grenade") then
+            return tool
+        end
+    end
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") and string.find(tool.Name, "Frost Grenade") then
+            return tool
+        end
+    end
+    return nil
+end
+
+local function equipFrostGrenade()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    local grenade = getFrostGrenade()
+    if grenade and not char:FindFirstChild(grenade.Name) then
+        char.Humanoid:EquipTool(grenade)
+        return grenade
+    end
+    return grenade
+end
+
+local function equipFrostBlower()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    local blower = char:FindFirstChildWhichIsA("Tool")
+    if blower and blower.Name:match("Frost Blower") then
+        return blower
+    end
+    for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
+        if tool.Name:match("Frost Blower") then
+            char.Humanoid:EquipTool(tool)
+            return tool
+        end
+    end
+    return nil
+end
+
+local function equipBananaGun()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    local gun = char:FindFirstChildWhichIsA("Tool")
+    if gun and gun.Name:match("Banana Gun") then
+        return gun
+    end
+    for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
+        if tool.Name:match("Banana Gun") then
+            char.Humanoid:EquipTool(tool)
+            return tool
+        end
+    end
+    return nil
+end
+
+local function getCarrotLauncher()
+    local char = LocalPlayer.Character
+    local backpack = LocalPlayer.Backpack
+    if not char or not backpack then return nil end
+    for _, tool in ipairs(char:GetChildren()) do
+        if tool:IsA("Tool") and string.find(tool.Name, "Carrot Launcher") then
+            return tool
+        end
+    end
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") and string.find(tool.Name, "Carrot Launcher") then
+            return tool
+        end
+    end
+    return nil
+end
+
+local function equipCarrotLauncher()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    local launcher = getCarrotLauncher()
+    if launcher and not char:FindFirstChild(launcher.Name) then
+        char.Humanoid:EquipTool(launcher)
+        return launcher
+    end
+    return launcher
+end
+
+--// Get Nearest Brainrot Functions
 local function getNearestBrainrot()
     local folder = workspace:FindFirstChild("ScriptedMap") and workspace.ScriptedMap:FindFirstChild("Brainrots")
     if not folder then return nil end
@@ -218,7 +325,6 @@ local function getNearestBrainrot()
     return closest
 end
 
---// Get nearest Legendary Brainrot (rarity filter)
 local function getNearestLegendaryBrainrot()
     local folder = workspace:FindFirstChild("ScriptedMap") and workspace.ScriptedMap:FindFirstChild("Brainrots")
     if not folder then return nil end
@@ -239,7 +345,51 @@ local function getNearestLegendaryBrainrot()
     return closest
 end
 
---// Attack logic
+local function getNearestLimitedBrainrot()
+    local folder = workspace:FindFirstChild("ScriptedMap") and workspace.ScriptedMap:FindFirstChild("Brainrots")
+    if not folder then return nil end
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
+    local closest, dist = nil, math.huge
+    for _, brainrot in ipairs(folder:GetChildren()) do
+        if brainrot:IsA("Model") and getRarity(brainrot) == "Rare" then
+            local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
+            if hrp then
+                local mag = (hrp.Position - root.Position).Magnitude
+                if mag < dist then
+                    closest, dist = brainrot, mag
+                end
+            end
+        end
+    end
+    return closest
+end
+
+local function getNearestSelectedRarityBrainrot()
+    local folder = workspace:FindFirstChild("ScriptedMap") and workspace.ScriptedMap:FindFirstChild("Brainrots")
+    if not folder or #selectedRarities == 0 then return nil end
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
+
+    local closest, dist = nil, math.huge
+    for _, brainrot in ipairs(folder:GetChildren()) do
+        if brainrot:IsA("Model") then
+            local rarity = getRarity(brainrot)
+            if table.find(selectedRarities, rarity) then
+                local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
+                if hrp then
+                    local mag = (hrp.Position - root.Position).Magnitude
+                    if mag < dist then
+                        closest, dist = brainrot, mag
+                    end
+                end
+            end
+        end
+    end
+    return closest
+end
+
+--// Attack & Item Use Functions
 local function followAndAttack(targetBrainrot)
     local brainrot = targetBrainrot
     local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -256,7 +406,59 @@ local function followAndAttack(targetBrainrot)
     end
 end
 
---// ESP Function (unchanged)
+local function throwFrostGrenade(brainrot)
+    local predictedPos = getPredictedPosition(brainrot, 0.5)
+    local grenade = equipFrostGrenade()
+    if grenade and predictedPos then
+        UseItem:FireServer({
+            Toggle = true,
+            Time = 0.5,
+            Tool = grenade,
+            Pos = predictedPos
+        })
+    end
+end
+
+local function fireFrostBlower(brainrot)
+    local targetPos = getTargetPosition(brainrot)
+    if not targetPos then return end
+    local blower = equipFrostBlower()
+    if blower then
+        UseItem:FireServer({
+            Tool = blower,
+            Toggle = true
+        })
+    end
+end
+
+local function fireBananaGun(brainrot)
+    local predictedPos = getPredictedPosition(brainrot, 0.3)
+    local gun = equipBananaGun()
+    if gun and predictedPos then
+        UseItem:FireServer({
+            Toggle = true,
+            Time = 0.3,
+            Tool = gun,
+            Pos = predictedPos
+        })
+    end
+end
+
+local function fireCarrotLauncher(brainrot)
+    local launcher = equipCarrotLauncher()
+    if not launcher then return end
+    local predictedPos = getPredictedPosition(brainrot, 0.3)
+    if predictedPos then
+        UseItem:FireServer({
+            Toggle = true,
+            Time = 0.3,
+            Tool = launcher,
+            Pos = predictedPos
+        })
+    end
+end
+
+--// ESP Function
 local function createESP(brainrot)
     if not espEnabled then return end
     
@@ -294,348 +496,20 @@ local function createESP(brainrot)
     end
 end
 
--- Get nearest Brainrot from selected rarities
-local function getNearestSelectedRarityBrainrot()
-    local folder = workspace:FindFirstChild("ScriptedMap") and workspace.ScriptedMap:FindFirstChild("Brainrots")
-    if not folder or #selectedRarities == 0 then return nil end
-    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not root then return nil end
-
-    local closest, dist = nil, math.huge
-    for _, brainrot in ipairs(folder:GetChildren()) do
-        if brainrot:IsA("Model") then
-            local rarity = getRarity(brainrot)
-            if table.find(selectedRarities, rarity) then
-                local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
-                if hrp then
-                    local mag = (hrp.Position - root.Position).Magnitude
-                    if mag < dist then
-                        closest, dist = brainrot, mag
-                    end
-                end
-            end
-        end
-    end
-    return closest
-end
-
-
---// =========================
--- Freeze Brainrots (Frost Grenade Auto)
---// =========================
-local UseItem = ReplicatedStorage.Remotes:WaitForChild("UseItem")
-local freezeEnabled = false
-
--- Follow and Freeze with Frost Grenade
-local function followAndFreeze(brainrot)
-    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if brainrot and root then
-        local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
-        if hrp then
-            -- Move closer (like auto-follow attack)
-            root.CFrame = root.CFrame:Lerp(CFrame.new(hrp.Position + Vector3.new(0, 3, 0)), 0.2)
-
-            -- Equip & throw grenade
-            local grenade = equipFrostGrenade()
-            if grenade then
-                UseItem:FireServer({
-                    Toggle = true,
-                    Time = 0.5,
-                    Tool = grenade,
-                    Pos = hrp.Position
-                })
-            end
-        end
-    end
-end
-
-
--- Helper: get target position (prioritize Head)
-local function getTargetPosition(brainrot)
-    if not brainrot then return nil end
-    local head = brainrot:FindFirstChild("Head")
-    if head and head:IsA("BasePart") then
-        return head.Position
-    end
-    local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
-    if hrp then
-        return hrp.Position + Vector3.new(0, 2, 0) -- small offset upwards if no head
-    end
-    return nil
-end
-
---// =========================
--- Carrot Launcher Support
---// =========================
-local carrotLauncherEnabled = false
-
--- Helper: find Carrot Launcher in Backpack/Character
-local function getCarrotLauncher()
-    local char = LocalPlayer.Character
-    local backpack = LocalPlayer.Backpack
-    if not char or not backpack then return nil end
-
-    -- check equipped first
-    for _, tool in ipairs(char:GetChildren()) do
-        if tool:IsA("Tool") and string.find(tool.Name, "Carrot Launcher") then
-            return tool
-        end
-    end
-
-    -- check backpack
-    for _, tool in ipairs(backpack:GetChildren()) do
-        if tool:IsA("Tool") and string.find(tool.Name, "Carrot Launcher") then
-            return tool
-        end
-    end
-
-    return nil
-end
-
--- Auto equip Carrot Launcher
-local function equipCarrotLauncher()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-    local launcher = getCarrotLauncher()
-    if launcher and not char:FindFirstChild(launcher.Name) then
-        char.Humanoid:EquipTool(launcher)
-        return launcher
-    end
-    return launcher
-end
-
--- Fire Carrot Launcher
-local function fireCarrotLauncher(brainrot)
-    local launcher = equipCarrotLauncher()
-    if not launcher then return end
-
-    local predictedPos = getPredictedPosition(brainrot, 0.3)
-    UseItem:FireServer({
-        Toggle = true,
-        Time = 0.3,
-        Tool = launcher,
-        Pos = predictedPos
-    })
-end
-
-
-local function fireBananaGun(brainrot)
-    local launcher = equipBananaGun()
-    if not launcher then return end
-
-    local predictedPos = getPredictedPosition(brainrot, 0.3)
-    UseItem:FireServer({
-        Toggle = true,
-        Time = 0.3,
-        Tool = launcher,
-        Pos = predictedPos
-    })
-end
-
-local function followAndFreeze(brainrot)
-    local predictedPos = getPredictedPosition(brainrot, 0.5)
-    local grenade = equipFrostGrenade()
-    if grenade and predictedPos then
-        UseItem:FireServer({
-            Toggle = true,
-            Time = 0.5,
-            Tool = grenade,
-            Pos = predictedPos
-        })
-    end
-end
-
-local function fireFrostBlower(brainrot)
-    local targetPos = getTargetPosition(brainrot)
-    if not targetPos then return end
-    local blower = equipFrostBlower()
-    if blower then
-        UseItem:FireServer({
-            Tool = blower,
-            Toggle = true
-        })
-    end
-end
-
-
--- Helper: find Frost Grenade in Backpack/Character (any quantity)
-local function getFrostGrenade()
-    local char = LocalPlayer.Character
-    local backpack = LocalPlayer.Backpack
-    if not char or not backpack then return nil end
-
-    -- Check equipped first
-    for _, tool in ipairs(char:GetChildren()) do
-        if tool:IsA("Tool") and string.find(tool.Name, "Frost Grenade") then
-            return tool
-        end
-    end
-    -- Then check backpack
-    for _, tool in ipairs(backpack:GetChildren()) do
-        if tool:IsA("Tool") and string.find(tool.Name, "Frost Grenade") then
-            return tool
-        end
-    end
-    return nil
-end
-
--- Auto equip Frost Grenade
-local function equipFrostGrenade()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-    local grenade = getFrostGrenade()
-    if grenade and not char:FindFirstChild(grenade.Name) then
-        char.Humanoid:EquipTool(grenade)
-        return grenade
-    end
-    return grenade
-end
-
--- Throw grenade at brainrot
-local function throwFrostGrenade(brainrot)
-    local hrp = brainrot:FindFirstChild("HumanoidRootPart") or brainrot:FindFirstChildWhichIsA("BasePart")
-    if not hrp then return end
-    local grenade = equipFrostGrenade()
-    if grenade then
-        UseItem:FireServer({
-            Toggle = true,
-            Time = 0.5,
-            Tool = grenade,
-            Pos = hrp.Position
-        })
-    end
-end
-
--- Modify loop to use Frost Grenade if enabled
+--// Main Loop
 RunService.Heartbeat:Connect(function()
-    if freezeEnabled and selectedRarityAttackEnabled and #selectedRarities > 0 then
-        local target = getNearestSelectedRarityBrainrot()
-        if target then
-            throwFrostGrenade(target)
-        end
-    else
-        -- existing attack logic
-        if followAttackEnabled then
-            local target = getNearestBrainrot()
-            if target then followAndAttack(target) end
-        elseif legendaryAttackEnabled then
-            local target = getNearestLegendaryBrainrot()
-            if target then followAndAttack(target) end
-        elseif selectedRarityAttackEnabled and #selectedRarities > 0 then
-            local target = getNearestSelectedRarityBrainrot()
-            if target then followAndAttack(target) end
-        end
-    end
-
-    if espEnabled then
-        local folder = workspace:FindFirstChild("ScriptedMap") and workspace.ScriptedMap:FindFirstChild("Brainrots")
-        if folder then
-            for _, brainrot in ipairs(folder:GetChildren()) do
-                if brainrot:IsA("Model") then
-                    createESP(brainrot)
-                end
-            end
-        end
-    end
-end)
-
-
-local function equipFrostBlower()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-
-    -- Look in character first
-    local blower = char:FindFirstChildWhichIsA("Tool")
-    if blower and blower.Name:match("Frost Blower") then
-        return blower
-    end
-
-    -- Look in backpack if not equipped
-    for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
-        if tool.Name:match("Frost Blower") then
-            char.Humanoid:EquipTool(tool)
-            return tool
-        end
-    end
-
-    return nil
-end
-
-local function equipBananaGun()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-
-    -- Check if already equipped
-    local gun = char:FindFirstChildWhichIsA("Tool")
-    if gun and gun.Name:match("Banana Gun") then
-        return gun
-    end
-
-    -- Search backpack
-    for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
-        if tool.Name:match("Banana Gun") then
-            char.Humanoid:EquipTool(tool)
-            return tool
-        end
-    end
-
-    return nil
-end
-
-
---// =========================
--- Unified Main Loop (Requires Selected Rarity for Freeze / Blower / Banana)
---// =========================
-RunService.Heartbeat:Connect(function()
-    -- ✅ Freeze Brainrots
     if freezeEnabled and #selectedRarities > 0 then
         local target = getNearestSelectedRarityBrainrot()
-        if target then
-            followAndFreeze(target)
-        end
-
-    -- ✅ Frost Blower
+        if target then throwFrostGrenade(target) end
     elseif frostBlowerEnabled and #selectedRarities > 0 then
         local target = getNearestSelectedRarityBrainrot()
-        if target then
-            local hrp = target:FindFirstChild("HumanoidRootPart") or target:FindFirstChildWhichIsA("BasePart")
-            if hrp then
-                local blower = equipFrostBlower()
-                if blower then
-                    UseItem:FireServer({
-                        Tool = blower,
-                        Toggle = true
-                    })
-                end
-            end
-        end
-
-    -- ✅ Banana Gun
+        if target then fireFrostBlower(target) end
     elseif bananaGunEnabled and #selectedRarities > 0 then
         local target = getNearestSelectedRarityBrainrot()
-        if target then
-            local hrp = target:FindFirstChild("HumanoidRootPart") or target:FindFirstChildWhichIsA("BasePart")
-            if hrp then
-                local gun = equipBananaGun()
-                if gun then
-                    UseItem:FireServer({
-                        Toggle = true,
-                        Time = 0.5, -- adjustable firing delay
-                        Tool = gun,
-                        Pos = hrp.Position
-                    })
-                end
-            end
-        end
-        
-        -- ✅ Carrot Launcher
-elseif carrotLauncherEnabled and #selectedRarities > 0 then
-    local target = getNearestSelectedRarityBrainrot()
-    if target then
-        fireCarrotLauncher(target)
-    end
-
-    -- ✅ Normal Attack Modes (don’t need rarity unless selected)
+        if target then fireBananaGun(target) end
+    elseif carrotLauncherEnabled and #selectedRarities > 0 then
+        local target = getNearestSelectedRarityBrainrot()
+        if target then fireCarrotLauncher(target) end
     else
         if followAttackEnabled then
             local target = getNearestBrainrot()
@@ -643,13 +517,15 @@ elseif carrotLauncherEnabled and #selectedRarities > 0 then
         elseif legendaryAttackEnabled then
             local target = getNearestLegendaryBrainrot()
             if target then followAndAttack(target) end
+        elseif limitedAttackEnabled then
+            local target = getNearestLimitedBrainrot()
+            if target then followAndAttack(target) end
         elseif selectedRarityAttackEnabled and #selectedRarities > 0 then
             local target = getNearestSelectedRarityBrainrot()
             if target then followAndAttack(target) end
         end
     end
 
-    -- ✅ ESP is always active
     if espEnabled then
         local folder = workspace:FindFirstChild("ScriptedMap") and workspace.ScriptedMap:FindFirstChild("Brainrots")
         if folder then
@@ -662,224 +538,14 @@ elseif carrotLauncherEnabled and #selectedRarities > 0 then
     end
 end)
 
-
-BrainrotsTab:Dropdown({
-    Name = "Auto Hit Selected Rarity",
-    Options = {"Rare", "Epic", "Legendary", "Mythic", "Godly", "Secret", "Limited"},
-    CurrentOption = {},
-    MultiSelection = true,
-    Callback = function(list)
-        selectedRarities = list or {}
-        if #selectedRarities > 0 then
-            followAttackEnabled = false
-            legendaryAttackEnabled = false
-        end
-    end
-})
-
--- Toggle for enabling/disabling the feature
-BrainrotsTab:Toggle({
-    Name = "Enable Selected Rarity Attack (Equip Bat)",
-    CurrentValue = false,
-    Callback = function(state)
-        selectedRarityAttackEnabled = state
-        if state then
-            followAttackEnabled = false
-            legendaryAttackEnabled = false
-        end
-        if selectedRarityAttackEnabled then task.wait(1.0) end
-    end
-})
-
---// Toggle for Freeze
-BrainrotsTab:Toggle({
-    Name = "Freeze Brainrots (Frost Grenade)",
-    Info = "Need to Enable = Enable Selected Rarity Attack (Equip Bat)",
-    CurrentValue = false,
-    Callback = function(state)
-        freezeEnabled = state
-        if state then
-            followAttackEnabled = false
-            legendaryAttackEnabled = false
-        end
-        if freezeEnabled then task.wait(1.0) end
-    end
-})
-
-BrainrotsTab:Toggle({
-    Name = "Auto Banana Gun",
-    CurrentValue = false,
-    Callback = function(state)
-        bananaGunEnabled = state
-        if state then
-            followAttackEnabled = false
-            legendaryAttackEnabled = false
-            selectedRarityAttackEnabled = false
-        end
-        if bananaGunEnabled then task.wait(1.0) end
-    end
-})
-
-BrainrotsTab:Toggle({
-    Name = "Auto Frost Blower)",
-    CurrentValue = false,
-    Callback = function(state)
-        frostBlowerEnabled = state
-        if not state then
-            -- turn it off when disabled
-            local blower = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Frost Blower")
-            if blower then
-                UseItem:FireServer({
-                    Tool = blower,
-                    Toggle = false
-                })
-            end
-            if frostBlowerEnabled then task.wait(1.0) end
-        end
-    end
-})
-
 --// =========================
--- UI Toggle for Carrot Launcher
+-- FARM TAB - ORGANIZED INTO SECTIONS
 --// =========================
-BrainrotsTab:Toggle({
-    Name = "Auto Carrot Launcher",
-    CurrentValue = false,
-    Callback = function(state)
-        carrotLauncherEnabled = state
-        if state then
-            followAttackEnabled = false
-            legendaryAttackEnabled = false
-            freezeEnabled = false
-            frostBlowerEnabled = false
-            bananaGunEnabled = false
-        end
-        if carrotLauncherEnabled then task.wait(1.0) end
-    end
-})
 
+-- Auto Claim Section
+local ClaimSection = FarmTab:CreateSection("Auto Claim")
 
---// Toggles
-BrainrotsTab:Toggle({
-    Name = "Auto Hit Brainrot (All)",
-    CurrentValue = false,
-    Callback = function(state)
-        followAttackEnabled = state
-        if state then legendaryAttackEnabled = false end -- avoid conflict
-        if followAttackEnabled then task.wait(1.0) end
-    end
-    
-})
-
-BrainrotsTab:Toggle({
-    Name = "ESP Rarity Name",
-    CurrentValue = false,
-    Callback = function(state)
-        espEnabled = state
-    end
-})
-
-
-
-
---// =========================
--- Farm Tab
---// =========================
---// =========================
--- Auto Turn In + Auto Equip Each Item (Fixed)
---// =========================
-local autoTurnInEnabled = false
-local Interact = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Events"):WaitForChild("Prison"):WaitForChild("Interact")
-
--- List of items to auto-equip (partial name match)
-local equipItemsList = {
-    "Alessio", "Orcalero", "Orcala", "Bandito", "Bombirito", "Bombardiro", "Crocodilo",
-    "Brr Brr Patapim", "Ballerina Cappuccina", "Bananita Dolphinita", "Burbaloni Lulliloli",
-    "Cappuccino Assasino", "Svinino Bombondino", "Bombini Gussini", "Elefanto Cocofanto", "Trippi Troppi", "Frigo Camelo", 
-    "Bambini Crostini", "Gangster Footera", "Madung", "Crazylone Pizaione"
-}
-
-FarmTab:Toggle({
-    Name = "Auto Turn In + Equip Each Item",
-    CurrentValue = false,
-    Callback = function(state)
-        autoTurnInEnabled = state
-        if state then
-            task.spawn(function()
-                local player = game.Players.LocalPlayer
-                while autoTurnInEnabled do
-                    local character = player.Character
-                    local backpack = player.Backpack
-                    if character and backpack then
-                        local humanoid = character:FindFirstChildOfClass("Humanoid")
-                        if humanoid then
-                            -- Loop through each item
-                            for _, namePart in ipairs(equipItemsList) do
-                                local toolToEquip = nil
-                                
-                                -- Check Backpack
-                                for _, tool in ipairs(backpack:GetChildren()) do
-                                    if tool:IsA("Tool") and tool.Name:match(namePart) then
-                                        toolToEquip = tool
-                                        break
-                                    end
-                                end
-                                
-                                -- Check Character if not in Backpack
-                                if not toolToEquip then
-                                    for _, tool in ipairs(character:GetChildren()) do
-                                        if tool:IsA("Tool") and tool.Name:match(namePart) then
-                                            toolToEquip = tool
-                                            break
-                                        end
-                                    end
-                                end
-
-                                -- Equip and FireServer if needed
-                                if toolToEquip and humanoid:FindFirstChildOfClass("Tool") ~= toolToEquip then
-                                    humanoid:EquipTool(toolToEquip)
-                                    pcall(function()
-                                        Interact:FireServer("TurnIn") -- Fire every equip
-                                    end)
-                                    task.wait(1) -- small delay between equips
-                                end
-                            end
-                        end
-                    end
-
-                    task.wait(1) -- optional, prevents extremely fast looping
-                end
-            end)
-        end
-    end
-})
-
--- Outside the toggle, at the top of your script
-local turnInEnabled = false
-
-FarmTab:Toggle({
-    Name = "Turn In (Manual)",
-    CurrentValue = false,
-    Callback = function(state)
-        turnInEnabled = state  -- update the global toggle variable
-        if state then
-            task.spawn(function()
-                while turnInEnabled do
-                    local success, err = pcall(function()
-                        local args = { [1] = "TurnIn" }
-                        game:GetService("ReplicatedStorage").Remotes.Events.Prison.Interact:FireServer(unpack(args))
-                    end)
-                    if not success then
-                        warn("Failed to FireServer: ", err)
-                    end
-                    task.wait(1)
-                end
-            end)
-        end
-    end
-})
-
-FarmTab:Dropdown({
+ClaimSection:CreateDropdown({
     Name = "Select Plots to Claim",
     Options = {"Plot 1","Plot 2","Plot 3","Plot 4","Plot 5","Plot 6"},
     MultiSelection = true,
@@ -887,7 +553,7 @@ FarmTab:Dropdown({
     Callback = function(list) selectedPlots = list end
 })
 
-FarmTab:Dropdown({
+ClaimSection:CreateDropdown({
     Name = "Claim Every?",
     Options = {"Fast Claim","Claim Every 5s","Claim Every 30s","Claim Every 1m","Claim Every 10m"},
     CurrentOption = "Fast Claim",
@@ -900,7 +566,7 @@ FarmTab:Dropdown({
     end
 })
 
-FarmTab:Toggle({
+ClaimSection:Toggle({
     Name = "Auto Claim",
     CurrentValue = false,
     Callback = function(state)
@@ -935,152 +601,10 @@ FarmTab:Toggle({
     end
 })
 
+-- Auto Sell Section
+local SellSection = FarmTab:CreateSection("Auto Sell")
 
-
--- Dropdown for Equip Time
-FarmTab:Dropdown({
-    Name = "Equip Time",
-    Options = {"5 Seconds", "10 Seconds", "30 Seconds", "1 Minute", "5 Minutes", "10 Minutes", "15 Minutes"},
-    CurrentOption = "Equip Time",
-    Callback = function(option)
-        if option == "5 Seconds" then
-            equipDelay = 5
-        elseif option == "10 Seconds" then
-            equipDelay = 10
-        elseif option == "30 Seconds" then
-            equipDelay = 30
-        elseif option == "1 Minute" then
-            equipDelay = 60
-        elseif option == "5 Minutes" then
-            equipDelay = 300
-        elseif option == "10 Minutes" then
-            equipDelay = 600
-        elseif option == "15 Minutes" then
-            equipDelay = 900
-        end
-    end
-})
-
--- Auto Equip Brainrots Pet Toggle
-FarmTab:Toggle({
-    Name = "Auto Equip Brainrots Pet",
-    CurrentValue = false,
-    Callback = function(state)
-        autoEquipEnabled = state
-        if state then
-            task.spawn(function()
-                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("EquipBestBrainrots", 9e9)
-
-                while autoEquipEnabled do
-                    remote:FireServer() -- ✅ Updated Remote
-                    task.wait(equipDelay)
-                end
-                if autoEquipEnabled then task.wait(1.0) end
-            end)
-        end
-    end
-})
-
--- Auto Open Lucky Egg Toggle
-FarmTab:Toggle({
-    Name = "Auto Open Lucky Egg",
-    CurrentValue = false,
-    Callback = function(state)
-        autoOpenLuckyEggEnabled = state
-        if state then
-            task.spawn(function()
-                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("OpenEgg", 9e9)
-
-                while autoOpenLuckyEggEnabled do
-                    remote:FireServer("Godly Lucky Egg") -- ✅ Open Lucky Egg
-                    task.wait(1) -- ⏳ opens every 0.5s
-                end
-            end)
-        end
-    end
-})
-
--- Auto Open Secret Lucky Egg Toggle
-FarmTab:Toggle({
-    Name = "Auto Open Secret Lucky Egg",
-    CurrentValue = false,
-    Callback = function(state)
-        autoOpenSecretLuckyEggEnabled = state
-        if state then
-            task.spawn(function()
-                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("OpenEgg", 9e9)
-
-                while autoOpenSecretLuckyEggEnabled do
-                    remote:FireServer("Secret Lucky Egg")
-                    task.wait(1) -- ⏳ every 1s
-                end
-            end)
-        end
-    end
-})
-
--- Auto Open Meme Lucky Egg Toggle
-FarmTab:Toggle({
-    Name = "Auto Open Meme Lucky Egg",
-    CurrentValue = false,
-    Callback = function(state)
-        autoOpenMemeLuckyEggEnabled = state
-        if state then
-            task.spawn(function()
-                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("OpenEgg", 9e9)
-
-                while autoOpenMemeLuckyEggEnabled do
-                    remote:FireServer("Meme Lucky Egg")
-                    task.wait(1) -- ⏳ every 1s
-                end
-                 if autoOpenMemeLuckyEggEnabled then task.wait(1.0) end
-            end)
-        end
-    end
-})
-
-
--- Auto Fuse Toggle
-FarmTab:Toggle({
-    Name = "Auto Fuse",
-    CurrentValue = false,
-    Callback = function(state)
-        autoFuseEnabled = state
-        if state then
-            task.spawn(function()
-                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("PromptFuse", 9e9)
-
-                while autoFuseEnabled do
-                    remote:FireServer() -- ✅ Fire fuse remote
-                    task.wait(0.5) -- ⏳ now runs every 0.5 seconds
-                end
-                if autoFuseEnabled then task.wait(1.0) end
-            end)
-        end
-    end
-})
-
--- Auto Rebirth Toggle
-FarmTab:Toggle({
-    Name = "Auto Rebirth",
-    CurrentValue = false,
-    Callback = function(state)
-        autoRebirthEnabled = state
-        if state then
-            task.spawn(function()
-                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Rebirth", 9e9)
-
-                while autoRebirthEnabled do
-                    remote:FireServer({}) -- ✅ Fire Rebirth remote
-                    task.wait(1) -- ⏳ every 1s (adjust if needed)
-                end
-                if autoRebirthEnabled then task.wait(1.0) end
-            end)
-        end
-    end
-})
-
-FarmTab:Toggle({
+SellSection:Toggle({
     Name = "Auto Sell Brainrot",
     CurrentValue = false,
     Callback = function(state)
@@ -1097,7 +621,7 @@ FarmTab:Toggle({
     end
 })
 
-FarmTab:Toggle({
+SellSection:Toggle({
     Name = "Auto Sell Plants",
     CurrentValue = false,
     Callback = function(state)
@@ -1114,43 +638,140 @@ FarmTab:Toggle({
     end
 })
 
---// =========================
--- PlatForm Tab
---// =========================
-local PlatformTab = Window:CreateTab("PlatForm")
+-- Auto Equip Section
+local EquipSection = FarmTab:CreateSection("Auto Equip")
 
--- Remote reference
-local buyPlatformRemote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyPlatform", 9e9)
+EquipSection:CreateDropdown({
+    Name = "Equip Time",
+    Options = {"5 Seconds", "10 Seconds", "30 Seconds", "1 Minute", "5 Minutes", "10 Minutes", "15 Minutes"},
+    CurrentOption = "5 Seconds",
+    Callback = function(option)
+        if option == "5 Seconds" then equipDelay = 5
+        elseif option == "10 Seconds" then equipDelay = 10
+        elseif option == "30 Seconds" then equipDelay = 30
+        elseif option == "1 Minute" then equipDelay = 60
+        elseif option == "5 Minutes" then equipDelay = 300
+        elseif option == "10 Minutes" then equipDelay = 600
+        elseif option == "15 Minutes" then equipDelay = 900 end
+    end
+})
 
--- 🔥 Master Button: Buy all 1-30
-PlatformTab:Button({
-    Name = "Buy All Platforms (Beta Can buy already Own)",
-    Callback = function()
-        for i = 1, 30 do
-            buyPlatformRemote:FireServer(tostring(i))
-            task.wait(0.2) -- ⏳ small delay to prevent remote flood
+EquipSection:Toggle({
+    Name = "Auto Equip Brainrots Pet",
+    CurrentValue = false,
+    Callback = function(state)
+        autoEquipEnabled = state
+        if state then
+            task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("EquipBestBrainrots", 9e9)
+                while autoEquipEnabled do
+                    remote:FireServer()
+                    task.wait(equipDelay)
+                end
+            end)
         end
     end
 })
 
--- 📌 Individual Buttons: 1 to 30
-for i = 1, 30 do
-    PlatformTab:Button({
-        Name = "Buy Platform " .. i,
-        Callback = function()
-            buyPlatformRemote:FireServer(tostring(i))
+-- Auto Open Eggs Section
+local EggSection = FarmTab:CreateSection("Auto Open Eggs")
+
+EggSection:Toggle({
+    Name = "Auto Open Lucky Egg",
+    CurrentValue = false,
+    Callback = function(state)
+        autoOpenLuckyEggEnabled = state
+        if state then
+            task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("OpenEgg", 9e9)
+                while autoOpenLuckyEggEnabled do
+                    remote:FireServer("Godly Lucky Egg")
+                    task.wait(1)
+                end
+            end)
         end
-    })
-end
+    end
+})
 
+EggSection:Toggle({
+    Name = "Auto Open Secret Lucky Egg",
+    CurrentValue = false,
+    Callback = function(state)
+        autoOpenSecretLuckyEggEnabled = state
+        if state then
+            task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("OpenEgg", 9e9)
+                while autoOpenSecretLuckyEggEnabled do
+                    remote:FireServer("Secret Lucky Egg")
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
 
+EggSection:Toggle({
+    Name = "Auto Open Meme Lucky Egg",
+    CurrentValue = false,
+    Callback = function(state)
+        autoOpenMemeLuckyEggEnabled = state
+        if state then
+            task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("OpenEgg", 9e9)
+                while autoOpenMemeLuckyEggEnabled do
+                    remote:FireServer("Meme Lucky Egg")
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
 
+-- Auto Progression Section
+local ProgressionSection = FarmTab:CreateSection("Auto Progression")
 
+ProgressionSection:Toggle({
+    Name = "Auto Fuse",
+    CurrentValue = false,
+    Callback = function(state)
+        autoFuseEnabled = state
+        if state then
+            task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("PromptFuse", 9e9)
+                while autoFuseEnabled do
+                    remote:FireServer()
+                    task.wait(0.5)
+                end
+            end)
+        end
+    end
+})
+
+ProgressionSection:Toggle({
+    Name = "Auto Rebirth",
+    CurrentValue = false,
+    Callback = function(state)
+        autoRebirthEnabled = state
+        if state then
+            task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Rebirth", 9e9)
+                while autoRebirthEnabled do
+                    remote:FireServer({})
+                    task.wait(1)
+                end
+            end)
+        end
+    end
+})
 
 --// =========================
--- Shop Tab
+-- SHOP TAB - ORGANIZED INTO SECTIONS
 --// =========================
-ShopTab:Dropdown({
+
+-- Seeds Section
+local SeedsSection = ShopTab:CreateSection("Seeds")
+
+SeedsSection:CreateDropdown({
     Name = "Select Seeds",
     Options = seedsList,
     MultiSelection = true,
@@ -1158,29 +779,20 @@ ShopTab:Dropdown({
     Callback = function(list) selectedSeeds = list end
 })
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
--- Original code with 'Safefire' modifications applied.
-
--- Auto Buy Seeds Toggle
-ShopTab:Toggle({
+SeedsSection:Toggle({
     Name = "Auto Buy Seeds",
     CurrentValue = false,
     Callback = function(state)
         autoBuyEnabled = state
         if state then
             task.spawn(function()
-                -- ✅ Updated Remote Path
                 local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyItem", 9e9)
-
                 while autoBuyEnabled do
                     for _, seedName in ipairs(selectedSeeds) do
                         if not autoBuyEnabled then break end
                         remote:FireServer(seedName)
-                        -- 🔥 INCREASED DELAY: Ensures only one fire per 0.75 seconds.
-                        task.wait(0.75) 
+                        task.wait(0.75)
                     end
-                    -- 🔥 OUTER DELAY: Wait after completing a full loop of selected items.
                     if autoBuyEnabled then task.wait(1.0) end
                 end
             end)
@@ -1188,47 +800,7 @@ ShopTab:Toggle({
     end
 })
 
-ShopTab:Dropdown({
-    Name = "Select Gear",
-    Options = gearList,
-    MultiSelection = true,
-    CurrentOption = {},
-    Callback = function(list) selectedGears = list end
-})
-
----
-
--- Auto Buy Gear Toggle
-ShopTab:Toggle({
-    Name = "Auto Buy Gear",
-    CurrentValue = false,
-    Callback = function(state)
-        autoBuyGearEnabled = state
-        if state then
-            task.spawn(function()
-                -- ✅ Updated Remote Path
-                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyGear", 9e9)
-
-                while autoBuyGearEnabled do
-                    for _, gearName in ipairs(selectedGears) do
-                        if not autoBuyGearEnabled then break end
-                        -- Fire directly with the gearName
-                        remote:FireServer(gearName)
-                        -- 🔥 INCREASED DELAY: Ensures only one fire per 0.75 seconds.
-                        task.wait(0.75) 
-                    end
-                    -- 🔥 OUTER DELAY: Wait after completing a full loop of selected items.
-                    if autoBuyGearEnabled then task.wait(1.0) end
-                end
-            end)
-        end
-    end
-})
-
----
-
--- Auto Buy All Plants (Higher Risk due to loop size)
-ShopTab:Toggle({
+SeedsSection:Toggle({
     Name = "Auto Buy All Plants",
     CurrentValue = false,
     Callback = function(state)
@@ -1237,14 +809,11 @@ ShopTab:Toggle({
             task.spawn(function()
                 local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyItem", 9e9)
                 while autoBuyAllPlantsEnabled do
-                    -- Fire for every seed in the seedsList
                     for _, seedName in ipairs(seedsList) do
                         if not autoBuyAllPlantsEnabled then break end
                         remote:FireServer(seedName)
-                        -- 🔥 INCREASED DELAY: Set to 1.0s to reduce risk when buying many items.
-                        task.wait(1.0) 
+                        task.wait(1.0)
                     end
-                    -- 🔥 OUTER DELAY: Wait after completing a full loop.
                     if autoBuyAllPlantsEnabled then task.wait(1.0) end
                 end
             end)
@@ -1252,10 +821,39 @@ ShopTab:Toggle({
     end
 })
 
----
+-- Gear Section
+local GearSection = ShopTab:CreateSection("Gear")
 
--- Auto Buy All Gear (Higher Risk due to loop size)
-ShopTab:Toggle({
+GearSection:CreateDropdown({
+    Name = "Select Gear",
+    Options = gearList,
+    MultiSelection = true,
+    CurrentOption = {},
+    Callback = function(list) selectedGears = list end
+})
+
+GearSection:Toggle({
+    Name = "Auto Buy Gear",
+    CurrentValue = false,
+    Callback = function(state)
+        autoBuyGearEnabled = state
+        if state then
+            task.spawn(function()
+                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyGear", 9e9)
+                while autoBuyGearEnabled do
+                    for _, gearName in ipairs(selectedGears) do
+                        if not autoBuyGearEnabled then break end
+                        remote:FireServer(gearName)
+                        task.wait(0.75)
+                    end
+                    if autoBuyGearEnabled then task.wait(1.0) end
+                end
+            end)
+        end
+    end
+})
+
+GearSection:Toggle({
     Name = "Auto Buy All Gear",
     CurrentValue = false,
     Callback = function(state)
@@ -1264,14 +862,11 @@ ShopTab:Toggle({
             task.spawn(function()
                 local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyGear", 9e9)
                 while autoBuyAllGearEnabled do
-                    -- Fire for every gear in gearList
                     for _, gearName in ipairs(gearList) do
                         if not autoBuyAllGearEnabled then break end
                         remote:FireServer(gearName)
-                        -- 🔥 INCREASED DELAY: Set to 1.0s to reduce risk when buying many items.
-                        task.wait(1.0) 
+                        task.wait(1.0)
                     end
-                    -- 🔥 OUTER DELAY: Wait after completing a full loop.
                     if autoBuyAllGearEnabled then task.wait(1.0) end
                 end
             end)
@@ -1280,10 +875,176 @@ ShopTab:Toggle({
 })
 
 --// =========================
--- Misc Tab
+-- BRAINROTS TAB - ORGANIZED INTO SECTIONS
 --// =========================
-local unlimitedJump = false
-MiscTab:Toggle({
+
+-- Auto Attack Section
+local AttackSection = BrainrotsTab:CreateSection("Auto Attack")
+
+AttackSection:Toggle({
+    Name = "Auto Hit Brainrot (All)",
+    CurrentValue = false,
+    Callback = function(state)
+        followAttackEnabled = state
+        if state then legendaryAttackEnabled = false end
+        if followAttackEnabled then task.wait(1.0) end
+    end
+})
+
+AttackSection:CreateDropdown({
+    Name = "Auto Hit Selected Rarity",
+    Options = {"Rare", "Epic", "Legendary", "Mythic", "Godly", "Secret", "Limited"},
+    CurrentOption = {},
+    MultiSelection = true,
+    Callback = function(list)
+        selectedRarities = list or {}
+        if #selectedRarities > 0 then
+            followAttackEnabled = false
+            legendaryAttackEnabled = false
+        end
+    end
+})
+
+AttackSection:Toggle({
+    Name = "Auto Hit Boss",
+    CurrentValue = false,
+    Callback = function(state)
+        limitedAttackEnabled = state
+        if state then 
+            followAttackEnabled = false 
+            legendaryAttackEnabled = false
+        end
+        if limitedAttackEnabled then task.wait(1.0) end
+    end
+})
+
+AttackSection:Toggle({
+    Name = "Enable Selected Rarity Attack (Equip Bat)",
+    CurrentValue = false,
+    Callback = function(state)
+        selectedRarityAttackEnabled = state
+        if state then
+            followAttackEnabled = false
+            legendaryAttackEnabled = false
+        end
+        if selectedRarityAttackEnabled then task.wait(1.0) end
+    end
+})
+
+-- Weapons Section
+--local WeaponsSection = BrainrotsTab:CreateSection("Weapons & Items")
+
+AttackSection:Toggle({
+    Name = "Freeze Brainrots (Frost Grenade)",
+    CurrentValue = false,
+    Callback = function(state)
+        freezeEnabled = state
+        if state then
+            followAttackEnabled = false
+            legendaryAttackEnabled = false
+        end
+        if freezeEnabled then task.wait(1.0) end
+    end
+})
+
+AttackSection:Toggle({
+    Name = "Auto Banana Gun",
+    CurrentValue = false,
+    Callback = function(state)
+        bananaGunEnabled = state
+        if state then
+            followAttackEnabled = false
+            legendaryAttackEnabled = false
+            selectedRarityAttackEnabled = false
+        end
+        if bananaGunEnabled then task.wait(1.0) end
+    end
+})
+
+AttackSection:Toggle({
+    Name = "Auto Frost Blower",
+    CurrentValue = false,
+    Callback = function(state)
+        frostBlowerEnabled = state
+        if not state then
+            local blower = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Frost Blower")
+            if blower then
+                UseItem:FireServer({
+                    Tool = blower,
+                    Toggle = false
+                })
+            end
+        end
+        if frostBlowerEnabled then task.wait(1.0) end
+    end
+})
+
+AttackSection:Toggle({
+    Name = "Auto Carrot Launcher",
+    CurrentValue = false,
+    Callback = function(state)
+        carrotLauncherEnabled = state
+        if state then
+            followAttackEnabled = false
+            legendaryAttackEnabled = false
+            freezeEnabled = false
+            frostBlowerEnabled = false
+            bananaGunEnabled = false
+        end
+        if carrotLauncherEnabled then task.wait(1.0) end
+    end
+})
+
+-- ESP Section
+local ESPSection = BrainrotsTab:CreateSection("ESP")
+
+ESPSection:Toggle({
+    Name = "ESP Rarity Name",
+    CurrentValue = false,
+    Callback = function(state)
+        espEnabled = state
+    end
+})
+
+--// =========================
+-- PLATFORM TAB - ORGANIZED INTO SECTIONS
+--// =========================
+
+-- Quick Buy Section
+local QuickBuySection = PlatformTab:CreateSection("Quick Buy")
+
+QuickBuySection:Button({
+    Name = "Buy All Platforms (1-30)",
+    Callback = function()
+        local buyPlatformRemote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyPlatform", 9e9)
+        for i = 1, 30 do
+            buyPlatformRemote:FireServer(tostring(i))
+            task.wait(0.2)
+        end
+    end
+})
+
+-- Individual Platforms Section
+local IndividualSection = PlatformTab:CreateSection("Individual Platforms")
+
+for i = 1, 30 do
+    IndividualSection:Button({
+        Name = "Buy Platform " .. i,
+        Callback = function()
+            local buyPlatformRemote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyPlatform", 9e9)
+            buyPlatformRemote:FireServer(tostring(i))
+        end
+    })
+end
+
+--// =========================
+-- MISC TAB - ORGANIZED INTO SECTIONS
+--// =========================
+
+-- Player Section
+local PlayerSection = MiscTab:CreateSection("Player")
+
+PlayerSection:Toggle({
     Name = "Unlimited Jump",
     CurrentValue = false,
     Callback = function(state)
@@ -1297,7 +1058,49 @@ game:GetService("UserInputService").JumpRequest:Connect(function()
     end
 end)
 
-MiscTab:Toggle({
+PlayerSection:Toggle({
+    Name = "Anti AFK",
+    CurrentValue = false,
+    Callback = function(state)
+        antiAFKEnabled = state
+        
+        if state then
+            if afkConnection then
+                afkConnection:Disconnect()
+            end
+            
+            afkConnection = RunService.Heartbeat:Connect(function()
+                if antiAFKEnabled and LocalPlayer.Character then
+                    local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                    if hum then
+                        hum:Move(Vector3.new(1, 0, 0))
+                        task.wait(0.1)
+                        hum:Move(Vector3.new(-1, 0, 0))
+                    end
+                end
+            end)
+            
+            LocalPlayer.Idled:Connect(function()
+                if antiAFKEnabled then
+                    local VirtualUser = game:GetService("VirtualUser")
+                    VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+                    task.wait(1)
+                    VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+                end
+            end)
+        else
+            if afkConnection then
+                afkConnection:Disconnect()
+                afkConnection = nil
+            end
+        end
+    end
+})
+
+-- Graphics Section
+local GraphicsSection = MiscTab:CreateSection("Graphics")
+
+GraphicsSection:Toggle({
     Name = "Reduce Lag",
     CurrentValue = false,
     Callback = function(state)
@@ -1342,7 +1145,7 @@ MiscTab:Toggle({
     end
 })
 
-MiscTab:Toggle({
+GraphicsSection:Toggle({
     Name = "Remove Fog",
     CurrentValue = false,
     Callback = function(state)
@@ -1354,10 +1157,34 @@ MiscTab:Toggle({
     end
 })
 
+-- Server Section
+local ServerSection = MiscTab:CreateSection("Server")
+
+ServerSection:Button({
+    Name = "Reconnect to Server",
+    Callback = function()
+        local TeleportService = game:GetService("TeleportService")
+        local Players = game:GetService("Players")
+        local LocalPlayer = Players.LocalPlayer
+        
+        local success, result = pcall(function()
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+        end)
+        
+        if not success then
+            warn("Reconnect failed:", result)
+        end
+    end
+})
+
 --// =========================
--- Visual Tab
+-- VISUAL TAB - ORGANIZED INTO SECTIONS
 --// =========================
-VisualTab:Dropdown({
+
+-- Hide Objects Section
+local HideSection = VisualTab:CreateSection("Hide Objects")
+
+HideSection:CreateDropdown({
     Name = "Select Visual(s)",
     Options = {"Board","Rows","Plants","PlatForms"},
     MultiSelection = true,
@@ -1367,7 +1194,7 @@ VisualTab:Dropdown({
     end
 })
 
-VisualTab:Toggle({
+HideSection:Toggle({
     Name = "Hide/Show Selected (Reduce Lag)",
     CurrentValue = false,
     Callback = function(state)
@@ -1395,65 +1222,3 @@ VisualTab:Toggle({
         end
     end
 })
-
-
-
-
-
-
-
-
---- Special Misc
---// =========================
--- Anti AFK System
---// =========================
-local antiAFKEnabled = false
-local afkConnection = nil
-
-local function antiAFK()
-    if antiAFKEnabled and LocalPlayer.Character then
-        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            -- Simple movement to prevent AFK
-            humanoid:Move(Vector3.new(1, 0, 0))
-            task.wait(0.1)
-            humanoid:Move(Vector3.new(-1, 0, 0))
-        end
-    end
-end
-
--- Add to Misc Tab
-MiscTab:Toggle({
-    Name = "Anti AFK",
-    CurrentValue = false,
-    Callback = function(state)
-        antiAFKEnabled = state
-        
-        if state then
-            -- Start anti-AFK loop
-            if afkConnection then
-                afkConnection:Disconnect()
-            end
-            
-            afkConnection = RunService.Heartbeat:Connect(function()
-                antiAFK()
-            end)
-            
-            -- Also use the built-in anti-AFK method as backup
-            LocalPlayer.Idled:Connect(function()
-                if antiAFKEnabled then
-                    VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-                    task.wait(1)
-                    VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-                end
-            end)
-        else
-            -- Stop anti-AFK
-            if afkConnection then
-                afkConnection:Disconnect()
-                afkConnection = nil
-            end
-        end
-    end
-})
-
