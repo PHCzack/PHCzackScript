@@ -14,6 +14,7 @@ Window:Notify({
 })
 
 --// Create Tabs
+local AutoTab = Window:CreateTab("Auto")
 local FarmTab = Window:CreateTab("Farm")
 local ShopTab = Window:CreateTab("Shop")
 local BrainrotsTab = Window:CreateTab("Brainrots")
@@ -66,6 +67,29 @@ local unlimitedJump = false
 local antiAFKEnabled = false
 local afkConnection = nil
 local limitedAttackEnabled = false
+-- Variables
+local selectedPlants = {}
+local selectedBrainrots = {}
+local autoFuseEnabled = false
+local hasFused = false
+-- Variables
+local selectedFuseItems = {}
+local autoFuseV2Enabled = false
+
+-- Fuse combinations mapping
+local fuseCombinations = {
+    ["Bombardilo Watermelondrilo"] = {"Watermelon", "Bombardiro Crocodilo"},
+    ["Noobini Cactusini"] = {"Cactus", "Noobini Bananini"},
+    ["Orangutini Strawberrini"] = {"Strawberry", "Orangutini Ananassini"},
+    ["Svinino Pumpkinino"] = {"Pumpkin", "Svinino Bombondino"},
+    ["Brr Brr Sunflowerim"] = {"Sunflower", "Brr Brr Patapim"},
+    ["Dragonfrutina Dolphinita"] = {"Dragon Fruit", "Bananita Dolphinita"},
+    ["Eggplantini Burbalonini"] = {"Eggplant", "Eggplantini Burbalonini"},
+    ["Cocotanko Giraffanto"] = {"Cocotank", "Cocotanko Giraffanto"},
+    ["Carnivourita Tralalerita"] = {"Carnivorous Plant", "Carnivourita Tralalerita"},
+    ["Los Mr Carrotitos"] = {"Mr Carrot", "Los Mr Carrotitos"},
+    ["Lemowzio"] = {"King Limone", "Lemowzio"}
+}
 
 
 -- Seeds & Gear List
@@ -144,6 +168,8 @@ local plotLocations = {
 --// =========================
 -- Helper Functions
 --// =========================
+
+
 local function fireRemoteSafely(remote, args)
     local success, err = pcall(function()
         remote:FireServer(unpack(args))
@@ -537,6 +563,307 @@ RunService.Heartbeat:Connect(function()
         end
     end
 end)
+
+-- Function to equip exact items based on the dropdown list names
+-- Function to equip items based on partial name matching
+local function equipExactItem(itemName)
+    local char = LocalPlayer.Character
+    local backpack = LocalPlayer.Backpack
+    if not char or not backpack then return false end
+    
+    -- Look for partial name match in character (already equipped)
+    for _, tool in ipairs(char:GetChildren()) do
+        if tool:IsA("Tool") and string.find(tool.Name, itemName) then
+            -- Item already equipped with partial name match
+            return true
+        end
+    end
+    
+    -- Look for partial name match in backpack
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") and string.find(tool.Name, itemName) then
+            -- Equip the item with partial name match
+            char.Humanoid:EquipTool(tool)
+            return true
+        end
+    end
+    
+    return false
+end
+
+--// =========================
+-- FUSE TAB
+--// =========================
+
+-- Create Fuse Tab
+
+
+-- Plants Selection Section
+local FuseSection = AutoTab:CreateSection("Fuse Machine")
+
+
+-- Plants Selection
+FuseSection:CreateDropdown({
+    Name = "Plants",
+    Options = {
+        "Cactus",
+        "Strawberry", 
+        "Pumpkin",
+        "Sunflower",
+        "Dragon Fruit",
+        "Eggplant",
+        "Watermelon",
+        "Grape",
+        "Cocotank",
+        "Carnivorous Plant",
+        "Tomade Torelli",
+        "Mr Carrot",
+        "Tomatrio",
+        "Shroombino",
+        "Mango",
+        "King Limone"
+    },
+    MultiSelection = true,
+    CurrentOption = {},
+    Callback = function(selected)
+        selectedPlants = selected
+    end
+})
+
+-- Brainrots Selection
+FuseSection:CreateDropdown({
+    Name = "Brainrots",
+    Options = {
+        "Fluri Flura",
+        "Trulimero Trulicina",
+        "Agarrini La Palini",
+        "Lirili Larila",
+        "Noobini Bananini",
+        "Orangutini Ananassini",
+        "Pipi Kiwi",
+        "Espresso Signora",
+        "Tim Cheese",
+        "Noobini Cactusini",
+        "Orangutini Strawberrini",
+        "Bambini Crostini",
+        "Trippi Troppi",
+        "Brr Brr Patapim",
+        "Cappuccino Assasino",
+        "Svinino Bombondino",
+        "Alessio",
+        "Orcalero Orcala",
+        "Bandito Bobrito",
+        "Rinoccio Verdini",
+        "Svinino Pumpkinino",
+        "Brr Brr Sunflowerim",
+        "Ballerina Cappuccina",
+        "Bananita Dolphinita",
+        "Elefanto Cocofanto",
+        "Burbaloni Luliloli",
+        "Bottellini",
+        "Gangster Footera",
+        "Madung",
+        "Dragonfrutina Dolphinita",
+        "Eggplantini Burbalonini",
+        "Bombardiro Crocodilo",
+        "Bombini Gussini",
+        "Frigo Camelo",
+        "Pesto Mortioni",
+        "Baby Peperoncini And Marmellata",
+        "Matteo",
+        "Tralalero Tralala",
+        "Giraffa Celeste",
+        "Luis Traffico",
+        "Kiwissimo",
+        "Cocotanko Giraffanto",
+        "Carnivourita Tralalerita",
+        "La Tomatoro",
+        "Crazylone Pizalone",
+        "Brri Brri Bicus Dicus Bombicus",
+        "Garamararam",
+        "Blueberrinni Octopussini",
+        "Los Tralaleritos",
+        "Pot Hotspot",
+        "Los Sekolitos",
+        "Meowzio Sushini",
+        "Los Mr Carrotitos",
+        "Lemowzio",
+        "Tung Tung Tung Sahur",
+        "Mattone Rotto",
+        "Odin Din Din Dun",
+        "Vacca Saturno Saturnita",
+        "67"
+    },
+    MultiSelection = true,
+    CurrentOption = {},
+    Callback = function(selected)
+        selectedBrainrots = selected
+    end
+})
+
+-- Fuse Machine Toggle
+FuseSection:Toggle({
+    Name = "Fuse Machine",
+    CurrentValue = false,
+    Callback = function(state)
+        fuseMachineEnabled = state
+        if state then
+            task.spawn(function()
+                -- Teleport to fuse machine position first
+                local teleportPos = Vector3.new(-137.6483612060547, 11.562851905822754, 977.7113037109375)
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    char.HumanoidRootPart.CFrame = CFrame.new(teleportPos)
+                    task.wait(1.0)
+                end
+                
+                while fuseMachineEnabled do
+                    -- First: Equip related plants from selected list (excluding seeds)
+                    for _, plantName in ipairs(selectedPlants) do
+                        if not fuseMachineEnabled then break end
+                        -- Skip if plant name contains "Seed"
+                        if not string.find(plantName, "Seed") then
+                            equipExactItem(plantName)
+                            task.wait(0.5)
+                            
+                            -- Step 1: Fire PlacePlant ProximityPrompt
+                            local placePlantPrompt = workspace.ScriptedMap.FuseMachine.PlacePlant.ProximityPrompt
+                            if placePlantPrompt then
+                                fireproximityprompt(placePlantPrompt)
+                                task.wait(0.5)
+                            end
+                        end
+                    end
+                    
+                    -- Second: Equip related brainrots from selected list
+                    for _, brainrotName in ipairs(selectedBrainrots) do
+                        if not fuseMachineEnabled then break end
+                        equipExactItem(brainrotName)
+                        task.wait(0.5)
+                        
+                        -- Step 2: Fire PlaceBrainrot ProximityPrompt
+                        local placeBrainrotPrompt = workspace.ScriptedMap.FuseMachine.PlaceBrainrot.ProximityPrompt
+                        if placeBrainrotPrompt then
+                            fireproximityprompt(placeBrainrotPrompt)
+                            task.wait(0.5)
+                        end
+                    end
+                    
+                    -- Step 3: Fire Confirm ProximityPrompt
+                    local confirmPrompt = workspace.ScriptedMap.FuseMachine.Confirm.ProximityPrompt
+                    if confirmPrompt then
+                        fireproximityprompt(confirmPrompt)
+                        task.wait(0.5)
+                    end
+                    
+                    -- Turn off toggle after step 3 is complete
+                    fuseMachineEnabled = false
+                    break
+                end
+            end)
+        end
+    end
+})
+
+
+--// =========================
+-- FUSE MACHINE V2 TAB
+--// =========================
+
+
+-- Fuse Machine v2 Section
+local FuseV2Section = AutoTab:CreateSection("Fuse Machine v2")
+
+-- Fuse Items Selection
+FuseV2Section:CreateDropdown({
+    Name = "Select Fuse Items",
+    Options = {
+        "Bombardilo Watermelondrilo",
+        "Noobini Cactusini",
+        "Orangutini Strawberrini", 
+        "Svinino Pumpkinino",
+        "Brr Brr Sunflowerim",
+        "Dragonfrutina Dolphinita",
+        "Eggplantini Burbalonini",
+        "Cocotanko Giraffanto",
+        "Carnivourita Tralalerita",
+        "Los Mr Carrotitos",
+        "Lemowzio"
+    },
+    MultiSelection = true,
+    CurrentOption = {},
+    Callback = function(selected)
+        selectedFuseItems = selected
+    end
+})
+
+-- Auto Fuse v2 Toggle
+FuseV2Section:Toggle({
+    Name = "Auto Fuse",
+    CurrentValue = false,
+    Callback = function(state)
+        autoFuseV2Enabled = state
+        if state then
+            task.spawn(function()
+                -- Teleport to fuse machine position first
+                local teleportPos = Vector3.new(-137.6483612060547, 11.562851905822754, 977.7113037109375)
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    char.HumanoidRootPart.CFrame = CFrame.new(teleportPos)
+                    task.wait(1.0)
+                end
+                
+                while autoFuseV2Enabled do
+                    for _, fuseItem in ipairs(selectedFuseItems) do
+                        if not autoFuseV2Enabled then break end
+                        
+                        local components = fuseCombinations[fuseItem]
+                        if components then
+                            local plantName = components[1]
+                            local brainrotName = components[2]
+                            
+                            -- Equip plant first
+                            equipExactItem(plantName)
+                            task.wait(0.5)
+                            
+                            -- Step 1: Fire PlacePlant ProximityPrompt
+                            local placePlantPrompt = workspace.ScriptedMap.FuseMachine.PlacePlant.ProximityPrompt
+                            if placePlantPrompt then
+                                fireproximityprompt(placePlantPrompt)
+                                task.wait(0.5)
+                            end
+                            
+                            -- Equip brainrot second
+                            equipExactItem(brainrotName)
+                            task.wait(0.5)
+                            
+                            -- Step 2: Fire PlaceBrainrot ProximityPrompt
+                            local placeBrainrotPrompt = workspace.ScriptedMap.FuseMachine.PlaceBrainrot.ProximityPrompt
+                            if placeBrainrotPrompt then
+                                fireproximityprompt(placeBrainrotPrompt)
+                                task.wait(0.5)
+                            end
+                            
+                            -- Step 3: Fire Confirm ProximityPrompt
+                            local confirmPrompt = workspace.ScriptedMap.FuseMachine.Confirm.ProximityPrompt
+                            if confirmPrompt then
+                                fireproximityprompt(confirmPrompt)
+                                task.wait(0.5)
+                            end
+                        end
+                    end
+                    
+                    -- Turn off toggle after all fusions are complete
+                    autoFuseV2Enabled = false
+                    break
+                end
+            end)
+        end
+    end
+})
+
+
+
 
 --// =========================
 -- FARM TAB - ORGANIZED INTO SECTIONS
@@ -1222,3 +1549,4 @@ HideSection:Toggle({
         end
     end
 })
+
