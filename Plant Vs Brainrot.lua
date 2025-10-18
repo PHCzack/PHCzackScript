@@ -564,8 +564,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Function to equip exact items based on the dropdown list names
--- Function to equip items based on partial name matching
+-- Function to equip items based on partial name matching (except seeds)
 local function equipExactItem(itemName)
     local char = LocalPlayer.Character
     local backpack = LocalPlayer.Backpack
@@ -574,55 +573,117 @@ local function equipExactItem(itemName)
     -- Look for partial name match in character (already equipped)
     for _, tool in ipairs(char:GetChildren()) do
         if tool:IsA("Tool") and string.find(tool.Name, itemName) then
-            -- Item already equipped with partial name match
-            return true
+            -- Skip if it's a seed
+            if not string.find(tool.Name, "Seed") then
+                -- Item already equipped with partial name match
+                return true
+            end
         end
     end
     
     -- Look for partial name match in backpack
     for _, tool in ipairs(backpack:GetChildren()) do
         if tool:IsA("Tool") and string.find(tool.Name, itemName) then
-            -- Equip the item with partial name match
-            char.Humanoid:EquipTool(tool)
-            return true
+            -- Skip if it's a seed
+            if not string.find(tool.Name, "Seed") then
+                -- Equip the item with partial name match
+                char.Humanoid:EquipTool(tool)
+                return true
+            end
         end
     end
     
     return false
 end
 
+-- Function to scan plants from inventory GUI (only non-seed plants)
+local function scanPlantsFromInventory()
+    local plantsList = {}
+    local success, result = pcall(function()
+        local plantsCategory = game:GetService("Players").LocalPlayer.PlayerGui.BackpackGui.Backpack.Inventory.Categories.Plants
+        
+        if plantsCategory then
+            for _, plantFrame in ipairs(plantsCategory:GetDescendants()) do
+                if plantFrame:IsA("TextLabel") or plantFrame:IsA("TextButton") then
+                    local plantName = plantFrame.Text
+                    -- Filter out empty texts, seeds, and add to list
+                    if plantName and plantName ~= "" and not string.find(plantName, "Seed") and not table.find(plantsList, plantName) then
+                        table.insert(plantsList, plantName)
+                    end
+                end
+            end
+        end
+        return plantsList
+    end)
+    
+    if not success then
+        warn("Failed to scan plants from inventory:", result)
+        return {
+            "Cactus", "Strawberry", "Pumpkin", "Sunflower",
+            "Dragon Fruit", "Eggplant", "Watermelon", "Grape",
+            "Cocotank", "Carnivorous Plant", "Tomade Torelli",
+            "Mr Carrot", "Tomatrio", "Shroombino", "Mango", "King Limone"
+        }
+    end
+    
+    return plantsList
+end
+
+-- Function to scan brainrots from inventory GUI
+local function scanBrainrotsFromInventory()
+    local brainrotsList = {}
+    local success, result = pcall(function()
+        local brainrotsCategory = game:GetService("Players").LocalPlayer.PlayerGui.BackpackGui.Backpack.Inventory.Categories.Brainrots
+        
+        if brainrotsCategory then
+            for _, brainrotFrame in ipairs(brainrotsCategory:GetDescendants()) do
+                if brainrotFrame:IsA("TextLabel") or brainrotFrame:IsA("TextButton") then
+                    local brainrotName = brainrotFrame.Text
+                    -- Filter out empty texts and add to list
+                    if brainrotName and brainrotName ~= "" and not table.find(brainrotsList, brainrotName) then
+                        table.insert(brainrotsList, brainrotName)
+                    end
+                end
+            end
+        end
+        return brainrotsList
+    end)
+    
+    if not success then
+        warn("Failed to scan brainrots from inventory:", result)
+        return {
+            "Fluri Flura", "Trulimero Trulicina", "Agarrini La Palini", "Lirili Larila",
+            "Noobini Bananini", "Orangutini Ananassini", "Pipi Kiwi", "Espresso Signora",
+            "Tim Cheese", "Noobini Cactusini", "Orangutini Strawberrini", "Bambini Crostini",
+            "Trippi Troppi", "Brr Brr Patapim", "Cappuccino Assasino", "Svinino Bombondino",
+            "Alessio", "Orcalero Orcala", "Bandito Bobrito", "Rinoccio Verdini",
+            "Svinino Pumpkinino", "Brr Brr Sunflowerim", "Ballerina Cappuccina", "Bananita Dolphinita",
+            "Elefanto Cocofanto", "Burbaloni Luliloli", "Bottellini", "Gangster Footera",
+            "Madung", "Dragonfrutina Dolphinita", "Eggplantini Burbalonini", "Bombardiro Crocodilo",
+            "Bombini Gussini", "Frigo Camelo", "Pesto Mortioni", "Baby Peperoncini And Marmellata",
+            "Matteo", "Tralalero Tralala", "Giraffa Celeste", "Luis Traffico", "Kiwissimo",
+            "Cocotanko Giraffanto", "Carnivourita Tralalerita", "La Tomatoro", "Crazylone Pizalone",
+            "Brri Brri Bicus Dicus Bombicus", "Garamararam", "Blueberrinni Octopussini", "Los Tralaleritos",
+            "Pot Hotspot", "Los Sekolitos", "Meowzio Sushini", "Los Mr Carrotitos", "Lemowzio",
+            "Tung Tung Tung Sahur", "Mattone Rotto", "Odin Din Din Dun", "Vacca Saturno Saturnita", "67"
+        }
+    end
+    
+    return brainrotsList
+end
+
 --// =========================
 -- FUSE TAB
 --// =========================
-
--- Create Fuse Tab
-
 
 -- Plants Selection Section
 local FuseSection = AutoTab:CreateSection("Fuse Machine")
 
 
--- Plants Selection
+-- Plants Selection (Dynamic from inventory)
 FuseSection:CreateDropdown({
     Name = "Plants",
-    Options = {
-        "Cactus",
-        "Strawberry", 
-        "Pumpkin",
-        "Sunflower",
-        "Dragon Fruit",
-        "Eggplant",
-        "Watermelon",
-        "Grape",
-        "Cocotank",
-        "Carnivorous Plant",
-        "Tomade Torelli",
-        "Mr Carrot",
-        "Tomatrio",
-        "Shroombino",
-        "Mango",
-        "King Limone"
-    },
+    Options = scanPlantsFromInventory(),
     MultiSelection = true,
     CurrentOption = {},
     Callback = function(selected)
@@ -630,70 +691,10 @@ FuseSection:CreateDropdown({
     end
 })
 
--- Brainrots Selection
+-- Brainrots Selection (Dynamic from inventory)
 FuseSection:CreateDropdown({
     Name = "Brainrots",
-    Options = {
-        "Fluri Flura",
-        "Trulimero Trulicina",
-        "Agarrini La Palini",
-        "Lirili Larila",
-        "Noobini Bananini",
-        "Orangutini Ananassini",
-        "Pipi Kiwi",
-        "Espresso Signora",
-        "Tim Cheese",
-        "Noobini Cactusini",
-        "Orangutini Strawberrini",
-        "Bambini Crostini",
-        "Trippi Troppi",
-        "Brr Brr Patapim",
-        "Cappuccino Assasino",
-        "Svinino Bombondino",
-        "Alessio",
-        "Orcalero Orcala",
-        "Bandito Bobrito",
-        "Rinoccio Verdini",
-        "Svinino Pumpkinino",
-        "Brr Brr Sunflowerim",
-        "Ballerina Cappuccina",
-        "Bananita Dolphinita",
-        "Elefanto Cocofanto",
-        "Burbaloni Luliloli",
-        "Bottellini",
-        "Gangster Footera",
-        "Madung",
-        "Dragonfrutina Dolphinita",
-        "Eggplantini Burbalonini",
-        "Bombardiro Crocodilo",
-        "Bombini Gussini",
-        "Frigo Camelo",
-        "Pesto Mortioni",
-        "Baby Peperoncini And Marmellata",
-        "Matteo",
-        "Tralalero Tralala",
-        "Giraffa Celeste",
-        "Luis Traffico",
-        "Kiwissimo",
-        "Cocotanko Giraffanto",
-        "Carnivourita Tralalerita",
-        "La Tomatoro",
-        "Crazylone Pizalone",
-        "Brri Brri Bicus Dicus Bombicus",
-        "Garamararam",
-        "Blueberrinni Octopussini",
-        "Los Tralaleritos",
-        "Pot Hotspot",
-        "Los Sekolitos",
-        "Meowzio Sushini",
-        "Los Mr Carrotitos",
-        "Lemowzio",
-        "Tung Tung Tung Sahur",
-        "Mattone Rotto",
-        "Odin Din Din Dun",
-        "Vacca Saturno Saturnita",
-        "67"
-    },
+    Options = scanBrainrotsFromInventory(),
     MultiSelection = true,
     CurrentOption = {},
     Callback = function(selected)
@@ -765,17 +766,33 @@ FuseSection:Toggle({
     end
 })
 
-
 --// =========================
 -- FUSE MACHINE V2 TAB
 --// =========================
 
+local Fusev2Section = AutoTab:CreateSection("Fuse Machine v2")
 
--- Fuse Machine v2 Section
-local FuseV2Section = AutoTab:CreateSection("Fuse Machine v2")
+
+-- Variables
+
+-- Fuse combinations mapping
+local fuseCombinations = {
+    ["Bombardilo Watermelondrilo"] = {"Watermelon", "Bombardiro Crocodilo"},
+    ["Noobini Cactusini"] = {"Cactus", "Noobini Bananini"},
+    ["Orangutini Strawberrini"] = {"Strawberry", "Orangutini Ananassini"},
+    ["Svinino Pumpkinino"] = {"Pumpkin", "Svinino Bombondino"},
+    ["Brr Brr Sunflowerim"] = {"Sunflower", "Brr Brr Patapim"},
+    ["Dragonfrutina Dolphinita"] = {"Dragon Fruit", "Bananita Dolphinita"},
+    ["Eggplantini Burbalonini"] = {"Eggplant", "Eggplantini Burbalonini"},
+    ["Cocotanko Giraffanto"] = {"Cocotank", "Cocotanko Giraffanto"},
+    ["Carnivourita Tralalerita"] = {"Carnivorous Plant", "Carnivourita Tralalerita"},
+    ["Los Mr Carrotitos"] = {"Mr Carrot", "Los Mr Carrotitos"},
+    ["Lemowzio"] = {"King Limone", "Lemowzio"}
+}
+
 
 -- Fuse Items Selection
-FuseV2Section:CreateDropdown({
+Fusev2Section:CreateDropdown({
     Name = "Select Fuse Items",
     Options = {
         "Bombardilo Watermelondrilo",
@@ -798,7 +815,7 @@ FuseV2Section:CreateDropdown({
 })
 
 -- Auto Fuse v2 Toggle
-FuseV2Section:Toggle({
+Fusev2Section:Toggle({
     Name = "Auto Fuse",
     CurrentValue = false,
     Callback = function(state)
@@ -862,6 +879,106 @@ FuseV2Section:Toggle({
     end
 })
 
+--// =========================
+-- AUTO EVENT BR TAB
+--// =========================
+
+-- Create Auto Event BR Tab
+-- Variables
+local autoEventBREnabled = false
+local submittedBrainrots = {} -- Track already submitted brainrots
+
+-- Auto Event BR Section
+local AutoEventBRSection = AutoTab:CreateSection("Auto Events")
+
+AutoEventBRSection:Toggle({
+    Name = "Auto Event BR",
+    CurrentValue = false,
+    Callback = function(state)
+        autoEventBREnabled = state
+        if state then
+            submittedBrainrots = {} -- Reset submitted brainrots when starting
+            task.spawn(function()
+                while autoEventBREnabled do
+                    -- Check all plots (1-6) and all platforms (-1 to -4)
+                    for plotNum = 1, 6 do
+                        for platformNum = -1, -4, -1 do
+                            if not autoEventBREnabled then break end
+                            
+                            local plotFolder = workspace.Plots[tostring(plotNum)]
+                            if plotFolder then
+                                local eventPlatforms = plotFolder:FindFirstChild("EventPlatforms")
+                                if eventPlatforms then
+                                    local platform = eventPlatforms[tostring(platformNum)]
+                                    if platform then
+                                        local visualFolder = platform:FindFirstChild("VisualFolder")
+                                        if visualFolder then
+                                            -- Scan all brainrots in VisualFolder one by one
+                                            for _, brainrot in ipairs(visualFolder:GetChildren()) do
+                                                if not autoEventBREnabled then break end
+                                                
+                                                if brainrot:IsA("Model") then
+                                                    local brainrotName = brainrot.Name
+                                                    
+                                                    -- Skip if this brainrot was already submitted
+                                                    if submittedBrainrots[brainrotName] then
+                                                        print("Skipping already submitted brainrot: " .. brainrotName)
+                                                        continue
+                                                    end
+                                                    
+                                                    print("Found brainrot in platform " .. platformNum .. ": " .. brainrotName)
+                                                    
+                                                    -- Find the brainrot from inventory
+                                                    if equipExactItem(brainrotName) then
+                                                        -- Teleport to event platform coordinates
+                                                        local teleportPos = Vector3.new(-214.91201782226562, 12.162851333618164, 980.80126953125)
+                                                        local char = LocalPlayer.Character
+                                                        if char and char:FindFirstChild("HumanoidRootPart") then
+                                                            char.HumanoidRootPart.CFrame = CFrame.new(teleportPos)
+                                                            task.wait(1.0)
+                                                        end
+                                                        
+                                                        -- Fire the proximity prompt
+                                                        local hitbox = platform:FindFirstChild("Hitbox")
+                                                        if hitbox then
+                                                            local proximityPrompt = hitbox:FindFirstChild("ProximityPrompt")
+                                                            if proximityPrompt then
+                                                                print("Firing proximity prompt for: " .. brainrotName)
+                                                                fireproximityprompt(proximityPrompt)
+                                                                task.wait(0.5)
+                                                                
+                                                                -- Mark this brainrot as submitted
+                                                                submittedBrainrots[brainrotName] = true
+                                                                print("Marked as submitted: " .. brainrotName)
+                                                            else
+                                                                print("No proximity prompt found for: " .. brainrotName)
+                                                            end
+                                                        else
+                                                            print("No hitbox found for platform: " .. platformNum)
+                                                        end
+                                                    else
+                                                        print("Could not equip brainrot: " .. brainrotName)
+                                                    end
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    
+                    if autoEventBREnabled then
+                        task.wait(1.0)
+                    end
+                end
+            end)
+        else
+            -- Clear submitted brainrots when toggle is turned off
+            submittedBrainrots = {}
+        end
+    end
+})
 
 
 
