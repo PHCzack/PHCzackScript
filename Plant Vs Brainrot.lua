@@ -19,7 +19,7 @@ local FarmTab = Window:CreateTab("Farm")
 local ShopTab = Window:CreateTab("Shop")
 local BrainrotsTab = Window:CreateTab("Brainrots")
 local MiscTab = Window:CreateTab("Misc")
-local VisualTab = Window:CreateTab("Visual")
+--local VisualTab = Window:CreateTab("Visual")
 local PlatformTab = Window:CreateTab("PlatForm")
 
 --// Services
@@ -97,7 +97,7 @@ local seedsList = {
     "Cactus Seed","Strawberry Seed","Pumpkin Seed","Sunflower Seed",
     "Dragon Fruit Seed","Eggplant Seed","Watermelon Seed","Grape Seed",
     "Cocotank Seed","Carnivorous Plant Seed","Mr Carrot Seed",
-    "Tomatrio Seed","Shroombino Seed", "Mango Seed"
+    "Tomatrio Seed","Shroombino Seed", "Mango Seed", "King Limone Seed"
 }
 
 local gearList = {
@@ -883,6 +883,15 @@ Fusev2Section:Toggle({
 -- AUTO EVENT BR TAB
 --// =========================
 
+
+--// =========================
+-- EVENT TAB
+--// =========================
+
+
+
+
+
 -- Create Auto Event BR Tab
 -- Variables
 local autoEventBREnabled = false
@@ -890,6 +899,7 @@ local submittedBrainrots = {} -- Track already submitted brainrots
 
 -- Auto Event BR Section
 local AutoEventBRSection = AutoTab:CreateSection("Auto Events")
+
 
 AutoEventBRSection:Toggle({
     Name = "Auto Event BR",
@@ -911,56 +921,62 @@ AutoEventBRSection:Toggle({
                                 if eventPlatforms then
                                     local platform = eventPlatforms[tostring(platformNum)]
                                     if platform then
-                                        local visualFolder = platform:FindFirstChild("VisualFolder")
-                                        if visualFolder then
-                                            -- Scan all brainrots in VisualFolder one by one
-                                            for _, brainrot in ipairs(visualFolder:GetChildren()) do
-                                                if not autoEventBREnabled then break end
-                                                
-                                                if brainrot:IsA("Model") then
-                                                    local brainrotName = brainrot.Name
+                                        -- Check if PlatformEventUI is visible
+                                        local platformEventUI = platform:FindFirstChild("PlatformEventUI")
+                                        if platformEventUI and platformEventUI.Visible == true then
+                                            local visualFolder = platform:FindFirstChild("VisualFolder")
+                                            if visualFolder then
+                                                -- Scan all brainrots in VisualFolder one by one
+                                                for _, brainrot in ipairs(visualFolder:GetChildren()) do
+                                                    if not autoEventBREnabled then break end
                                                     
-                                                    -- Skip if this brainrot was already submitted
-                                                    if submittedBrainrots[brainrotName] then
-                                                        print("Skipping already submitted brainrot: " .. brainrotName)
-                                                        continue
-                                                    end
-                                                    
-                                                    print("Found brainrot in platform " .. platformNum .. ": " .. brainrotName)
-                                                    
-                                                    -- Find the brainrot from inventory
-                                                    if equipExactItem(brainrotName) then
-                                                        -- Teleport to event platform coordinates
-                                                        local teleportPos = Vector3.new(-214.91201782226562, 12.162851333618164, 980.80126953125)
-                                                        local char = LocalPlayer.Character
-                                                        if char and char:FindFirstChild("HumanoidRootPart") then
-                                                            char.HumanoidRootPart.CFrame = CFrame.new(teleportPos)
-                                                            task.wait(1.0)
+                                                    if brainrot:IsA("Model") then
+                                                        local brainrotName = brainrot.Name
+                                                        
+                                                        -- Skip if this brainrot was already submitted
+                                                        if submittedBrainrots[brainrotName] then
+                                                            print("Skipping already submitted brainrot: " .. brainrotName)
+                                                            continue
                                                         end
                                                         
-                                                        -- Fire the proximity prompt
-                                                        local hitbox = platform:FindFirstChild("Hitbox")
-                                                        if hitbox then
-                                                            local proximityPrompt = hitbox:FindFirstChild("ProximityPrompt")
-                                                            if proximityPrompt then
-                                                                print("Firing proximity prompt for: " .. brainrotName)
-                                                                fireproximityprompt(proximityPrompt)
-                                                                task.wait(0.5)
-                                                                
-                                                                -- Mark this brainrot as submitted
-                                                                submittedBrainrots[brainrotName] = true
-                                                                print("Marked as submitted: " .. brainrotName)
+                                                        print("Found brainrot in platform " .. platformNum .. ": " .. brainrotName)
+                                                        
+                                                        -- Find the brainrot from inventory
+                                                        if equipExactItem(brainrotName) then
+                                                            -- Teleport to event platform coordinates
+                                                            local teleportPos = Vector3.new(-214.91201782226562, 12.162851333618164, 980.80126953125)
+                                                            local char = LocalPlayer.Character
+                                                            if char and char:FindFirstChild("HumanoidRootPart") then
+                                                                char.HumanoidRootPart.CFrame = CFrame.new(teleportPos)
+                                                                task.wait(1.0)
+                                                            end
+                                                            
+                                                            -- Fire the proximity prompt
+                                                            local hitbox = platform:FindFirstChild("Hitbox")
+                                                            if hitbox then
+                                                                local proximityPrompt = hitbox:FindFirstChild("ProximityPrompt")
+                                                                if proximityPrompt then
+                                                                    print("Firing proximity prompt for: " .. brainrotName)
+                                                                    fireproximityprompt(proximityPrompt)
+                                                                    task.wait(0.5)
+                                                                    
+                                                                    -- Mark this brainrot as submitted (set to false)
+                                                                    submittedBrainrots[brainrotName] = false
+                                                                    print("Marked as submitted: " .. brainrotName)
+                                                                else
+                                                                    print("No proximity prompt found for: " .. brainrotName)
+                                                                end
                                                             else
-                                                                print("No proximity prompt found for: " .. brainrotName)
+                                                                print("No hitbox found for platform: " .. platformNum)
                                                             end
                                                         else
-                                                            print("No hitbox found for platform: " .. platformNum)
+                                                            print("Could not equip brainrot: " .. brainrotName)
                                                         end
-                                                    else
-                                                        print("Could not equip brainrot: " .. brainrotName)
                                                     end
                                                 end
                                             end
+                                        else
+                                            print("PlatformEventUI not visible for platform: " .. platformNum)
                                         end
                                     end
                                 end
@@ -980,6 +996,56 @@ AutoEventBRSection:Toggle({
     end
 })
 
+
+-- Variables
+local autoClaimEventEnabled = false
+
+
+
+AutoEventBRSection:Toggle({
+    Name = "Auto Claim Event Reward",
+    CurrentValue = false,
+    Callback = function(state)
+        autoClaimEventEnabled = state
+        if state then
+            task.spawn(function()
+                while autoClaimEventEnabled do
+                    -- Check if the text changes to "Claim"
+                    local displayText = workspace.ScriptedMap.Event.TomadeFloor.GuiAttachment.Billboard.Display.Text
+                    
+                    if displayText == "Claim" then
+                        print("Event reward ready to claim!")
+                        
+                        -- Teleport to event coordinates first
+                        local teleportPos = Vector3.new(-173.15313720703125, 11.562851905822754, 1017.1333618164062)
+                        local char = LocalPlayer.Character
+                        if char and char:FindFirstChild("HumanoidRootPart") then
+                            char.HumanoidRootPart.CFrame = CFrame.new(teleportPos)
+                            print("Teleported to event location")
+                            task.wait(1.0)
+                        end
+                        
+                        -- Fire the proximity prompt
+                        local proximityPrompt = workspace.ScriptedMap.Event.EventRewards.TalkPart.ProximityPrompt
+                        if proximityPrompt then
+                            fireproximityprompt(proximityPrompt)
+                            print("Claimed event reward!")
+                            task.wait(1.0)
+                        else
+                            print("Proximity prompt not found!")
+                        end
+                    else
+                        print("Event reward not ready. Current text: " .. displayText)
+                    end
+                    
+                    if autoClaimEventEnabled then
+                        task.wait(1.0) -- Check every second
+                    end
+                end
+            end)
+        end
+    end
+})
 
 
 --// =========================
@@ -1212,111 +1278,252 @@ ProgressionSection:Toggle({
 -- SHOP TAB - ORGANIZED INTO SECTIONS
 --// =========================
 
--- Seeds Section
-local SeedsSection = ShopTab:CreateSection("Seeds")
+-- Seeds v2 Section
+local SeedsV2Section = ShopTab:CreateSection("Auto Buy Seed")
 
-SeedsSection:CreateDropdown({
+SeedsV2Section:CreateDropdown({
     Name = "Select Seeds",
     Options = seedsList,
     MultiSelection = true,
     CurrentOption = {},
-    Callback = function(list) selectedSeeds = list end
+    Callback = function(selected)
+        selectedSeedsV2 = selected
+    end
 })
 
-SeedsSection:Toggle({
-    Name = "Auto Buy Seeds",
+SeedsV2Section:Toggle({
+    Name = "Auto Buy Selected Seeds",
     CurrentValue = false,
     Callback = function(state)
-        autoBuyEnabled = state
+        autoBuySeedsV2Enabled = state
         if state then
             task.spawn(function()
-                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyItem", 9e9)
-                while autoBuyEnabled do
-                    for _, seedName in ipairs(selectedSeeds) do
-                        if not autoBuyEnabled then break end
-                        remote:FireServer(seedName)
-                        task.wait(0.75)
+                while autoBuySeedsV2Enabled do
+                    -- Get the seeds list from the GUI
+                    local seedsFrame = game:GetService("Players").LocalPlayer.PlayerGui.Main.Seeds.Frame.ScrollingFrame
+                    
+                    if seedsFrame then
+                        for _, seedObject in ipairs(seedsFrame:GetChildren()) do
+                            if not autoBuySeedsV2Enabled then break end
+                            
+                            -- Check if it's a seed item with Stock text
+                            local stockLabel = seedObject:FindFirstChild("Stock")
+                            if stockLabel and stockLabel:IsA("TextLabel") then
+                                local stockText = stockLabel.Text
+                                local seedName = seedObject.Name
+                                
+                                -- Check if this seed is in our selected list AND stock is available
+                                if table.find(selectedSeedsV2, seedName) then
+                                    -- Check if stock is "x1" or above (contains numbers) but NOT "0x"
+                                    if stockText and string.find(stockText, "%d") and not string.find(stockText, "0x") then
+                                        -- Extract the number from stock text (e.g., "x1" -> 1, "x5" -> 5)
+                                        local stockNumber = tonumber(string.match(stockText, "%d+"))
+                                        
+                                        -- Only buy if stock number is 1 or above
+                                        if stockNumber and stockNumber >= 1 then
+                                            print("Buying seed: " .. seedName .. " | Stock: " .. stockText)
+                                            
+                                            -- Fire the buy remote
+                                            local args = {
+                                                [1] = seedName,
+                                                [2] = true
+                                            }
+                                            
+                                            game:GetService("ReplicatedStorage").Remotes.BuyItem:FireServer(unpack(args))
+                                            task.wait(0.5) -- Wait between purchases
+                                        end
+                                    end
+                                end
+                            end
+                        end
                     end
-                    if autoBuyEnabled then task.wait(1.0) end
+                    
+                    if autoBuySeedsV2Enabled then
+                        task.wait(0.5) -- Wait 2 seconds before scanning again
+                    end
                 end
             end)
         end
     end
 })
 
-SeedsSection:Toggle({
-    Name = "Auto Buy All Plants",
+
+SeedsV2Section:Toggle({
+    Name = "Auto Buy All Seeds",
     CurrentValue = false,
     Callback = function(state)
-        autoBuyAllPlantsEnabled = state
+        autoBuySeedsV2Enabled = state
         if state then
             task.spawn(function()
-                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyItem", 9e9)
-                while autoBuyAllPlantsEnabled do
-                    for _, seedName in ipairs(seedsList) do
-                        if not autoBuyAllPlantsEnabled then break end
-                        remote:FireServer(seedName)
-                        task.wait(1.0)
+                while autoBuySeedsV2Enabled do
+                    -- Get the seeds list from the GUI
+                    local seedsFrame = game:GetService("Players").LocalPlayer.PlayerGui.Main.Seeds.Frame.ScrollingFrame
+                    
+                    if seedsFrame then
+                        for _, seedObject in ipairs(seedsFrame:GetChildren()) do
+                            if not autoBuySeedsV2Enabled then break end
+                            
+                            -- Check if it's a seed item with Stock text
+                            local stockLabel = seedObject:FindFirstChild("Stock")
+                            if stockLabel and stockLabel:IsA("TextLabel") then
+                                local stockText = stockLabel.Text
+                                
+                                -- Check if stock is "x1" or above (contains numbers) but NOT "0x"
+                                if stockText and string.find(stockText, "%d") and not string.find(stockText, "0x") then
+                                    -- Extract the number from stock text (e.g., "x1" -> 1, "x5" -> 5)
+                                    local stockNumber = tonumber(string.match(stockText, "%d+"))
+                                    
+                                    -- Only buy if stock number is 1 or above
+                                    if stockNumber and stockNumber >= 1 then
+                                        local seedName = seedObject.Name
+                                        print("Buying seed: " .. seedName .. " | Stock: " .. stockText)
+                                        
+                                        -- Fire the buy remote
+                                        local args = {
+                                            [1] = seedName,
+                                            [2] = true
+                                        }
+                                        
+                                        game:GetService("ReplicatedStorage").Remotes.BuyItem:FireServer(unpack(args))
+                                        task.wait(0.5) -- Wait between purchases
+                                    end
+                                end
+                            end
+                        end
                     end
-                    if autoBuyAllPlantsEnabled then task.wait(1.0) end
+                    
+                    if autoBuySeedsV2Enabled then
+                        task.wait(0.5) -- Wait 2 seconds before scanning again
+                    end
                 end
             end)
         end
     end
 })
 
--- Gear Section
-local GearSection = ShopTab:CreateSection("Gear")
 
-GearSection:CreateDropdown({
-    Name = "Select Gear",
+-- Gear v2 Section
+local GearV2Section = ShopTab:CreateSection("Auto Buy Gear")
+
+GearV2Section:CreateDropdown({
+    Name = "Select Gears",
     Options = gearList,
     MultiSelection = true,
     CurrentOption = {},
-    Callback = function(list) selectedGears = list end
+    Callback = function(selected)
+        selectedGearsV2 = selected
+    end
 })
 
-GearSection:Toggle({
-    Name = "Auto Buy Gear",
+GearV2Section:Toggle({
+    Name = "Auto Buy Selected Gears",
     CurrentValue = false,
     Callback = function(state)
-        autoBuyGearEnabled = state
+        autoBuyGearsV2Enabled = state
         if state then
             task.spawn(function()
-                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyGear", 9e9)
-                while autoBuyGearEnabled do
-                    for _, gearName in ipairs(selectedGears) do
-                        if not autoBuyGearEnabled then break end
-                        remote:FireServer(gearName)
-                        task.wait(0.75)
+                while autoBuyGearsV2Enabled do
+                    -- Get the gears list from the GUI
+                    local gearsFrame = game:GetService("Players").LocalPlayer.PlayerGui.Main.Gears.Frame.ScrollingFrame
+                    
+                    if gearsFrame then
+                        for _, gearObject in ipairs(gearsFrame:GetChildren()) do
+                            if not autoBuyGearsV2Enabled then break end
+                            
+                            -- Check if it's a gear item with Stock text
+                            local stockLabel = gearObject:FindFirstChild("Stock")
+                            if stockLabel and stockLabel:IsA("TextLabel") then
+                                local stockText = stockLabel.Text
+                                local gearName = gearObject.Name
+                                
+                                -- Check if this gear is in our selected list AND stock is available
+                                if table.find(selectedGearsV2, gearName) then
+                                    -- Check if stock is "x1" or above (contains numbers) but NOT "0x"
+                                    if stockText and string.find(stockText, "%d") and not string.find(stockText, "0x") then
+                                        -- Extract the number from stock text (e.g., "x1" -> 1, "x5" -> 5)
+                                        local stockNumber = tonumber(string.match(stockText, "%d+"))
+                                        
+                                        -- Only buy if stock number is 1 or above
+                                        if stockNumber and stockNumber >= 1 then
+                                            print("Buying gear: " .. gearName .. " | Stock: " .. stockText)
+                                            
+                                            -- Fire the buy remote for gears
+                                            local args = {
+                                                [1] = gearName,
+                                                [2] = true
+                                            }
+                                            
+                                            game:GetService("ReplicatedStorage").Remotes.BuyGear:FireServer(unpack(args))
+                                            task.wait(0.5) -- Wait between purchases
+                                        end
+                                    end
+                                end
+                            end
+                        end
                     end
-                    if autoBuyGearEnabled then task.wait(1.0) end
+                    
+                    if autoBuyGearsV2Enabled then
+                        task.wait(0.5) -- Wait 2 seconds before scanning again
+                    end
                 end
             end)
         end
     end
 })
 
-GearSection:Toggle({
-    Name = "Auto Buy All Gear",
+GearV2Section:Toggle({
+    Name = "Auto Buy All Gears",
     CurrentValue = false,
     Callback = function(state)
-        autoBuyAllGearEnabled = state
+        autoBuyGearsV2Enabled = state
         if state then
             task.spawn(function()
-                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyGear", 9e9)
-                while autoBuyAllGearEnabled do
-                    for _, gearName in ipairs(gearList) do
-                        if not autoBuyAllGearEnabled then break end
-                        remote:FireServer(gearName)
-                        task.wait(1.0)
+                while autoBuyGearsV2Enabled do
+                    -- Get the gears list from the GUI (assuming similar structure to seeds)
+                    local gearsFrame = game:GetService("Players").LocalPlayer.PlayerGui.Main.Gears.Frame.ScrollingFrame
+                    
+                    if gearsFrame then
+                        for _, gearObject in ipairs(gearsFrame:GetChildren()) do
+                            if not autoBuyGearsV2Enabled then break end
+                            
+                            -- Check if it's a gear item with Stock text
+                            local stockLabel = gearObject:FindFirstChild("Stock")
+                            if stockLabel and stockLabel:IsA("TextLabel") then
+                                local stockText = stockLabel.Text
+                                
+                                -- Check if stock is "x1" or above (contains numbers) but NOT "0x"
+                                if stockText and string.find(stockText, "%d") and not string.find(stockText, "0x") then
+                                    -- Extract the number from stock text (e.g., "x1" -> 1, "x5" -> 5)
+                                    local stockNumber = tonumber(string.match(stockText, "%d+"))
+                                    
+                                    -- Only buy if stock number is 1 or above
+                                    if stockNumber and stockNumber >= 1 then
+                                        local gearName = gearObject.Name
+                                        print("Buying gear: " .. gearName .. " | Stock: " .. stockText)
+                                        
+                                        -- Fire the buy remote for gears (adjust remote name if different)
+                                        local args = {
+                                            [1] = gearName,
+                                            [2] = true
+                                        }
+                                        
+                                        game:GetService("ReplicatedStorage").Remotes.BuyGear:FireServer(unpack(args))
+                                        task.wait(0.5) -- Wait between purchases
+                                    end
+                                end
+                            end
+                        end
                     end
-                    if autoBuyAllGearEnabled then task.wait(1.0) end
+                    
+                    if autoBuyGearsV2Enabled then
+                        task.wait(0.5) -- Wait 2 seconds before scanning again
+                    end
                 end
             end)
         end
     end
 })
+
 
 --// =========================
 -- BRAINROTS TAB - ORGANIZED INTO SECTIONS
@@ -1545,6 +1752,17 @@ PlayerSection:Toggle({
 local GraphicsSection = MiscTab:CreateSection("Graphics")
 
 GraphicsSection:Toggle({
+    Name = "Show FPS",
+    CurrentValue = false,
+    Callback = function(state)
+        local fpsCounter = game:GetService("Players").LocalPlayer.PlayerGui.Main.FPSCounter
+        if fpsCounter then
+            fpsCounter.Visible = state
+        end
+    end
+})
+
+GraphicsSection:Toggle({
     Name = "Reduce Lag",
     CurrentValue = false,
     Callback = function(state)
@@ -1625,10 +1843,9 @@ ServerSection:Button({
 -- VISUAL TAB - ORGANIZED INTO SECTIONS
 --// =========================
 
--- Hide Objects Section
-local HideSection = VisualTab:CreateSection("Hide Objects")
 
-HideSection:CreateDropdown({
+
+GraphicsSection:CreateDropdown({
     Name = "Select Visual(s)",
     Options = {"Board","Rows","Plants","PlatForms"},
     MultiSelection = true,
@@ -1638,7 +1855,7 @@ HideSection:CreateDropdown({
     end
 })
 
-HideSection:Toggle({
+GraphicsSection:Toggle({
     Name = "Hide/Show Selected (Reduce Lag)",
     CurrentValue = false,
     Callback = function(state)
@@ -1667,3 +1884,6 @@ HideSection:Toggle({
     end
 })
 
+
+
+--workspace.Plots["1"].EventPlatforms["-1"].PlatformEventUI.Visble = true
