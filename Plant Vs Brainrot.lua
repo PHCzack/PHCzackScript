@@ -9,8 +9,8 @@ local Window = PHCzack:CreateWindow({
 --// Show a startup notification
 Window:Notify({
     Title = "Welcome!",
-    Content = "Updated 10/10/25 - Bug Fixed✅",
-    Duration = 7
+    Content = "Updated 10/19/25 - Bug Fixed✅",
+    Duration = 5
 })
 
 --// Create Tabs
@@ -103,6 +103,15 @@ local seedsList = {
 local gearList = {
     "Water Bucket","Frost Grenade","Banana Gun","Frost Blower","Carrot Launcher"
 }
+
+
+local plantsList1 = {
+    "Cactus", "Strawberry", "Pumpkin", "Sunflower",
+            "Dragon Fruit", "Eggplant", "Watermelon", "Grape",
+            "Cocotank", "Carnivorous Plant", "Tomade Torelli",
+            "Mr Carrot", "Tomatrio", "Shroombino", "Mango", "King Limone"
+}
+
 
 -- ✅ Safe Plots Loader
 local plots = workspace:WaitForChild("Plots", 10)
@@ -902,7 +911,7 @@ local AutoEventBRSection = AutoTab:CreateSection("Auto Events")
 
 
 AutoEventBRSection:Toggle({
-    Name = "Auto Event BR",
+    Name = "Auto Event Daily",
     CurrentValue = false,
     Callback = function(state)
         autoEventBREnabled = state
@@ -997,55 +1006,11 @@ AutoEventBRSection:Toggle({
 })
 
 
--- Variables
-local autoClaimEventEnabled = false
 
 
 
-AutoEventBRSection:Toggle({
-    Name = "Auto Claim Event Reward",
-    CurrentValue = false,
-    Callback = function(state)
-        autoClaimEventEnabled = state
-        if state then
-            task.spawn(function()
-                while autoClaimEventEnabled do
-                    -- Check if the text changes to "Claim"
-                    local displayText = workspace.ScriptedMap.Event.TomadeFloor.GuiAttachment.Billboard.Display.Text
-                    
-                    if displayText == "Claim" then
-                        print("Event reward ready to claim!")
-                        
-                        -- Teleport to event coordinates first
-                        local teleportPos = Vector3.new(-173.15313720703125, 11.562851905822754, 1017.1333618164062)
-                        local char = LocalPlayer.Character
-                        if char and char:FindFirstChild("HumanoidRootPart") then
-                            char.HumanoidRootPart.CFrame = CFrame.new(teleportPos)
-                            print("Teleported to event location")
-                            task.wait(1.0)
-                        end
-                        
-                        -- Fire the proximity prompt
-                        local proximityPrompt = workspace.ScriptedMap.Event.EventRewards.TalkPart.ProximityPrompt
-                        if proximityPrompt then
-                            fireproximityprompt(proximityPrompt)
-                            print("Claimed event reward!")
-                            task.wait(1.0)
-                        else
-                            print("Proximity prompt not found!")
-                        end
-                    else
-                        print("Event reward not ready. Current text: " .. displayText)
-                    end
-                    
-                    if autoClaimEventEnabled then
-                        task.wait(1.0) -- Check every second
-                    end
-                end
-            end)
-        end
-    end
-})
+
+
 
 
 --// =========================
@@ -1186,6 +1151,32 @@ EquipSection:Toggle({
 -- Auto Open Eggs Section
 local EggSection = FarmTab:CreateSection("Auto Open Eggs")
 
+-- Function to equip egg by similar name (handles quantity like [1])
+local function equipEggByName(eggName)
+    local char = LocalPlayer.Character
+    local backpack = LocalPlayer.Backpack
+    if not char or not backpack then return false end
+    
+    -- Look for partial name match in character (already equipped)
+    for _, tool in ipairs(char:GetChildren()) do
+        if tool:IsA("Tool") and string.find(tool.Name, eggName) then
+            -- Item already equipped with partial name match
+            return true
+        end
+    end
+    
+    -- Look for partial name match in backpack
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") and string.find(tool.Name, eggName) then
+            -- Equip the item with partial name match
+            char.Humanoid:EquipTool(tool)
+            return true
+        end
+    end
+    
+    return false
+end
+
 EggSection:Toggle({
     Name = "Auto Open Lucky Egg",
     CurrentValue = false,
@@ -1195,8 +1186,14 @@ EggSection:Toggle({
             task.spawn(function()
                 local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("OpenEgg", 9e9)
                 while autoOpenLuckyEggEnabled do
-                    remote:FireServer("Godly Lucky Egg")
-                    task.wait(1)
+                    -- Equip egg first
+                    if equipEggByName("Godly Lucky Egg") then
+                        remote:FireServer("Godly Lucky Egg")
+                        task.wait(1)
+                    else
+                        print("No Godly Lucky Egg found in inventory")
+                        task.wait(1)
+                    end
                 end
             end)
         end
@@ -1212,8 +1209,14 @@ EggSection:Toggle({
             task.spawn(function()
                 local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("OpenEgg", 9e9)
                 while autoOpenSecretLuckyEggEnabled do
-                    remote:FireServer("Secret Lucky Egg")
-                    task.wait(1)
+                    -- Equip egg first
+                    if equipEggByName("Secret Lucky Egg") then
+                        remote:FireServer("Secret Lucky Egg")
+                        task.wait(1)
+                    else
+                        print("No Secret Lucky Egg found in inventory")
+                        task.wait(1)
+                    end
                 end
             end)
         end
@@ -1229,8 +1232,14 @@ EggSection:Toggle({
             task.spawn(function()
                 local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("OpenEgg", 9e9)
                 while autoOpenMemeLuckyEggEnabled do
-                    remote:FireServer("Meme Lucky Egg")
-                    task.wait(1)
+                    -- Equip egg first
+                    if equipEggByName("Meme Lucky Egg") then
+                        remote:FireServer("Meme Lucky Egg")
+                        task.wait(1)
+                    else
+                        print("No Meme Lucky Egg found in inventory")
+                        task.wait(1)
+                    end
                 end
             end)
         end
@@ -1241,33 +1250,29 @@ EggSection:Toggle({
 local ProgressionSection = FarmTab:CreateSection("Auto Progression")
 
 ProgressionSection:Toggle({
-    Name = "Auto Fuse",
-    CurrentValue = false,
-    Callback = function(state)
-        autoFuseEnabled = state
-        if state then
-            task.spawn(function()
-                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("PromptFuse", 9e9)
-                while autoFuseEnabled do
-                    remote:FireServer()
-                    task.wait(0.5)
-                end
-            end)
-        end
-    end
-})
-
-ProgressionSection:Toggle({
     Name = "Auto Rebirth",
     CurrentValue = false,
     Callback = function(state)
         autoRebirthEnabled = state
         if state then
             task.spawn(function()
-                local remote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("Rebirth", 9e9)
                 while autoRebirthEnabled do
-                    remote:FireServer({})
-                    task.wait(1)
+                    -- Check if rebirth is available (StillNeed.Visible = false)
+                    local rebirthGui = game:GetService("Players").LocalPlayer.PlayerGui.Main.Rebirth.Frame.Rebirth
+                    local stillNeed = rebirthGui:FindFirstChild("StillNeed")
+                    
+                    if stillNeed and stillNeed.Visible == false then
+                        -- Rebirth is available, fire the remote
+                        print("Performing rebirth...")
+                        game:GetService("ReplicatedStorage").Remotes.Rebirth:FireServer()
+                        task.wait(0.5) -- Wait 1 second after rebirth
+                    else
+                        print("Rebirth not available yet")
+                    end
+                    
+                    if autoRebirthEnabled then
+                        task.wait(0.5) -- Check every 2 seconds
+                    end
                 end
             end)
         end
@@ -1661,32 +1666,109 @@ ESPSection:Toggle({
 -- PLATFORM TAB - ORGANIZED INTO SECTIONS
 --// =========================
 
--- Quick Buy Section
-local QuickBuySection = PlatformTab:CreateSection("Quick Buy")
+-- Auto Buy Platforms Section
+local AutoBuyPlatformsSection = PlatformTab:CreateSection("Auto Buy Platforms")
 
-QuickBuySection:Button({
-    Name = "Buy All Platforms (1-30)",
-    Callback = function()
-        local buyPlatformRemote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyPlatform", 9e9)
-        for i = 1, 30 do
-            buyPlatformRemote:FireServer(tostring(i))
-            task.wait(0.2)
+AutoBuyPlatformsSection:Toggle({
+    Name = "Auto Buy Platforms",
+    CurrentValue = false,
+    Callback = function(state)
+        autoBuyPlatformsEnabled = state
+        if state then
+            task.spawn(function()
+                while autoBuyPlatformsEnabled do
+                    -- Check all plots (1-6) and all plants (1-17)
+                    for plotNum = 1, 6 do
+                        for plantNum = 1, 17 do
+                            if not autoBuyPlatformsEnabled then break end
+                            
+                            local plot = workspace.Plots[tostring(plotNum)]
+                            if plot then
+                                local plantsFolder = plot:FindFirstChild("Plants")
+                                if plantsFolder then
+                                    local plant = plantsFolder[tostring(plantNum)]
+                                    if plant then
+                                        local platformPrice = plant:FindFirstChild("PlatformPrice")
+                                        if platformPrice then
+                                            -- Check if PlatformPrice.Enabled property is true
+                                            if platformPrice.Enabled == true then
+                                                -- Platform is available for purchase, buy it
+                                                print("Buying platform: Plot " .. plotNum .. " Plant " .. plantNum)
+                                                
+                                                local args = {
+                                                    [1] = tostring(plantNum)
+                                                }
+                                                
+                                                game:GetService("ReplicatedStorage").Remotes.BuyPlatform:FireServer(unpack(args))
+                                                task.wait(0.2) -- Wait between purchases
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    
+                    if autoBuyPlatformsEnabled then
+                        task.wait(0.5) -- Wait 2 seconds before scanning again
+                    end
+                end
+            end)
         end
     end
 })
 
--- Individual Platforms Section
-local IndividualSection = PlatformTab:CreateSection("Individual Platforms")
-
-for i = 1, 30 do
-    IndividualSection:Button({
-        Name = "Buy Platform " .. i,
-        Callback = function()
-            local buyPlatformRemote = ReplicatedStorage:WaitForChild("Remotes", 9e9):WaitForChild("BuyPlatform", 9e9)
-            buyPlatformRemote:FireServer(tostring(i))
+AutoBuyPlatformsSection:Toggle({
+    Name = "Auto Buy Rows",
+    CurrentValue = false,
+    Callback = function(state)
+        autoBuyRowsEnabled = state
+        if state then
+            task.spawn(function()
+                while autoBuyRowsEnabled do
+                    -- Check all plots (1-6) and all rows (1-7)
+                    for plotNum = 1, 6 do
+                        for rowNum = 1, 7 do
+                            if not autoBuyRowsEnabled then break end
+                            
+                            local plot = workspace.Plots[tostring(plotNum)]
+                            if plot then
+                                local rowsFolder = plot:FindFirstChild("Rows")
+                                if rowsFolder then
+                                    local row = rowsFolder[tostring(rowNum)]
+                                    if row then
+                                        local button = row:FindFirstChild("Button")
+                                        if button then
+                                            local hitbox = button:FindFirstChild("Hitbox")
+                                            if hitbox then
+                                                -- Check if Locked property is false
+                                                if hitbox.Locked == false then
+                                                    -- Row is unlocked and can be purchased, buy it
+                                                    print("Buying row: Plot " .. plotNum .. " Row " .. rowNum)
+                                                    
+                                                    local args = {
+                                                        [1] = rowNum
+                                                    }
+                                                    
+                                                    game:GetService("ReplicatedStorage").Remotes.BuyRow:FireServer(unpack(args))
+                                                    task.wait(0.2) -- Wait between purchases
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    
+                    if autoBuyRowsEnabled then
+                        task.wait(0.5) -- Wait 2 seconds before scanning again
+                    end
+                end
+            end)
         end
-    })
-end
+    end
+})
 
 --// =========================
 -- MISC TAB - ORGANIZED INTO SECTIONS
@@ -1885,5 +1967,341 @@ GraphicsSection:Toggle({
 })
 
 
+--// =========================
+-- VISUAL TAB - ADD TO EXISTING VISUAL TAB
+--// =========================
+
+-- Add this to your existing VisualTab
+
+-- Variables
+local damageESPEnabled = false
+local damageESPConnections = {}
+
+-- Damage ESP Section
+local DamageESPSection = MiscTab:CreateSection("Damage ESP")
+
+DamageESPSection:Toggle({
+    Name = "Show Plant Damage ESP",
+    CurrentValue = false,
+    Callback = function(state)
+        damageESPEnabled = state
+        if state then
+            -- Start scanning for Mr Carrot plants
+            task.spawn(function()
+                while damageESPEnabled do
+                    -- Check all plots (1-6)
+                    for plotNum = 1, 6 do
+                        if not damageESPEnabled then break end
+                        
+                        local plot = workspace.Plots[tostring(plotNum)]
+                        if plot then
+                            local plantsFolder = plot:FindFirstChild("Plants")
+                            if plantsFolder then
+                                -- Scan all plants for Mr Carrot
+                                for _, plant in ipairs(plantsFolder:GetChildren()) do
+                                    if not damageESPEnabled then break end
+                                    
+                                    if plant.Name == "Mr Carrot" then
+                                        createDamageESP(plant)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    
+                    if damageESPEnabled then
+                        task.wait(1.0) -- Scan every second
+                    end
+                end
+            end)
+        else
+            -- Clean up ESP when disabled
+            for _, connection in pairs(damageESPConnections) do
+                connection:Disconnect()
+            end
+            damageESPConnections = {}
+            
+            -- Remove all damage ESP billboards
+            for plotNum = 1, 6 do
+                local plot = workspace.Plots[tostring(plotNum)]
+                if plot then
+                    local plantsFolder = plot:FindFirstChild("Plants")
+                    if plantsFolder then
+                        for _, plant in ipairs(plantsFolder:GetChildren()) do
+                            if plant.Name == "Mr Carrot" then
+                                local hrp = plant:FindFirstChild("HumanoidRootPart") or plant:FindFirstChildWhichIsA("BasePart")
+                                if hrp then
+                                    local esp = hrp:FindFirstChild("DamageESP")
+                                    if esp then
+                                        esp:Destroy()
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+})
+
+-- Function to create damage ESP
+local function createDamageESP(plant)
+    local hrp = plant:FindFirstChild("HumanoidRootPart") or plant:FindFirstChildWhichIsA("BasePart")
+    if not hrp then return end
+    
+    -- Remove existing ESP if any
+    local existingESP = hrp:FindFirstChild("DamageESP")
+    if existingESP then
+        existingESP:Destroy()
+    end
+    
+    -- Get damage value
+    local damageValue = plant:FindFirstChild("Damage")
+    if not damageValue then return end
+    
+    -- Create billboard GUI
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "DamageESP"
+    billboard.Parent = hrp
+    billboard.Adornee = hrp
+    billboard.Size = UDim2.new(0, 100, 0, 40)
+    billboard.StudsOffset = Vector3.new(0, 4, 0)
+    billboard.AlwaysOnTop = true
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Parent = billboard
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = "Damage: " .. tostring(damageValue.Value)
+    textLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red color for damage
+    textLabel.TextStrokeTransparency = 0.8
+    textLabel.TextScaled = false
+    textLabel.TextSize = 14
+    textLabel.Font = Enum.Font.SourceSansBold
+    
+    -- Track damage changes
+    local connection = damageValue:GetPropertyChangedSignal("Value"):Connect(function()
+        if damageESPEnabled then
+            textLabel.Text = "Damage: " .. tostring(damageValue.Value)
+        end
+    end)
+    
+    damageESPConnections[plant] = connection
+end
+
 
 --workspace.Plots["1"].EventPlatforms["-1"].PlatformEventUI.Visble = true
+---- Script generated by SimpleSpy - credits to exx#9394
+
+--game:GetService("ReplicatedStorage").Remotes.OpenHeldPack:FireServer()
+--game:GetService("Players").LocalPlayer.PlayerGui.Main.LowPerformance.Holder_V2.Main.Icon.Visible = false
+--workspace.ScriptedMap.PlantExtractor.Part.Prompt
+--
+--
+
+--~ Convert Plants to EXP ~
+
+
+
+--// =========================
+-- PLANT EXTRACTOR TAB
+--// =========================
+
+-- Variables
+local selectedExtractorPlants = {}
+local autoPlantExtractorEnabled = false
+
+-- Plant Extractor Section
+local PlantExtractorSection = AutoTab:CreateSection("Plant Extractor")
+
+-- Plants Selection for Extractor
+PlantExtractorSection:CreateDropdown({
+    Name = "Select Plants for Extractor",
+    Options = {
+        "Cactus",
+        "Strawberry", 
+        "Pumpkin",
+        "Sunflower",
+        "Dragon Fruit",
+        "Eggplant",
+        "Watermelon",
+        "Grape",
+        "Cocotank",
+        "Carnivorous Plant",
+        "Tomade Torelli",
+        "Mr Carrot",
+        "Tomatrio",
+        "Shroombino",
+        "Mango",
+        "King Limone"
+    },
+    MultiSelection = true,
+    CurrentOption = {},
+    Callback = function(selected)
+        selectedExtractorPlants = selected
+    end
+})
+
+PlantExtractorSection:Toggle({
+    Name = "Auto Plant Extractor",
+    CurrentValue = false,
+    Callback = function(state)
+        autoPlantExtractorEnabled = state
+        if state then
+            task.spawn(function()
+                while autoPlantExtractorEnabled do
+                    local hasReadyLight = false
+                    
+                    -- Check all 5 lights first
+                    for lightNum = 1, 5 do
+                        if not autoPlantExtractorEnabled then break end
+                        
+                        local light = workspace.ScriptedMap.PlantExtractor.Input.Lights[tostring(lightNum)]
+                        if light then
+                            local fillColor = light:FindFirstChild("FillColor")
+                            if fillColor then
+                                -- Check if BrickColor is Black
+                                if fillColor.BrickColor == BrickColor.new("Black") then
+                                    hasReadyLight = true
+                                    print("Light " .. lightNum .. " is ready - BrickColor is Black")
+                                    break -- Found at least one ready light
+                                end
+                            end
+                        end
+                    end
+                    
+                    -- Only proceed if there's at least one ready light
+                    if hasReadyLight then
+                        -- No teleportation needed
+                        
+                        -- Equip selected plants one by one
+                        for _, plantName in ipairs(selectedExtractorPlants) do
+                            if not autoPlantExtractorEnabled then break end
+                            
+                            if equipExactItem(plantName) then
+                                print("Equipped plant: " .. plantName)
+                                task.wait(0.5)
+                                
+                                -- Fire the proximity prompt
+                                local promptPart = workspace.ScriptedMap.PlantExtractor.Part
+                                if promptPart then
+                                    local prompt = promptPart:FindFirstChild("Prompt")
+                                    if prompt then
+                                        print("Firing prompt for plant: " .. plantName)
+                                        fireproximityprompt(prompt)
+                                        task.wait(0.5)
+                                    else
+                                        print("No prompt found")
+                                    end
+                                else
+                                    print("Prompt part not found")
+                                end
+                            else
+                                print("Could not equip plant: " .. plantName)
+                            end
+                        end
+                    else
+                        print("No ready lights found, skipping...")
+                    end
+                    
+                    if autoPlantExtractorEnabled then
+                        task.wait(0.5) -- Wait 0.5 seconds before checking again
+                    end
+                end
+            end)
+        end
+    end
+})
+
+
+
+--// =========================
+-- PLANT EXTRACTOR TAB - ADD TO EXISTING TAB
+--// =========================
+
+
+PlantExtractorSection:Toggle({
+    Name = "Auto Claim Extractor",
+    CurrentValue = false,
+    Callback = function(state)
+        autoClaimExtractorEnabled = state
+        if state then
+            task.spawn(function()
+                while autoClaimExtractorEnabled do
+                    -- Check if timer text is "Ready!"
+                    local timerText = workspace.ScriptedMap.PlantExtractor.UI.GUI.Timer.Text
+                    
+                    if timerText == "Ready!" then
+                        print("Plant extractor ready to claim!")
+                        
+                        -- Fire the prompt (6th child)
+                        local children = workspace.ScriptedMap.PlantExtractor:GetChildren()
+                        if #children >= 6 then
+                            local promptPart = children[6]
+                            local prompt = promptPart:FindFirstChild("Prompt")
+                            if prompt then
+                                print("Firing claim prompt")
+                                fireproximityprompt(prompt)
+                                task.wait(0.5)
+                            else
+                                print("No prompt found in 6th child")
+                            end
+                        else
+                            print("Not enough children in PlantExtractor")
+                        end
+                    else
+                        print("Plant extractor not ready. Timer: " .. timerText)
+                    end
+                    
+                    if autoClaimExtractorEnabled then
+                        task.wait(0.5) -- Wait 0.5 seconds before checking again
+                    end
+                end
+            end)
+        end
+    end
+})
+
+--// =========================
+-- BRAINROT INVASION TAB
+--// =========================
+-- Variables
+local autoStartInvasionEnabled = false
+
+-- Brainrot Invasion Section
+local InvasionSection = AutoTab:CreateSection("Auto Start Invasion")
+
+InvasionSection:Toggle({
+    Name = "Auto Start Invasion",
+    CurrentValue = false,
+    Callback = function(state)
+        autoStartInvasionEnabled = state
+        if state then
+            task.spawn(function()
+                while autoStartInvasionEnabled do
+                    -- Check if invasion timer is "00:00"
+                    local timerText = game:GetService("Players").LocalPlayer.PlayerGui.Main.Brainrot_Invasion.Timer.Time.Text
+                    
+                    if timerText == "00:00" then
+                        print("Invasion ready to start!")
+                        
+                        -- Fire the start invasion remote
+                        game:GetService("ReplicatedStorage").Remotes.MissionServicesRemotes.RequestStartInvasion:FireServer()
+                        print("Started brainrot invasion!")
+                        task.wait(0.5) -- Wait 1 second after starting
+                    else
+                        print("Invasion not ready. Timer: " .. timerText)
+                    end
+                    
+                    if autoStartInvasionEnabled then
+                        task.wait(300) -- Wait 300 seconds before checking again
+                    end
+                end
+            end)
+        end
+    end
+})
+
+-- workspace.ScriptedMap.AdminChest.ChestBody.PromptAttachment.ProximityPrompt
+
