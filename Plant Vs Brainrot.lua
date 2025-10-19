@@ -890,122 +890,7 @@ Fusev2Section:Toggle({
 
 --// =========================
 -- AUTO EVENT BR TAB
---// =========================
-
-
---// =========================
--- EVENT TAB
---// =========================
-
-
-
-
-
--- Create Auto Event BR Tab
--- Variables
-local autoEventBREnabled = false
-local submittedBrainrots = {} -- Track already submitted brainrots
-
--- Auto Event BR Section
-local AutoEventBRSection = AutoTab:CreateSection("Auto Events")
-
-
-AutoEventBRSection:Toggle({
-    Name = "Auto Event Daily",
-    CurrentValue = false,
-    Callback = function(state)
-        autoEventBREnabled = state
-        if state then
-            submittedBrainrots = {} -- Reset submitted brainrots when starting
-            task.spawn(function()
-                while autoEventBREnabled do
-                    -- Check all plots (1-6) and all platforms (-1 to -4)
-                    for plotNum = 1, 6 do
-                        for platformNum = -1, -4, -1 do
-                            if not autoEventBREnabled then break end
-                            
-                            local plotFolder = workspace.Plots[tostring(plotNum)]
-                            if plotFolder then
-                                local eventPlatforms = plotFolder:FindFirstChild("EventPlatforms")
-                                if eventPlatforms then
-                                    local platform = eventPlatforms[tostring(platformNum)]
-                                    if platform then
-                                        -- Check if PlatformEventUI is visible
-                                        local platformEventUI = platform:FindFirstChild("PlatformEventUI")
-                                        if platformEventUI and platformEventUI.Visible == true then
-                                            local visualFolder = platform:FindFirstChild("VisualFolder")
-                                            if visualFolder then
-                                                -- Scan all brainrots in VisualFolder one by one
-                                                for _, brainrot in ipairs(visualFolder:GetChildren()) do
-                                                    if not autoEventBREnabled then break end
-                                                    
-                                                    if brainrot:IsA("Model") then
-                                                        local brainrotName = brainrot.Name
-                                                        
-                                                        -- Skip if this brainrot was already submitted
-                                                        if submittedBrainrots[brainrotName] then
-                                                            print("Skipping already submitted brainrot: " .. brainrotName)
-                                                            continue
-                                                        end
-                                                        
-                                                        print("Found brainrot in platform " .. platformNum .. ": " .. brainrotName)
-                                                        
-                                                        -- Find the brainrot from inventory
-                                                        if equipExactItem(brainrotName) then
-                                                            -- Teleport to event platform coordinates
-                                                            local teleportPos = Vector3.new(-214.91201782226562, 12.162851333618164, 980.80126953125)
-                                                            local char = LocalPlayer.Character
-                                                            if char and char:FindFirstChild("HumanoidRootPart") then
-                                                                char.HumanoidRootPart.CFrame = CFrame.new(teleportPos)
-                                                                task.wait(1.0)
-                                                            end
-                                                            
-                                                            -- Fire the proximity prompt
-                                                            local hitbox = platform:FindFirstChild("Hitbox")
-                                                            if hitbox then
-                                                                local proximityPrompt = hitbox:FindFirstChild("ProximityPrompt")
-                                                                if proximityPrompt then
-                                                                    print("Firing proximity prompt for: " .. brainrotName)
-                                                                    fireproximityprompt(proximityPrompt)
-                                                                    task.wait(0.5)
-                                                                    
-                                                                    -- Mark this brainrot as submitted (set to false)
-                                                                    submittedBrainrots[brainrotName] = false
-                                                                    print("Marked as submitted: " .. brainrotName)
-                                                                else
-                                                                    print("No proximity prompt found for: " .. brainrotName)
-                                                                end
-                                                            else
-                                                                print("No hitbox found for platform: " .. platformNum)
-                                                            end
-                                                        else
-                                                            print("Could not equip brainrot: " .. brainrotName)
-                                                        end
-                                                    end
-                                                end
-                                            end
-                                        else
-                                            print("PlatformEventUI not visible for platform: " .. platformNum)
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                    
-                    if autoEventBREnabled then
-                        task.wait(1.0)
-                    end
-                end
-            end)
-        else
-            -- Clear submitted brainrots when toggle is turned off
-            submittedBrainrots = {}
-        end
-    end
-})
-
-
+--// ========================
 
 
 
@@ -1407,6 +1292,9 @@ SeedsV2Section:Toggle({
 })
 
 
+
+
+
 -- Gear v2 Section
 local GearV2Section = ShopTab:CreateSection("Auto Buy Gear")
 
@@ -1528,6 +1416,116 @@ GearV2Section:Toggle({
         end
     end
 })
+
+
+--// =========================
+-- PLATFORM TAB - ORGANIZED INTO SECTIONS
+--// =========================
+
+-- Auto Buy Platforms Section
+local AutoBuyPlatformsSection = ShopTab:CreateSection("Auto Buy Others")
+
+AutoBuyPlatformsSection:Toggle({
+    Name = "Auto Buy Platforms",
+    CurrentValue = false,
+    Callback = function(state)
+        autoBuyPlatformsEnabled = state
+        if state then
+            task.spawn(function()
+                while autoBuyPlatformsEnabled do
+                    -- Check all plots (1-6) and all plants (1-17)
+                    for plotNum = 1, 6 do
+                        for plantNum = 1, 17 do
+                            if not autoBuyPlatformsEnabled then break end
+                            
+                            local plot = workspace.Plots[tostring(plotNum)]
+                            if plot then
+                                local plantsFolder = plot:FindFirstChild("Plants")
+                                if plantsFolder then
+                                    local plant = plantsFolder[tostring(plantNum)]
+                                    if plant then
+                                        local platformPrice = plant:FindFirstChild("PlatformPrice")
+                                        if platformPrice then
+                                            -- Check if PlatformPrice.Enabled property is true
+                                            if platformPrice.Enabled == true then
+                                                -- Platform is available for purchase, buy it
+                                                print("Buying platform: Plot " .. plotNum .. " Plant " .. plantNum)
+                                                
+                                                local args = {
+                                                    [1] = tostring(plantNum)
+                                                }
+                                                
+                                                game:GetService("ReplicatedStorage").Remotes.BuyPlatform:FireServer(unpack(args))
+                                                task.wait(0.2) -- Wait between purchases
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    
+                    if autoBuyPlatformsEnabled then
+                        task.wait(0.5) -- Wait 2 seconds before scanning again
+                    end
+                end
+            end)
+        end
+    end
+})
+
+AutoBuyPlatformsSection:Toggle({
+    Name = "Auto Buy Rows",
+    CurrentValue = false,
+    Callback = function(state)
+        autoBuyRowsEnabled = state
+        if state then
+            task.spawn(function()
+                while autoBuyRowsEnabled do
+                    -- Check all plots (1-6) and all rows (1-7)
+                    for plotNum = 1, 6 do
+                        for rowNum = 1, 7 do
+                            if not autoBuyRowsEnabled then break end
+                            
+                            local plot = workspace.Plots[tostring(plotNum)]
+                            if plot then
+                                local rowsFolder = plot:FindFirstChild("Rows")
+                                if rowsFolder then
+                                    local row = rowsFolder[tostring(rowNum)]
+                                    if row then
+                                        local button = row:FindFirstChild("Button")
+                                        if button then
+                                            local hitbox = button:FindFirstChild("Hitbox")
+                                            if hitbox then
+                                                -- Check if Locked property is false
+                                                if hitbox.Locked == false then
+                                                    -- Row is unlocked and can be purchased, buy it
+                                                    print("Buying row: Plot " .. plotNum .. " Row " .. rowNum)
+                                                    
+                                                    local args = {
+                                                        [1] = rowNum
+                                                    }
+                                                    
+                                                    game:GetService("ReplicatedStorage").Remotes.BuyRow:FireServer(unpack(args))
+                                                    task.wait(0.2) -- Wait between purchases
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    
+                    if autoBuyRowsEnabled then
+                        task.wait(0.5) -- Wait 2 seconds before scanning again
+                    end
+                end
+            end)
+        end
+    end
+})
+
 
 
 --// =========================
@@ -1662,113 +1660,7 @@ ESPSection:Toggle({
     end
 })
 
---// =========================
--- PLATFORM TAB - ORGANIZED INTO SECTIONS
---// =========================
 
--- Auto Buy Platforms Section
-local AutoBuyPlatformsSection = PlatformTab:CreateSection("Auto Buy Platforms")
-
-AutoBuyPlatformsSection:Toggle({
-    Name = "Auto Buy Platforms",
-    CurrentValue = false,
-    Callback = function(state)
-        autoBuyPlatformsEnabled = state
-        if state then
-            task.spawn(function()
-                while autoBuyPlatformsEnabled do
-                    -- Check all plots (1-6) and all plants (1-17)
-                    for plotNum = 1, 6 do
-                        for plantNum = 1, 17 do
-                            if not autoBuyPlatformsEnabled then break end
-                            
-                            local plot = workspace.Plots[tostring(plotNum)]
-                            if plot then
-                                local plantsFolder = plot:FindFirstChild("Plants")
-                                if plantsFolder then
-                                    local plant = plantsFolder[tostring(plantNum)]
-                                    if plant then
-                                        local platformPrice = plant:FindFirstChild("PlatformPrice")
-                                        if platformPrice then
-                                            -- Check if PlatformPrice.Enabled property is true
-                                            if platformPrice.Enabled == true then
-                                                -- Platform is available for purchase, buy it
-                                                print("Buying platform: Plot " .. plotNum .. " Plant " .. plantNum)
-                                                
-                                                local args = {
-                                                    [1] = tostring(plantNum)
-                                                }
-                                                
-                                                game:GetService("ReplicatedStorage").Remotes.BuyPlatform:FireServer(unpack(args))
-                                                task.wait(0.2) -- Wait between purchases
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                    
-                    if autoBuyPlatformsEnabled then
-                        task.wait(0.5) -- Wait 2 seconds before scanning again
-                    end
-                end
-            end)
-        end
-    end
-})
-
-AutoBuyPlatformsSection:Toggle({
-    Name = "Auto Buy Rows",
-    CurrentValue = false,
-    Callback = function(state)
-        autoBuyRowsEnabled = state
-        if state then
-            task.spawn(function()
-                while autoBuyRowsEnabled do
-                    -- Check all plots (1-6) and all rows (1-7)
-                    for plotNum = 1, 6 do
-                        for rowNum = 1, 7 do
-                            if not autoBuyRowsEnabled then break end
-                            
-                            local plot = workspace.Plots[tostring(plotNum)]
-                            if plot then
-                                local rowsFolder = plot:FindFirstChild("Rows")
-                                if rowsFolder then
-                                    local row = rowsFolder[tostring(rowNum)]
-                                    if row then
-                                        local button = row:FindFirstChild("Button")
-                                        if button then
-                                            local hitbox = button:FindFirstChild("Hitbox")
-                                            if hitbox then
-                                                -- Check if Locked property is false
-                                                if hitbox.Locked == false then
-                                                    -- Row is unlocked and can be purchased, buy it
-                                                    print("Buying row: Plot " .. plotNum .. " Row " .. rowNum)
-                                                    
-                                                    local args = {
-                                                        [1] = rowNum
-                                                    }
-                                                    
-                                                    game:GetService("ReplicatedStorage").Remotes.BuyRow:FireServer(unpack(args))
-                                                    task.wait(0.2) -- Wait between purchases
-                                                end
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                    
-                    if autoBuyRowsEnabled then
-                        task.wait(0.5) -- Wait 2 seconds before scanning again
-                    end
-                end
-            end)
-        end
-    end
-})
 
 --// =========================
 -- MISC TAB - ORGANIZED INTO SECTIONS
@@ -1833,16 +1725,7 @@ PlayerSection:Toggle({
 -- Graphics Section
 local GraphicsSection = MiscTab:CreateSection("Graphics")
 
-GraphicsSection:Toggle({
-    Name = "Show FPS",
-    CurrentValue = false,
-    Callback = function(state)
-        local fpsCounter = game:GetService("Players").LocalPlayer.PlayerGui.Main.FPSCounter
-        if fpsCounter then
-            fpsCounter.Visible = state
-        end
-    end
-})
+
 
 GraphicsSection:Toggle({
     Name = "Reduce Lag",
@@ -1921,13 +1804,30 @@ ServerSection:Button({
     end
 })
 
+
+
+-- GUI Optimization Section
+local GUISection = MiscTab:CreateSection("GUI Elements")
+
+
+GUISection:Toggle({
+    Name = "Show FPS",
+    CurrentValue = false,
+    Callback = function(state)
+        local fpsCounter = game:GetService("Players").LocalPlayer.PlayerGui.Main.FPSCounter
+        if fpsCounter then
+            fpsCounter.Visible = state
+        end
+    end
+})
+
 --// =========================
 -- VISUAL TAB - ORGANIZED INTO SECTIONS
 --// =========================
 
 
 
-GraphicsSection:CreateDropdown({
+GUISection:CreateDropdown({
     Name = "Select Visual(s)",
     Options = {"Board","Rows","Plants","PlatForms"},
     MultiSelection = true,
@@ -1937,7 +1837,7 @@ GraphicsSection:CreateDropdown({
     end
 })
 
-GraphicsSection:Toggle({
+GUISection:Toggle({
     Name = "Hide/Show Selected (Reduce Lag)",
     CurrentValue = false,
     Callback = function(state)
@@ -1967,140 +1867,30 @@ GraphicsSection:Toggle({
 })
 
 
---// =========================
--- VISUAL TAB - ADD TO EXISTING VISUAL TAB
---// =========================
-
--- Add this to your existing VisualTab
-
--- Variables
-local damageESPEnabled = false
-local damageESPConnections = {}
-
--- Damage ESP Section
-local DamageESPSection = MiscTab:CreateSection("Damage ESP")
-
-DamageESPSection:Toggle({
-    Name = "Show Plant Damage ESP",
-    CurrentValue = false,
-    Callback = function(state)
-        damageESPEnabled = state
-        if state then
-            -- Start scanning for Mr Carrot plants
-            task.spawn(function()
-                while damageESPEnabled do
-                    -- Check all plots (1-6)
-                    for plotNum = 1, 6 do
-                        if not damageESPEnabled then break end
-                        
-                        local plot = workspace.Plots[tostring(plotNum)]
-                        if plot then
-                            local plantsFolder = plot:FindFirstChild("Plants")
-                            if plantsFolder then
-                                -- Scan all plants for Mr Carrot
-                                for _, plant in ipairs(plantsFolder:GetChildren()) do
-                                    if not damageESPEnabled then break end
-                                    
-                                    if plant.Name == "Mr Carrot" then
-                                        createDamageESP(plant)
-                                    end
-                                end
-                            end
-                        end
-                    end
-                    
-                    if damageESPEnabled then
-                        task.wait(1.0) -- Scan every second
-                    end
-                end
-            end)
-        else
-            -- Clean up ESP when disabled
-            for _, connection in pairs(damageESPConnections) do
-                connection:Disconnect()
-            end
-            damageESPConnections = {}
-            
-            -- Remove all damage ESP billboards
-            for plotNum = 1, 6 do
-                local plot = workspace.Plots[tostring(plotNum)]
-                if plot then
-                    local plantsFolder = plot:FindFirstChild("Plants")
-                    if plantsFolder then
-                        for _, plant in ipairs(plantsFolder:GetChildren()) do
-                            if plant.Name == "Mr Carrot" then
-                                local hrp = plant:FindFirstChild("HumanoidRootPart") or plant:FindFirstChildWhichIsA("BasePart")
-                                if hrp then
-                                    local esp = hrp:FindFirstChild("DamageESP")
-                                    if esp then
-                                        esp:Destroy()
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-})
-
--- Function to create damage ESP
-local function createDamageESP(plant)
-    local hrp = plant:FindFirstChild("HumanoidRootPart") or plant:FindFirstChildWhichIsA("BasePart")
-    if not hrp then return end
-    
-    -- Remove existing ESP if any
-    local existingESP = hrp:FindFirstChild("DamageESP")
-    if existingESP then
-        existingESP:Destroy()
-    end
-    
-    -- Get damage value
-    local damageValue = plant:FindFirstChild("Damage")
-    if not damageValue then return end
-    
-    -- Create billboard GUI
-    local billboard = Instance.new("BillboardGui")
-    billboard.Name = "DamageESP"
-    billboard.Parent = hrp
-    billboard.Adornee = hrp
-    billboard.Size = UDim2.new(0, 100, 0, 40)
-    billboard.StudsOffset = Vector3.new(0, 4, 0)
-    billboard.AlwaysOnTop = true
-    
-    local textLabel = Instance.new("TextLabel")
-    textLabel.Parent = billboard
-    textLabel.Size = UDim2.new(1, 0, 1, 0)
-    textLabel.BackgroundTransparency = 1
-    textLabel.Text = "Damage: " .. tostring(damageValue.Value)
-    textLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red color for damage
-    textLabel.TextStrokeTransparency = 0.8
-    textLabel.TextScaled = false
-    textLabel.TextSize = 14
-    textLabel.Font = Enum.Font.SourceSansBold
-    
-    -- Track damage changes
-    local connection = damageValue:GetPropertyChangedSignal("Value"):Connect(function()
-        if damageESPEnabled then
-            textLabel.Text = "Damage: " .. tostring(damageValue.Value)
-        end
-    end)
-    
-    damageESPConnections[plant] = connection
-end
 
 
---workspace.Plots["1"].EventPlatforms["-1"].PlatformEventUI.Visble = true
----- Script generated by SimpleSpy - credits to exx#9394
 
---game:GetService("ReplicatedStorage").Remotes.OpenHeldPack:FireServer()
---game:GetService("Players").LocalPlayer.PlayerGui.Main.LowPerformance.Holder_V2.Main.Icon.Visible = false
---workspace.ScriptedMap.PlantExtractor.Part.Prompt
---
---
 
---~ Convert Plants to EXP ~
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2303,5 +2093,121 @@ InvasionSection:Toggle({
     end
 })
 
+
+
+
+
+--// =========================
+-- AUTO DAILY EVENT TAB
+--// =========================
+
+
+-- Variables
+local autoDailyEventEnabled = false
+local submittedDailyBrainrots = {}
+
+-- Auto Daily Event Section
+local DailyEventSection = AutoTab:CreateSection("Auto Daily Event")
+
+DailyEventSection:Toggle({
+    Name = "Auto Daily Event",
+    CurrentValue = false,
+    Callback = function(state)
+        autoDailyEventEnabled = state
+        if state then
+            submittedDailyBrainrots = {} -- Reset submitted brainrots when starting
+            task.spawn(function()
+                while autoDailyEventEnabled do
+                    -- Check all plots (1-7) and all platforms (-1 to -5)
+                    for plotNum = 1, 7 do
+                        for platformNum = -1, -5, -1 do
+                            if not autoDailyEventEnabled then break end
+                            
+                            local plotFolder = workspace.Plots[tostring(plotNum)]
+                            if plotFolder then
+                                local eventPlatforms = plotFolder:FindFirstChild("EventPlatforms")
+                                if eventPlatforms then
+                                    local platform = eventPlatforms[tostring(platformNum)]
+                                    if platform then
+                                        local platformEventUI = platform:FindFirstChild("PlatformEventUI")
+                                        if platformEventUI and platformEventUI.Enabled == true then
+                                            print("Daily event active on Plot " .. plotNum .. " Platform " .. platformNum)
+                                            
+                                            -- Teleport to event coordinates
+                                            local teleportPos = Vector3.new(-211.9845733642578, 11.562851905822754, 978.3615112304688)
+                                            local char = LocalPlayer.Character
+                                            if char and char:FindFirstChild("HumanoidRootPart") then
+                                                char.HumanoidRootPart.CFrame = CFrame.new(teleportPos)
+                                                print("Teleported to daily event")
+                                                task.wait(0.5)
+                                            end
+                                            
+                                            local visualFolder = platform:FindFirstChild("VisualFolder")
+                                            if visualFolder then
+                                                -- Scan all brainrots in VisualFolder one by one
+                                                for _, brainrot in ipairs(visualFolder:GetChildren()) do
+                                                    if not autoDailyEventEnabled then break end
+                                                    
+                                                    if brainrot:IsA("Model") then
+                                                        local brainrotName = brainrot.Name
+                                                        
+                                                        -- Skip if this brainrot was already submitted
+                                                        if submittedDailyBrainrots[brainrotName] then
+                                                            print("Skipping already submitted brainrot: " .. brainrotName)
+                                                            continue
+                                                        end
+                                                        
+                                                        print("Found brainrot: " .. brainrotName)
+                                                        
+                                                        -- Find and equip the brainrot from inventory
+                                                        if equipExactItem(brainrotName) then
+                                                            print("Equipped brainrot: " .. brainrotName)
+                                                            task.wait(0.5)
+                                                            
+                                                            -- Fire the proximity prompt
+                                                            local hitbox = platform:FindFirstChild("Hitbox")
+                                                            if hitbox then
+                                                                local proximityPrompt = hitbox:FindFirstChild("ProximityPrompt")
+                                                                if proximityPrompt then
+                                                                    print("Firing proximity prompt for: " .. brainrotName)
+                                                                    fireproximityprompt(proximityPrompt)
+                                                                    task.wait(0.5)
+                                                                    
+                                                                    -- Mark this brainrot as submitted
+                                                                    submittedDailyBrainrots[brainrotName] = true
+                                                                    print("Marked as submitted: " .. brainrotName)
+                                                                else
+                                                                    print("No proximity prompt found for: " .. brainrotName)
+                                                                end
+                                                            else
+                                                                print("No hitbox found for platform: " .. platformNum)
+                                                            end
+                                                        else
+                                                            print("Could not equip brainrot: " .. brainrotName)
+                                                        end
+                                                    end
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                    
+                    if autoDailyEventEnabled then
+                        task.wait(0.5) -- Wait 2 seconds before checking again
+                    end
+                end
+            end)
+        else
+            -- Clear submitted brainrots when toggle is turned off
+            submittedDailyBrainrots = {}
+        end
+    end
+})
+
+
 -- workspace.ScriptedMap.AdminChest.ChestBody.PromptAttachment.ProximityPrompt
+
 
