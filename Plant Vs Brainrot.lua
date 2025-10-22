@@ -2208,6 +2208,13 @@ DailyEventSection:Toggle({
 })
 
 
+
 -- workspace.ScriptedMap.AdminChest.ChestBody.PromptAttachment.ProximityPrompt
 
 
+
+
+--local Button1 = game:GetService("Players").LocalPlayer.PlayerGui.Main.Brainrot_Invasion.Button_List.Not_Ready_Button.Main.SENSOR
+--firesignal(Button1.MouseButton1Click)
+--wait(1)
+--firesignal(Button2.MouseButton1Click)
