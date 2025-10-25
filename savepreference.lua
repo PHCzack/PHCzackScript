@@ -2,13 +2,64 @@
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService") --// Added for settings
+local HttpService = game:GetService("HttpService") -- Added for JSON encoding
 
 --// Main GUI Library Table
 local Rayfield = {}
 Rayfield.__index = Rayfield
-Rayfield.Settings = {} --// Added for settings
-local settingsLoaded = false
+
+--// Settings Configuration
+local settingsFile = "Rayfield_Config.json"
+local settings = {}
+
+--// Save settings function
+local function SaveSettings()
+    if not writefile or not HttpService then return end
+    local success, result = pcall(function()
+        local data = HttpService:JSONEncode(settings)
+        writefile(settingsFile, data)
+    end)
+    if not success then
+        warn("Rayfield: Failed to save settings - ", result)
+    end
+end
+
+--// Load settings function
+local function LoadSettings()
+    if not isfile or not readfile or not HttpService then 
+        settings = { Window = {}, ShowButton = { X = 10, Y = 10 } } -- Default fallback
+        return 
+    end
+    
+    if isfile(settingsFile) then
+        local success, result = pcall(function()
+            local data = readfile(settingsFile)
+            local decoded = HttpService:JSONDecode(data)
+            if type(decoded) == "table" then
+                settings = decoded
+            else
+                settings = { Window = {}, ShowButton = { X = 10, Y = 10 } } -- Default fallback
+            end
+        end)
+        if not success then
+            warn("Rayfield: Failed to load settings - ", result)
+            settings = { Window = {}, ShowButton = { X = 10, Y = 10 } } -- Default fallback
+        end
+    else
+        -- Create default settings structure
+        settings = {
+            Window = {}, -- Window-specific settings will be populated by CreateWindow
+            ShowButton = {
+                X = 10,
+                Y = 10
+            }
+        }
+    end
+end
+
+--// Initial Load
+LoadSettings()
+
 
 --// Main ScreenGui and configuration
 local MainGui = Instance.new("ScreenGui")
@@ -20,7 +71,7 @@ MainGui.ResetOnSpawn = false
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 450, 0, 300)
-MainFrame.Position = UDim2.new(0.5, -225, 0.5, -150)
+MainFrame.Position = UDim2.new(0.5, -225, 0.5, -150) -- Default position
 MainFrame.BackgroundTransparency = 0.15
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
 MainFrame.BorderColor3 = Color3.fromRGB(0, 255, 200)
@@ -117,7 +168,12 @@ local MinimizeButton = createControlButton("—")
 local ShowButton = Instance.new("TextButton")
 ShowButton.Name = "ShowButton"
 ShowButton.Size = UDim2.new(0, 100, 0, 30)
-ShowButton.Position = UDim2.new(0, 10, 0, 10)
+-- Load saved position
+if settings.ShowButton then
+    ShowButton.Position = UDim2.new(0, settings.ShowButton.X, 0, settings.ShowButton.Y)
+else
+    ShowButton.Position = UDim2.new(0, 10, 0, 10) -- Default
+end
 ShowButton.Text = "Show UI"
 ShowButton.TextColor3 = Color3.fromRGB(220, 220, 220)
 ShowButton.Font = Enum.Font.SourceSans
@@ -198,37 +254,6 @@ ContentContainer.Parent = MainFrame
 
 local activeTab = nil
 local tabs = {}
-
---// Settings Save/Load Functions
---// These functions are kept for manual use or if you implement a server-side solution
-function Rayfield:LoadSettings(jsonString)
-    if not HttpService then return end
-    if not jsonString or jsonString == "" then return end
-    
-    local success, decoded = pcall(function()
-        return HttpService:JSONDecode(jsonString)
-    end)
-    
-    if success and type(decoded) == "table" then
-        Rayfield.Settings = decoded
-        settingsLoaded = true
-    else
-        warn("Rayfield: Failed to decode settings or settings were not a table:", decoded)
-    end
-end
-
-function Rayfield:SaveSettings()
-    if not HttpService then return "" end
-    local success, result = pcall(function()
-        return HttpService:JSONEncode(Rayfield.Settings)
-    end)
-    if success then
-        return result
-    else
-        warn("Rayfield: Failed to encode settings:", result)
-        return ""
-    end
-end
 
 --// Notification System
 local NotificationContainer = Instance.new("Frame")
@@ -371,6 +396,14 @@ Header.InputChanged:Connect(function(input)
     if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and dragging and not isZoomed then
         local delta = input.Position - dragStart
         MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        
+        -- Save position on change
+        local windowName = Title.Text
+        if settings.Window[windowName] then
+            settings.Window[windowName].Position.X = MainFrame.Position.X.Offset
+            settings.Window[windowName].Position.Y = MainFrame.Position.Y.Offset
+            SaveSettings()
+        end
     end
 end)
 
@@ -394,6 +427,12 @@ ShowButton.InputChanged:Connect(function(input)
     if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and showButtonDragging then
         local delta = input.Position - showButtonDragStart
         ShowButton.Position = UDim2.new(showButtonStartPos.X.Scale, showButtonStartPos.X.Offset + delta.X, showButtonStartPos.Y.Scale, showButtonStartPos.Y.Offset + delta.Y)
+        
+        -- Save position
+        if not settings.ShowButton then settings.ShowButton = {} end
+        settings.ShowButton.X = ShowButton.Position.X.Offset
+        settings.ShowButton.Y = ShowButton.Position.Y.Offset
+        SaveSettings()
     end
 end)
 
@@ -418,9 +457,32 @@ DropdownGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 DropdownGui.ResetOnSpawn = false
 DropdownGui.Parent = playerGui
 
+--// Keep track of the currently open dropdown
+local currentOpenDropdown = nil
+local lastDropdownPosition = UDim2.new(0.5, -90, 0.5, -120) -- Default
+local dropdownDragging = false
+local dropdownDragStart, dropdownStartPos
+
 --// Window Object
 function Rayfield:CreateWindow(options)
-    Title.Text = options.Name or "Roblox UI"
+    local windowName = options.Name or "Roblox UI"
+    Title.Text = windowName
+    
+    -- Initialize settings table for this window if it doesn't exist
+    if not settings.Window[windowName] then
+        settings.Window[windowName] = {
+            Position = {
+                X = MainFrame.Position.X.Offset,
+                Y = MainFrame.Position.Y.Offset
+            },
+            ActiveTab = nil,
+            Tabs = {}
+        }
+    end
+    
+    -- Load Window Position
+    MainFrame.Position = UDim2.new(0.5, settings.Window[windowName].Position.X, 0.5, settings.Window[windowName].Position.Y)
+
     local Window = {}
     
     function Window:Notify(options)
@@ -429,6 +491,15 @@ function Rayfield:CreateWindow(options)
 
     function Window:CreateTab(name, iconId)
         local Tab = {}
+        local tabName = name
+
+        -- Initialize settings for this tab
+        if not settings.Window[windowName].Tabs[tabName] then
+            settings.Window[windowName].Tabs[tabName] = {
+                Sections = {},
+                Elements = {}
+            }
+        end
 
         local contentFrame = Instance.new("ScrollingFrame")
         contentFrame.Name = name
@@ -477,47 +548,43 @@ function Rayfield:CreateWindow(options)
             contentFrame.Visible = true
             tabButton.BackgroundColor3 = Color3.fromRGB(0, 80, 170)
             activeTab = contentFrame
-            Rayfield.Settings["__ActiveTab"] = name --// AUTOSAVE: Save active tab
+
+            -- Save the currently active tab
+            settings.Window[windowName].ActiveTab = tabName
+            SaveSettings()
         end)
 
         tabs[name] = { Frame = contentFrame, Button = tabButton, Layout = contentLayout }
 
-        --// AUTOSAVE LOGIC for active tab
-        local shouldBeActive = false
-        if settingsLoaded and Rayfield.Settings["__ActiveTab"] then
-            if Rayfield.Settings["__ActiveTab"] == name then
-                shouldBeActive = true
-            end
-        elseif not activeTab then
-            -- No saved tab, and no active tab yet, so make this the first active
-            shouldBeActive = true
-        end
-
-        if shouldBeActive then
-            if activeTab then -- Deactivate previous default
-                activeTab.Visible = false
-                if tabs[activeTab.Name] then -- Ensure previous tab exists
-                    tabs[activeTab.Name].Button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-                end
-            end
+        -- Load active tab
+        if settings.Window[windowName].ActiveTab == tabName then
             contentFrame.Visible = true
             tabButton.BackgroundColor3 = Color3.fromRGB(0, 80, 170)
             activeTab = contentFrame
-            if not settingsLoaded then -- Save the default if not loading
-                Rayfield.Settings["__ActiveTab"] = name
+        elseif not activeTab then -- Default to first tab if none is saved as active
+            contentFrame.Visible = true
+            tabButton.BackgroundColor3 = Color3.fromRGB(0, 80, 170)
+            activeTab = contentFrame
+            if not settings.Window[windowName].ActiveTab then
+                settings.Window[windowName].ActiveTab = tabName
+                SaveSettings() -- Save default active tab
             end
         end
         
-        --// CreateSection function for categories (DEFAULT CLOSED)
+        --// CreateSection function for categories
         function Tab:CreateSection(sectionName)
             local Section = {}
-            local sectionFlag = contentFrame.Name .. "." .. sectionName .. ".__Expanded" --// AUTOSAVE: Flag for section
             
-            local isExpanded = false
-            --// AUTOSAVE: Check if section should be expanded
-            if settingsLoaded and Rayfield.Settings[sectionFlag] == true then
-                isExpanded = true
+            -- Initialize settings for this section
+            if not settings.Window[windowName].Tabs[tabName].Sections[sectionName] then
+                settings.Window[windowName].Tabs[tabName].Sections[sectionName] = {
+                    Expanded = false, -- Default
+                    Elements = {}
+                }
             end
+            
+            -- Load expanded state
+            local isExpanded = settings.Window[windowName].Tabs[tabName].Sections[sectionName].Expanded
             
             -- Section Header Container
             local sectionContainer = Instance.new("Frame")
@@ -560,17 +627,10 @@ function Rayfield:CreateWindow(options)
             arrow.Position = UDim2.new(1, -30, 0, 0)
             arrow.BackgroundTransparency = 1
             arrow.Font = Enum.Font.SourceSansBold
+            arrow.Text = isExpanded and "▼" or "▶" -- Set based on loaded state
             arrow.TextColor3 = Color3.fromRGB(0, 120, 255)
             arrow.TextSize = 14
-            
-            --// AUTOSAVE: Set initial visual state based on isExpanded
-            if isExpanded then
-                arrow.Text = "▼"
-                arrow.Rotation = 0
-            else
-                arrow.Text = "▶"
-                arrow.Rotation = -90
-            end
+            arrow.Rotation = isExpanded and 0 or -90 -- Set based on loaded state
             arrow.Parent = sectionHeader
             
             -- Section Content Container
@@ -580,7 +640,7 @@ function Rayfield:CreateWindow(options)
             sectionContent.Position = UDim2.new(0, 0, 0, 40)
             sectionContent.BackgroundTransparency = 1
             sectionContent.AutomaticSize = Enum.AutomaticSize.Y
-            sectionContent.Visible = isExpanded --// AUTOSAVE: Set initial visibility
+            sectionContent.Visible = isExpanded -- Set based on loaded state
             sectionContent.ClipsDescendants = false
             sectionContent.Parent = sectionContainer
             
@@ -591,10 +651,6 @@ function Rayfield:CreateWindow(options)
             
             -- Track all dropdowns in this section
             local sectionDropdowns = {}
-            local currentOpenDropdown = nil -- Track the currently open dropdown
-            local lastDropdownPosition = UDim2.new(0.5, -90, 0.5, -120) -- Default position
-            local dropdownDragging = false
-            local dropdownDragStart, dropdownStartPos
             
             -- Toggle expand/collapse
             sectionHeader.MouseButton1Click:Connect(function()
@@ -602,9 +658,10 @@ function Rayfield:CreateWindow(options)
                 sectionContent.Visible = isExpanded
                 arrow.Text = isExpanded and "▼" or "▶"
                 
-                --// AUTOSAVE: Save expanded state
-                Rayfield.Settings[sectionFlag] = isExpanded
-                
+                -- Save the state
+                settings.Window[windowName].Tabs[tabName].Sections[sectionName].Expanded = isExpanded
+                SaveSettings()
+
                 -- Close all dropdowns in this section when collapsing
                 if not isExpanded then
                     for _, dropdownWindow in ipairs(sectionDropdowns) do
@@ -661,14 +718,12 @@ function Rayfield:CreateWindow(options)
             end
             
             function Section:Toggle(options)
-                --// AUTOSAVE: Get flag
-                local flag = options.Flag and (contentFrame.Name .. "." .. sectionName .. "." .. options.Flag)
+                local elementName = options.Name
+                local elementPath = settings.Window[windowName].Tabs[tabName].Sections[sectionName].Elements
                 
-                local state = options.CurrentValue or false
-                --// AUTOSAVE: Load value
-                if flag and settingsLoaded and Rayfield.Settings[flag] ~= nil then
-                    state = Rayfield.Settings[flag]
-                end
+                -- Load saved value
+                local loadedValue = elementPath[elementName]
+                local state = (loadedValue ~= nil) and loadedValue or (options.CurrentValue or false)
 
                 local container = Instance.new("Frame")
                 container.Name = options.Name
@@ -689,7 +744,7 @@ function Rayfield:CreateWindow(options)
                 local switchTrack = Instance.new("Frame")
                 switchTrack.Size = UDim2.new(0, 50, 0, 24)
                 switchTrack.Position = UDim2.new(1, -50, 0.5, -12)
-                switchTrack.BackgroundColor3 = state and Color3.fromRGB(0, 120, 255) or Color3.fromRGB(100, 100, 100)
+                switchTrack.BackgroundColor3 = state and Color3.fromRGB(0, 120, 255) or Color3.fromRGB(100, 100, 100) -- Set visual state
                 switchTrack.Parent = container
 
                 local trackCorner = Instance.new("UICorner")
@@ -698,7 +753,7 @@ function Rayfield:CreateWindow(options)
 
                 local switchKnob = Instance.new("Frame")
                 switchKnob.Size = UDim2.new(0, 20, 0, 20)
-                switchKnob.Position = state and UDim2.new(1, -22, 0.5, -10) or UDim2.new(0, 2, 0.5, -10)
+                switchKnob.Position = state and UDim2.new(1, -22, 0.5, -10) or UDim2.new(0, 2, 0.5, -10) -- Set visual state
                 switchKnob.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
                 switchKnob.Parent = switchTrack
 
@@ -714,16 +769,14 @@ function Rayfield:CreateWindow(options)
 
                 clickDetector.MouseButton1Click:Connect(function()
                     state = not state
-                    
-                    --// AUTOSAVE: Save value
-                    if flag then
-                        Rayfield.Settings[flag] = state
-                    end
-                    
                     local trackColor = state and Color3.fromRGB(0, 120, 255) or Color3.fromRGB(100, 100, 100)
                     local knobPos = state and UDim2.new(1, -22, 0.5, -10) or UDim2.new(0, 2, 0.5, -10)
                     TweenService:Create(switchTrack, TweenInfo.new(0.2), {BackgroundColor3 = trackColor}):Play()
                     TweenService:Create(switchKnob, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = knobPos}):Play()
+                    
+                    -- Save the state
+                    elementPath[elementName] = state
+                    SaveSettings()
                     
                     if options.Callback then
                         options.Callback(state)
@@ -733,14 +786,12 @@ function Rayfield:CreateWindow(options)
             
             function Section:Textbox(options)
                 local Input = {}
-                --// AUTOSAVE: Get flag
-                local flag = options.Flag and (contentFrame.Name .. "." .. sectionName .. "." .. options.Flag)
+                local elementName = options.Name
+                local elementPath = settings.Window[windowName].Tabs[tabName].Sections[sectionName].Elements
                 
-                Input.CurrentValue = options.CurrentValue or options.Default or ""
-                --// AUTOSAVE: Load value
-                if flag and settingsLoaded and Rayfield.Settings[flag] ~= nil then
-                    Input.CurrentValue = Rayfield.Settings[flag]
-                end
+                -- Load saved value
+                local loadedValue = elementPath[elementName]
+                Input.CurrentValue = (loadedValue ~= nil) and loadedValue or (options.CurrentValue or options.Default or "")
                 
                 local container = Instance.new("Frame")
                 container.Name = options.Name
@@ -775,7 +826,7 @@ function Rayfield:CreateWindow(options)
                 textbox.BackgroundTransparency = 1
                 textbox.PlaceholderText = options.PlaceholderText or "Enter text..."
                 textbox.Font = Enum.Font.SourceSans
-                textbox.Text = Input.CurrentValue
+                textbox.Text = Input.CurrentValue -- Set visual state
                 textbox.TextColor3 = Color3.fromRGB(220, 220, 220)
                 textbox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
                 textbox.TextSize = 14
@@ -800,10 +851,9 @@ function Rayfield:CreateWindow(options)
                     if enterPressed or options.RemoveTextAfterFocusLost ~= false then
                         Input.CurrentValue = textbox.Text
                         
-                        --// AUTOSAVE: Save value
-                        if flag then
-                            Rayfield.Settings[flag] = Input.CurrentValue
-                        end
+                        -- Save the state
+                        elementPath[elementName] = Input.CurrentValue
+                        SaveSettings()
                         
                         if options.Callback then
                             options.Callback(textbox.Text)
@@ -819,10 +869,9 @@ function Rayfield:CreateWindow(options)
                     Input.CurrentValue = value
                     textbox.Text = value
                     
-                    --// AUTOSAVE: Save value
-                    if flag then
-                        Rayfield.Settings[flag] = Input.CurrentValue
-                    end
+                    -- Save the state
+                    elementPath[elementName] = Input.CurrentValue
+                    SaveSettings()
                     
                     if options.Callback then
                         options.Callback(value)
@@ -833,9 +882,6 @@ function Rayfield:CreateWindow(options)
             end
 
             function Section:Slider(options)
-                --// AUTOSAVE: Get flag
-                local flag = options.Flag and (contentFrame.Name .. "." .. sectionName .. "." .. options.Flag)
-                
                 local container = Instance.new("Frame")
                 container.Name = options.Name
                 container.Size = UDim2.new(1, 0, 0, 40)
@@ -887,33 +933,40 @@ function Rayfield:CreateWindow(options)
                 hCorner.CornerRadius = UDim.new(1, 0)
                 hCorner.Parent = handle
 
-                local min, max, default = options.Min or 0, options.Max or 100, options.Default or 50
-                --// AUTOSAVE: Load value
-                if flag and settingsLoaded and Rayfield.Settings[flag] ~= nil then
-                    default = Rayfield.Settings[flag]
-                end
+                local min, max = options.Min or 0, options.Max or 100
+                local elementName = options.Name
+                local elementPath = settings.Window[windowName].Tabs[tabName].Sections[sectionName].Elements
+                
+                -- Load saved value
+                local loadedValue = elementPath[elementName]
+                local default = (loadedValue ~= nil) and tonumber(loadedValue) or (options.Default or 50)
                 local value = default
 
-                local function updateSlider(percent)
+                local function updateSlider(percent, skipCallback)
                     percent = math.clamp(percent, 0, 1)
                     value = min + (max - min) * percent
-                    
-                    --// AUTOSAVE: Save value
-                    if flag then
-                        Rayfield.Settings[flag] = value
-                    end
-                    
                     fill.Size = UDim2.new(percent, 0, 1, 0)
                     handle.Position = UDim2.new(percent, -8, 0.5, -8)
                     label.Text = string.format("%s: %.2f", options.Name, value)
-                    if options.Callback then
+                    
+                    if not skipCallback and options.Callback then
                         options.Callback(value)
                     end
                 end
 
-                updateSlider((default - min) / (max - min))
+                updateSlider((default - min) / (max - min), true) -- Skip callback on initial load
 
                 local dragConnection
+                local function endDrag()
+                    if dragConnection then
+                        dragConnection:Disconnect()
+                        dragConnection = nil
+                    end
+                    -- Save the state
+                    elementPath[elementName] = value
+                    SaveSettings()
+                end
+
                 handle.InputBegan:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 then
                         local startPos = input.Position
@@ -924,7 +977,7 @@ function Rayfield:CreateWindow(options)
                                 local delta = (input.Position.X - startPos.X) / sliderFrame.AbsoluteSize.X
                                 updateSlider(startSize + delta)
                             elseif input.UserInputState == Enum.UserInputState.End then
-                                dragConnection:Disconnect()
+                                endDrag()
                             end
                         end)
                     end
@@ -940,7 +993,7 @@ function Rayfield:CreateWindow(options)
                                 local delta = (input.Position.X - startPos.X) / sliderFrame.AbsoluteSize.X
                                 updateSlider(startSize + delta)
                             elseif input.UserInputState == Enum.UserInputState.End then
-                                dragConnection:Disconnect()
+                                endDrag()
                             end
                         end)
                     end
@@ -948,8 +1001,15 @@ function Rayfield:CreateWindow(options)
             end
 
             function Section:Keybind(options)
-                --// AUTOSAVE: Get flag
-                local flag = options.Flag and (contentFrame.Name .. "." .. sectionName .. "." .. options.Flag)
+                -- Note: Keybinds are not typically saved in this manner, as they are often
+                -- handled by a separate keybind system. Adding save logic here for completeness.
+                
+                local elementName = options.Name
+                local elementPath = settings.Window[windowName].Tabs[tabName].Sections[sectionName].Elements
+                
+                -- Load saved value
+                local loadedValue = elementPath[elementName]
+                local currentKey = (loadedValue ~= nil) and loadedValue or (options.Keybind or "...")
                 
                 local container = Instance.new("Frame")
                 container.Name = options.Name
@@ -971,11 +1031,7 @@ function Rayfield:CreateWindow(options)
                 keybindButton.Size = UDim2.new(0.4, -5, 1, 0)
                 keybindButton.Position = UDim2.new(0.6, 5, 0, 0)
                 keybindButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-                keybindButton.Text = options.Keybind or "..."
-                --// AUTOSAVE: Load value
-                if flag and settingsLoaded and Rayfield.Settings[flag] ~= nil then
-                    keybindButton.Text = Rayfield.Settings[flag]
-                end
+                keybindButton.Text = currentKey -- Set visual state
                 keybindButton.Font = Enum.Font.SourceSans
                 keybindButton.TextColor3 = Color3.fromRGB(220, 220, 220)
                 keybindButton.TextSize = 14
@@ -991,14 +1047,17 @@ function Rayfield:CreateWindow(options)
                     connection = UserInputService.InputBegan:Connect(function(input, gp)
                         if gp then return end
                         if input.UserInputType == Enum.UserInputType.Keyboard then
-                            keybindButton.Text = input.KeyCode.Name
-                            
-                            --// AUTOSAVE: Save value
-                            if flag then
-                                Rayfield.Settings[flag] = input.KeyCode.Name
-                            end
-                            
+                            currentKey = input.KeyCode.Name
+                            keybindButton.Text = currentKey
                             connection:Disconnect()
+                            
+                            -- Save the state
+                            elementPath[elementName] = currentKey
+                            SaveSettings()
+                            
+                            if options.Callback then
+                                options.Callback(currentKey)
+                            end
                         end
                     end)
                 end)
@@ -1007,9 +1066,8 @@ function Rayfield:CreateWindow(options)
             function Section:CreateDropdown(options)
                 local Dropdown = {}
                 local isOpen = false
-                
-                --// AUTOSAVE: Get flag
-                local flag = options.Flag and (contentFrame.Name .. "." .. sectionName .. "." .. options.Flag)
+                local elementName = options.Name
+                local elementPath = settings.Window[windowName].Tabs[tabName].Sections[sectionName].Elements
 
                 local container = Instance.new("Frame")
                 container.Name = options.Name
@@ -1226,16 +1284,21 @@ function Rayfield:CreateWindow(options)
                 dropdownLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateDropdownFrameSize)
 
                 local function updateDropdownPosition()
-                    -- This function is empty in the original script, 
-                    -- but we can add logic to position it relative to the button if needed.
-                    -- For now, we use the draggable window.
+                    -- This function is no longer needed as the dropdown window is floating
+                    -- and remembers its last position
                 end
 
                 if options.MultiSelection then
+                    -- Load saved value
+                    local loadedValue = elementPath[elementName]
                     local selectedOptions = {}
-                    --// AUTOSAVE: Load value
-                    local loadedValue = (flag and settingsLoaded) and Rayfield.Settings[flag] or options.CurrentOption
-                    for _, v in ipairs(loadedValue or {}) do table.insert(selectedOptions, v) end
+                    -- Ensure loadedValue is a table
+                    if type(loadedValue) == "table" then
+                        for _, v in ipairs(loadedValue) do table.insert(selectedOptions, v) end
+                    else
+                        -- Fallback to CurrentOption if load failed
+                        for _, v in ipairs(options.CurrentOption or {}) do table.insert(selectedOptions, v) end
+                    end
 
                     local function updateMainButtonText()
                         local count = #selectedOptions
@@ -1271,7 +1334,7 @@ function Rayfield:CreateWindow(options)
                             optCorner.Parent = optionButton
 
                             local isSelected = table.find(selectedOptions, optionName)
-                            optionButton.BackgroundColor3 = isSelected and Color3.fromRGB(0, 150, 130) or Color3.fromRGB(25, 25, 50)
+                            optionButton.BackgroundColor3 = isSelected and Color3.fromRGB(0, 150, 130) or Color3.fromRGB(25, 25, 50) -- Set visual state
 
                             table.insert(allOptionButtons, {button = optionButton, name = optionName})
 
@@ -1298,10 +1361,9 @@ function Rayfield:CreateWindow(options)
                                 end
                                 updateMainButtonText()
                                 
-                                --// AUTOSAVE: Save value
-                                if flag then
-                                    Rayfield.Settings[flag] = selectedOptions
-                                end
+                                -- Save the state
+                                elementPath[elementName] = selectedOptions
+                                SaveSettings()
                                 
                                 if options.Callback then options.Callback(selectedOptions) end
                             end)
@@ -1322,15 +1384,13 @@ function Rayfield:CreateWindow(options)
                         end
                     end)
                     
-                    updateMainButtonText()
+                    updateMainButtonText() -- Set visual state
                     refreshOptions(options.Options)
                 else
-                    Dropdown.CurrentOption = options.CurrentOption or options.Options[1]
-                    --// AUTOSAVE: Load value
-                    if flag and settingsLoaded and Rayfield.Settings[flag] ~= nil then
-                        Dropdown.CurrentOption = Rayfield.Settings[flag]
-                    end
-                    mainButton.Text = Dropdown.CurrentOption
+                    -- Load saved value
+                    local loadedValue = elementPath[elementName]
+                    Dropdown.CurrentOption = (loadedValue ~= nil) and loadedValue or (options.CurrentOption or options.Options[1])
+                    mainButton.Text = Dropdown.CurrentOption -- Set visual state
 
                     local allOptionButtons = {}
 
@@ -1370,16 +1430,18 @@ function Rayfield:CreateWindow(options)
 
                             optionButton.MouseButton1Click:Connect(function()
                                 Dropdown.CurrentOption = optionName
-                                
-                                --// AUTOSAVE: Save value
-                                if flag then
-                                    Rayfield.Settings[flag] = Dropdown.CurrentOption
-                                end
-                                
                                 mainButton.Text = optionName
                                 isOpen = false
-                                dropdownWindowFrame.Visible = false -- Use dropdownWindowFrame
+                                dropdownWindowFrame.Visible = false
+                                if currentOpenDropdown == dropdownWindowFrame then
+                                    currentOpenDropdown = nil
+                                end
                                 container.ZIndex = 2
+                                
+                                -- Save the state
+                                elementPath[elementName] = Dropdown.CurrentOption
+                                SaveSettings()
+                                
                                 if options.Callback then options.Callback(optionName) end
                             end)
                         end
@@ -1415,7 +1477,6 @@ function Rayfield:CreateWindow(options)
                         currentOpenDropdown = dropdownWindowFrame
                         -- Position at last saved location
                         dropdownWindowFrame.Position = lastDropdownPosition
-                        updateDropdownPosition()
                     else
                         dropdownWindowFrame.Visible = false
                         if currentOpenDropdown == dropdownWindowFrame then
@@ -1474,14 +1535,12 @@ function Rayfield:CreateWindow(options)
         end
 
         function Tab:Toggle(options)
-            --// AUTOSAVE: Get flag
-            local flag = options.Flag and (contentFrame.Name .. "." .. options.Flag)
+            local elementName = options.Name
+            local elementPath = settings.Window[windowName].Tabs[tabName].Elements
             
-            local state = options.CurrentValue or false
-            --// AUTOSAVE: Load value
-            if flag and settingsLoaded and Rayfield.Settings[flag] ~= nil then
-                state = Rayfield.Settings[flag]
-            end
+            -- Load saved value
+            local loadedValue = elementPath[elementName]
+            local state = (loadedValue ~= nil) and loadedValue or (options.CurrentValue or false)
 
             local container = Instance.new("Frame")
             container.Name = options.Name
@@ -1502,7 +1561,7 @@ function Rayfield:CreateWindow(options)
             local switchTrack = Instance.new("Frame")
             switchTrack.Size = UDim2.new(0, 50, 0, 24)
             switchTrack.Position = UDim2.new(1, -50, 0.5, -12)
-            switchTrack.BackgroundColor3 = state and Color3.fromRGB(0, 120, 255) or Color3.fromRGB(100, 100, 100)
+            switchTrack.BackgroundColor3 = state and Color3.fromRGB(0, 120, 255) or Color3.fromRGB(100, 100, 100) -- Set visual state
             switchTrack.Parent = container
 
             local trackCorner = Instance.new("UICorner")
@@ -1511,7 +1570,7 @@ function Rayfield:CreateWindow(options)
 
             local switchKnob = Instance.new("Frame")
             switchKnob.Size = UDim2.new(0, 20, 0, 20)
-            switchKnob.Position = state and UDim2.new(1, -22, 0.5, -10) or UDim2.new(0, 2, 0.5, -10)
+            switchKnob.Position = state and UDim2.new(1, -22, 0.5, -10) or UDim2.new(0, 2, 0.5, -10) -- Set visual state
             switchKnob.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
             switchKnob.Parent = switchTrack
 
@@ -1527,16 +1586,14 @@ function Rayfield:CreateWindow(options)
 
             clickDetector.MouseButton1Click:Connect(function()
                 state = not state
-                
-                --// AUTOSAVE: Save value
-                if flag then
-                    Rayfield.Settings[flag] = state
-                end
-                
                 local trackColor = state and Color3.fromRGB(0, 120, 255) or Color3.fromRGB(100, 100, 100)
                 local knobPos = state and UDim2.new(1, -22, 0.5, -10) or UDim2.new(0, 2, 0.5, -10)
                 TweenService:Create(switchTrack, TweenInfo.new(0.2), {BackgroundColor3 = trackColor}):Play()
                 TweenService:Create(switchKnob, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = knobPos}):Play()
+                
+                -- Save the state
+                elementPath[elementName] = state
+                SaveSettings()
                 
                 if options.Callback then
                     options.Callback(state)
@@ -1546,14 +1603,12 @@ function Rayfield:CreateWindow(options)
 
         function Tab:Textbox(options)
             local Input = {}
-            --// AUTOSAVE: Get flag
-            local flag = options.Flag and (contentFrame.Name .. "." .. options.Flag)
+            local elementName = options.Name
+            local elementPath = settings.Window[windowName].Tabs[tabName].Elements
             
-            Input.CurrentValue = options.CurrentValue or options.Default or ""
-            --// AUTOSAVE: Load value
-            if flag and settingsLoaded and Rayfield.Settings[flag] ~= nil then
-                Input.CurrentValue = Rayfield.Settings[flag]
-            end
+            -- Load saved value
+            local loadedValue = elementPath[elementName]
+            Input.CurrentValue = (loadedValue ~= nil) and loadedValue or (options.CurrentValue or options.Default or "")
             
             local container = Instance.new("Frame")
             container.Name = options.Name
@@ -1588,7 +1643,7 @@ function Rayfield:CreateWindow(options)
             textbox.BackgroundTransparency = 1
             textbox.PlaceholderText = options.PlaceholderText or "Enter text..."
             textbox.Font = Enum.Font.SourceSans
-            textbox.Text = Input.CurrentValue
+            textbox.Text = Input.CurrentValue -- Set visual state
             textbox.TextColor3 = Color3.fromRGB(220, 220, 220)
             textbox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
             textbox.TextSize = 14
@@ -1613,10 +1668,9 @@ function Rayfield:CreateWindow(options)
                 if enterPressed or options.RemoveTextAfterFocusLost ~= false then
                     Input.CurrentValue = textbox.Text
                     
-                    --// AUTOSAVE: Save value
-                    if flag then
-                        Rayfield.Settings[flag] = Input.CurrentValue
-                    end
+                    -- Save the state
+                    elementPath[elementName] = Input.CurrentValue
+                    SaveSettings()
                     
                     if options.Callback then
                         options.Callback(textbox.Text)
@@ -1632,10 +1686,9 @@ function Rayfield:CreateWindow(options)
                 Input.CurrentValue = value
                 textbox.Text = value
                 
-                --// AUTOSAVE: Save value
-                if flag then
-                    Rayfield.Settings[flag] = Input.CurrentValue
-                end
+                -- Save the state
+                elementPath[elementName] = Input.CurrentValue
+                SaveSettings()
                 
                 if options.Callback then
                     options.Callback(value)
@@ -1646,9 +1699,6 @@ function Rayfield:CreateWindow(options)
         end
 
         function Tab:Slider(options)
-            --// AUTOSAVE: Get flag
-            local flag = options.Flag and (contentFrame.Name .. "." .. options.Flag)
-            
             local container = Instance.new("Frame")
             container.Name = options.Name
             container.Size = UDim2.new(1, 0, 0, 40)
@@ -1700,33 +1750,40 @@ function Rayfield:CreateWindow(options)
             hCorner.CornerRadius = UDim.new(1, 0)
             hCorner.Parent = handle
 
-            local min, max, default = options.Min or 0, options.Max or 100, options.Default or 50
-            --// AUTOSAVE: Load value
-            if flag and settingsLoaded and Rayfield.Settings[flag] ~= nil then
-                default = Rayfield.Settings[flag]
-            end
+            local min, max = options.Min or 0, options.Max or 100
+            local elementName = options.Name
+            local elementPath = settings.Window[windowName].Tabs[tabName].Elements
+            
+            -- Load saved value
+            local loadedValue = elementPath[elementName]
+            local default = (loadedValue ~= nil) and tonumber(loadedValue) or (options.Default or 50)
             local value = default
 
-            local function updateSlider(percent)
+            local function updateSlider(percent, skipCallback)
                 percent = math.clamp(percent, 0, 1)
                 value = min + (max - min) * percent
-                
-                --// AUTOSAVE: Save value
-                if flag then
-                    Rayfield.Settings[flag] = value
-                end
-                
                 fill.Size = UDim2.new(percent, 0, 1, 0)
                 handle.Position = UDim2.new(percent, -8, 0.5, -8)
                 label.Text = string.format("%s: %.2f", options.Name, value)
-                if options.Callback then
+                
+                if not skipCallback and options.Callback then
                     options.Callback(value)
                 end
             end
 
-            updateSlider((default - min) / (max - min))
+            updateSlider((default - min) / (max - min), true) -- Skip callback on initial load
 
             local dragConnection
+            local function endDrag()
+                if dragConnection then
+                    dragConnection:Disconnect()
+                    dragConnection = nil
+                end
+                -- Save the state
+                elementPath[elementName] = value
+                SaveSettings()
+            end
+
             handle.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 then
                     local startPos = input.Position
@@ -1737,7 +1794,7 @@ function Rayfield:CreateWindow(options)
                             local delta = (input.Position.X - startPos.X) / sliderFrame.AbsoluteSize.X
                             updateSlider(startSize + delta)
                         elseif input.UserInputState == Enum.UserInputState.End then
-                            dragConnection:Disconnect()
+                            endDrag()
                         end
                     end)
                 end
@@ -1753,7 +1810,7 @@ function Rayfield:CreateWindow(options)
                             local delta = (input.Position.X - startPos.X) / sliderFrame.AbsoluteSize.X
                             updateSlider(startSize + delta)
                         elseif input.UserInputState == Enum.UserInputState.End then
-                            dragConnection:Disconnect()
+                            endDrag()
                         end
                     end)
                 end
@@ -1761,9 +1818,13 @@ function Rayfield:CreateWindow(options)
         end
 
         function Tab:Keybind(options)
-            --// AUTOSAVE: Get flag
-            local flag = options.Flag and (contentFrame.Name .. "." .. options.Flag)
+            local elementName = options.Name
+            local elementPath = settings.Window[windowName].Tabs[tabName].Elements
             
+            -- Load saved value
+            local loadedValue = elementPath[elementName]
+            local currentKey = (loadedValue ~= nil) and loadedValue or (options.Keybind or "...")
+                
             local container = Instance.new("Frame")
             container.Name = options.Name
             container.Size = UDim2.new(1, 0, 0, 30)
@@ -1784,11 +1845,7 @@ function Rayfield:CreateWindow(options)
             keybindButton.Size = UDim2.new(0.4, -5, 1, 0)
             keybindButton.Position = UDim2.new(0.6, 5, 0, 0)
             keybindButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            keybindButton.Text = options.Keybind or "..."
-            --// AUTOSAVE: Load value
-            if flag and settingsLoaded and Rayfield.Settings[flag] ~= nil then
-                keybindButton.Text = Rayfield.Settings[flag]
-            end
+            keybindButton.Text = currentKey -- Set visual state
             keybindButton.Font = Enum.Font.SourceSans
             keybindButton.TextColor3 = Color3.fromRGB(220, 220, 220)
             keybindButton.TextSize = 14
@@ -1804,25 +1861,31 @@ function Rayfield:CreateWindow(options)
                 connection = UserInputService.InputBegan:Connect(function(input, gp)
                     if gp then return end
                     if input.UserInputType == Enum.UserInputType.Keyboard then
-                        keybindButton.Text = input.KeyCode.Name
-                        
-                        --// AUTOSAVE: Save value
-                        if flag then
-                            Rayfield.Settings[flag] = input.KeyCode.Name
-                        end
-                        
+                        currentKey = input.KeyCode.Name
+                        keybindButton.Text = currentKey
                         connection:Disconnect()
+                        
+                        -- Save the state
+                        elementPath[elementName] = currentKey
+                        SaveSettings()
+                        
+                        if options.Callback then
+                            options.Callback(currentKey)
+                        end
                     end
                 end)
             end)
         end
 
         function Tab:CreateDropdown(options)
+            -- This implementation is for the *old* dropdown style,
+            -- which is different from the Section:CreateDropdown.
+            -- Adding save logic to it as well.
+            
             local Dropdown = {}
             local isOpen = false
-            
-            --// AUTOSAVE: Get flag
-            local flag = options.Flag and (contentFrame.Name .. "." .. options.Flag)
+            local elementName = options.Name
+            local elementPath = settings.Window[windowName].Tabs[tabName].Elements
 
             local container = Instance.new("Frame")
             container.Name = options.Name
@@ -1914,10 +1977,16 @@ function Rayfield:CreateWindow(options)
             dropdownLayout.Parent = dropdownFrame
 
             if options.MultiSelection then
+                -- Load saved value
+                local loadedValue = elementPath[elementName]
                 local selectedOptions = {}
-                --// AUTOSAVE: Load value
-                local loadedValue = (flag and settingsLoaded) and Rayfield.Settings[flag] or options.CurrentOption
-                for _, v in ipairs(loadedValue or {}) do table.insert(selectedOptions, v) end
+                -- Ensure loadedValue is a table
+                if type(loadedValue) == "table" then
+                    for _, v in ipairs(loadedValue) do table.insert(selectedOptions, v) end
+                else
+                    -- Fallback to CurrentOption if load failed
+                    for _, v in ipairs(options.CurrentOption or {}) do table.insert(selectedOptions, v) end
+                end
 
                 local function updateMainButtonText()
                     local count = #selectedOptions
@@ -1951,7 +2020,7 @@ function Rayfield:CreateWindow(options)
                         optCorner.Parent = optionButton
 
                         local isSelected = table.find(selectedOptions, optionName)
-                        optionButton.BackgroundColor3 = isSelected and Color3.fromRGB(0, 80, 170) or Color3.fromRGB(40, 40, 65)
+                        optionButton.BackgroundColor3 = isSelected and Color3.fromRGB(0, 80, 170) or Color3.fromRGB(40, 40, 65) -- Set visual state
 
                         table.insert(allOptionButtons, {button = optionButton, name = optionName})
 
@@ -1978,10 +2047,9 @@ function Rayfield:CreateWindow(options)
                             end
                             updateMainButtonText()
                             
-                            --// AUTOSAVE: Save value
-                            if flag then
-                                Rayfield.Settings[flag] = selectedOptions
-                            end
+                            -- Save the state
+                            elementPath[elementName] = selectedOptions
+                            SaveSettings()
                             
                             if options.Callback then options.Callback(selectedOptions) end
                         end)
@@ -2002,15 +2070,13 @@ function Rayfield:CreateWindow(options)
                     end
                 end)
                 
-                updateMainButtonText()
+                updateMainButtonText() -- Set visual state
                 refreshOptions(options.Options)
             else
-                Dropdown.CurrentOption = options.CurrentOption or options.Options[1]
-                --// AUTOSAVE: Load value
-                if flag and settingsLoaded and Rayfield.Settings[flag] ~= nil then
-                    Dropdown.CurrentOption = Rayfield.Settings[flag]
-                end
-                mainButton.Text = Dropdown.CurrentOption
+                -- Load saved value
+                local loadedValue = elementPath[elementName]
+                Dropdown.CurrentOption = (loadedValue ~= nil) and loadedValue or (options.CurrentOption or options.Options[1])
+                mainButton.Text = Dropdown.CurrentOption -- Set visual state
 
                 local allOptionButtons = {}
 
@@ -2049,16 +2115,15 @@ function Rayfield:CreateWindow(options)
 
                         optionButton.MouseButton1Click:Connect(function()
                             Dropdown.CurrentOption = optionName
-                            
-                            --// AUTOSAVE: Save value
-                            if flag then
-                                Rayfield.Settings[flag] = Dropdown.CurrentOption
-                            end
-                            
                             mainButton.Text = optionName
                             isOpen = false
                             dropdownContainer.Visible = false
                             container.ZIndex = 2
+                            
+                            -- Save the state
+                            elementPath[elementName] = Dropdown.CurrentOption
+                            SaveSettings()
+                            
                             if options.Callback then options.Callback(optionName) end
                         end)
                     end
@@ -2095,3 +2160,5 @@ function Rayfield:CreateWindow(options)
     end
     return Window
 end
+
+return Rayfield
