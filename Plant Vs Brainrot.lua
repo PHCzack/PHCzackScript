@@ -5,7 +5,7 @@ end
 
 
 --// Load Library
-local PHCzack = loadstring(game:HttpGet("https://raw.githubusercontent.com/PHCzack/PHCzackScript/refs/heads/main/library.lua"))()
+local PHCzack = loadstring(game:HttpGet("https://raw.githubusercontent.com/PHCzack/PHCzackScript/refs/heads/main/savepreference.lua"))()
 
 --// Create Window
 local Window = PHCzack:CreateWindow({
@@ -2110,7 +2110,6 @@ InvasionSection:Toggle({
 -- AUTO DAILY EVENT TAB
 --// =========================
 
-
 -- Variables
 local autoDailyEventEnabled = false
 local submittedDailyBrainrots = {}
@@ -2142,15 +2141,6 @@ DailyEventSection:Toggle({
                                         if platformEventUI and platformEventUI.Enabled == true then
                                             print("Daily event active on Plot " .. plotNum .. " Platform " .. platformNum)
                                             
-                                            -- Teleport to event coordinates
-                                            local teleportPos = Vector3.new(-211.9845733642578, 11.562851905822754, 978.3615112304688)
-                                            local char = LocalPlayer.Character
-                                            if char and char:FindFirstChild("HumanoidRootPart") then
-                                                char.HumanoidRootPart.CFrame = CFrame.new(teleportPos)
-                                                print("Teleported to daily event")
-                                                task.wait(0.5)
-                                            end
-                                            
                                             local visualFolder = platform:FindFirstChild("VisualFolder")
                                             if visualFolder then
                                                 -- Scan all brainrots in VisualFolder one by one
@@ -2160,9 +2150,12 @@ DailyEventSection:Toggle({
                                                     if brainrot:IsA("Model") then
                                                         local brainrotName = brainrot.Name
                                                         
-                                                        -- Skip if this brainrot was already submitted
-                                                        if submittedDailyBrainrots[brainrotName] then
-                                                            print("Skipping already submitted brainrot: " .. brainrotName)
+                                                        -- Create unique key for this platform + brainrot
+                                                        local submissionKey = plotNum .. "_" .. platformNum .. "_" .. brainrotName
+                                                        
+                                                        -- Skip if this specific brainrot on this platform was already submitted
+                                                        if submittedDailyBrainrots[submissionKey] then
+                                                            print("Skipping already submitted brainrot: " .. brainrotName .. " on platform " .. platformNum)
                                                             continue
                                                         end
                                                         
@@ -2173,6 +2166,15 @@ DailyEventSection:Toggle({
                                                             print("Equipped brainrot: " .. brainrotName)
                                                             task.wait(0.5)
                                                             
+                                                            -- Teleport to event coordinates
+                                                            local teleportPos = Vector3.new(-211.9845733642578, 11.562851905822754, 978.3615112304688)
+                                                            local char = LocalPlayer.Character
+                                                            if char and char:FindFirstChild("HumanoidRootPart") then
+                                                                char.HumanoidRootPart.CFrame = CFrame.new(teleportPos)
+                                                                print("Teleported to daily event")
+                                                                task.wait(0.5)
+                                                            end
+                                                            
                                                             -- Fire the proximity prompt
                                                             local hitbox = platform:FindFirstChild("Hitbox")
                                                             if hitbox then
@@ -2182,9 +2184,9 @@ DailyEventSection:Toggle({
                                                                     fireproximityprompt(proximityPrompt)
                                                                     task.wait(0.5)
                                                                     
-                                                                    -- Mark this brainrot as submitted
-                                                                    submittedDailyBrainrots[brainrotName] = true
-                                                                    print("Marked as submitted: " .. brainrotName)
+                                                                    -- Mark this specific brainrot on this platform as submitted
+                                                                    submittedDailyBrainrots[submissionKey] = true
+                                                                    print("Marked as submitted: " .. brainrotName .. " on platform " .. platformNum)
                                                                 else
                                                                     print("No proximity prompt found for: " .. brainrotName)
                                                                 end
@@ -2205,7 +2207,7 @@ DailyEventSection:Toggle({
                     end
                     
                     if autoDailyEventEnabled then
-                        task.wait(0.5) -- Wait 2 seconds before checking again
+                        task.wait(0.5) -- Wait 0.5 seconds before checking again
                     end
                 end
             end)
@@ -2215,7 +2217,6 @@ DailyEventSection:Toggle({
         end
     end
 })
-
 
 
 --// =========================
