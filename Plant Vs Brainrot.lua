@@ -838,7 +838,7 @@ Fusev2Section:Toggle({
         if state then
             task.spawn(function()
                 -- Teleport to fuse machine position first
-                local teleportPos = Vector3.new(-137.6483612060547, 11.562851905822754, 977.7113037109375)
+                local teleportPos = Vector3.new(-127.0563735961914, 13.562499046325684, 994.6566772460938)
                 local char = LocalPlayer.Character
                 if char and char:FindFirstChild("HumanoidRootPart") then
                     char.HumanoidRootPart.CFrame = CFrame.new(teleportPos)
@@ -979,8 +979,11 @@ SellSection:Toggle({
             task.spawn(function()
                 local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ItemSell")
                 while autoSellEnabled do
-                    fireRemoteSafely(remote,{})
-                    task.wait(0.05)
+                    local args = {
+                        [3] = true
+                    }
+                    fireRemoteSafely(remote, args)
+                    task.wait(20)
                 end
             end)
         end
@@ -997,7 +1000,7 @@ SellSection:Toggle({
                 local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ItemSell")
                 while autoSellPlantsEnabled do
                     fireRemoteSafely(remote,{[2]=true})
-                    task.wait(0.05)
+                    task.wait(1)
                 end
             end)
         end
@@ -2113,7 +2116,7 @@ local autoDailyEventEnabled = false
 local submittedDailyBrainrots = {}
 
 -- Auto Daily Event Section
-local DailyEventSection = AutoTab:CreateSection("Auto Daily Event")
+local DailyEventSection = AutoTab:CreateSection("Auto Event")
 
 DailyEventSection:Toggle({
     Name = "Auto Daily Event",
@@ -2215,6 +2218,115 @@ DailyEventSection:Toggle({
 
 
 
+--// =========================
+-- AUTO WANTED BRAINROT TAB
+--// =========================
+
+-- Variables
+local autoWantedBrainrotEnabled = false
+local hasTeleported = false
+
+
+DailyEventSection:Toggle({
+    Name = "Auto Deliver Brainrot",
+    CurrentValue = false,
+    Callback = function(state)
+        autoWantedBrainrotEnabled = state
+        if state then
+            hasTeleported = false -- Reset teleport flag when starting
+            task.spawn(function()
+                while autoWantedBrainrotEnabled do
+                    -- Teleport once only when toggle is first enabled
+                    if not hasTeleported then
+                        local teleportPos = Vector3.new(-175.08677673339844, 11.565290451049805, 1010.4009399414062)
+                        local char = LocalPlayer.Character
+                        if char and char:FindFirstChild("HumanoidRootPart") then
+                            char.HumanoidRootPart.CFrame = CFrame.new(teleportPos)
+                            print("Teleported to artist location")
+                            hasTeleported = true
+                            task.wait(1.0)
+                        end
+                    end
+                    
+                    -- Get the wanted brainrot name from GUI
+                    local wantedText = game:GetService("Players").LocalPlayer.PlayerGui.Main.PosterGui.Frame.Main.WantedItem.WantedItem_Title.Text
+                    
+                    if wantedText and wantedText ~= "" then
+                        print("Wanted brainrot: " .. wantedText)
+                        
+                        -- Equip the wanted brainrot from inventory
+                        if equipExactItem(wantedText) then
+                            print("Equipped wanted brainrot: " .. wantedText)
+                            task.wait(0.5)
+                            
+                            -- Fire the artist prompt
+                            local prompt = workspace.ScriptedMap.Artist.Sign.Prompt.ProximityPrompt
+                            if prompt then
+                                print("Firing artist prompt for: " .. wantedText)
+                                fireproximityprompt(prompt)
+                                task.wait(0.5)
+                            else
+                                print("Artist prompt not found")
+                            end
+                        else
+                            print("Could not equip wanted brainrot: " .. wantedText)
+                        end
+                    else
+                        print("No wanted brainrot found in GUI")
+                    end
+                    
+                    if autoWantedBrainrotEnabled then
+                        task.wait(1) -- Wait 2 seconds before checking again
+                    end
+                end
+            end)
+        else
+            -- Reset teleport flag when toggle is turned off
+            hasTeleported = false
+        end
+    end
+})
+
+
+--// =========================
+-- AUTO WANTED BRAINROT TAB - ADD TO EXISTING TAB
+--// =========================
+
+DailyEventSection:Toggle({
+    Name = "Auto Reset Art",
+    CurrentValue = false,
+    Callback = function(state)
+        autoResetArtEnabled = state
+        if state then
+            task.spawn(function()
+                while autoResetArtEnabled do
+                    -- Check if the complete GUI is visible
+                    local completeFrame = game:GetService("Players").LocalPlayer.PlayerGui.Main.PosterGui.Frame.Main_Complete
+                    
+                    if completeFrame and completeFrame.Visible == true then
+                        print("Art mission complete, resetting...")
+                        
+                        -- Fire the reset remote
+                        local args = {
+                            [1] = "ResetRequest"
+                        }
+                        
+                        game:GetService("ReplicatedStorage").Remotes.Events.Artist.Interact:FireServer(unpack(args))
+                        print("Reset art mission")
+                        task.wait(1.0) -- Wait 1 second after reset
+                    else
+                        print("Art mission not complete yet")
+                    end
+                    
+                    if autoResetArtEnabled then
+                        task.wait(1) -- Wait 2 seconds before checking again
+                    end
+                end
+            end)
+        end
+    end
+})
+
 -- workspace.ScriptedMap.AdminChest.ChestBody.PromptAttachment.ProximityPrompt
 
 
@@ -2224,3 +2336,8 @@ DailyEventSection:Toggle({
 --firesignal(Button1.MouseButton1Click)
 --wait(1)
 --firesignal(Button2.MouseButton1Click)
+
+
+
+
+
