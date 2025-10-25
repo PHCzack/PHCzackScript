@@ -27,7 +27,7 @@ end
 --// Load settings function
 local function LoadSettings()
     if not isfile or not readfile or not HttpService then 
-        settings = { Window = {}, ShowButton = { X = 10, Y = 10 } } -- Default fallback
+        settings = {} -- Default fallback
         return 
     end
     
@@ -38,22 +38,16 @@ local function LoadSettings()
             if type(decoded) == "table" then
                 settings = decoded
             else
-                settings = { Window = {}, ShowButton = { X = 10, Y = 10 } } -- Default fallback
+                settings = {} -- Default fallback
             end
         end)
         if not success then
             warn("Rayfield: Failed to load settings - ", result)
-            settings = { Window = {}, ShowButton = { X = 10, Y = 10 } } -- Default fallback
+            settings = {} -- Default fallback
         end
     else
         -- Create default settings structure
-        settings = {
-            Window = {}, -- Window-specific settings will be populated by CreateWindow
-            ShowButton = {
-                X = 10,
-                Y = 10
-            }
-        }
+        settings = {}
     end
 end
 
@@ -168,12 +162,8 @@ local MinimizeButton = createControlButton("—")
 local ShowButton = Instance.new("TextButton")
 ShowButton.Name = "ShowButton"
 ShowButton.Size = UDim2.new(0, 100, 0, 30)
--- Load saved position
-if settings.ShowButton then
-    ShowButton.Position = UDim2.new(0, settings.ShowButton.X, 0, settings.ShowButton.Y)
-else
-    ShowButton.Position = UDim2.new(0, 10, 0, 10) -- Default
-end
+-- Load saved position (REMOVED)
+ShowButton.Position = UDim2.new(0, 10, 0, 10) -- Default
 ShowButton.Text = "Show UI"
 ShowButton.TextColor3 = Color3.fromRGB(220, 220, 220)
 ShowButton.Font = Enum.Font.SourceSans
@@ -397,13 +387,15 @@ Header.InputChanged:Connect(function(input)
         local delta = input.Position - dragStart
         MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         
-        -- Save position on change
+        -- Save position on change (REMOVED)
+        --[[
         local windowName = Title.Text
         if settings.Window[windowName] then
             settings.Window[windowName].Position.X = MainFrame.Position.X.Offset
             settings.Window[windowName].Position.Y = MainFrame.Position.Y.Offset
             SaveSettings()
         end
+        ]]
     end
 end)
 
@@ -428,11 +420,13 @@ ShowButton.InputChanged:Connect(function(input)
         local delta = input.Position - showButtonDragStart
         ShowButton.Position = UDim2.new(showButtonStartPos.X.Scale, showButtonStartPos.X.Offset + delta.X, showButtonStartPos.Y.Scale, showButtonStartPos.Y.Offset + delta.Y)
         
-        -- Save position
+        -- Save position (REMOVED)
+        --[[
         if not settings.ShowButton then settings.ShowButton = {} end
         settings.ShowButton.X = ShowButton.Position.X.Offset
         settings.ShowButton.Y = ShowButton.Position.Y.Offset
         SaveSettings()
+        ]]
     end
 end)
 
@@ -471,17 +465,14 @@ function Rayfield:CreateWindow(options)
     -- Initialize settings table for this window if it doesn't exist
     if not settings.Window[windowName] then
         settings.Window[windowName] = {
-            Position = {
-                X = MainFrame.Position.X.Offset,
-                Y = MainFrame.Position.Y.Offset
-            },
-            ActiveTab = nil,
+            -- Position = { (REMOVED)
+            -- ActiveTab = nil, (REMOVED)
             Tabs = {}
         }
     end
     
-    -- Load Window Position
-    MainFrame.Position = UDim2.new(0.5, settings.Window[windowName].Position.X, 0.5, settings.Window[windowName].Position.Y)
+    -- Load Window Position (REMOVED)
+    -- MainFrame.Position = UDim2.new(0.5, settings.Window[windowName].Position.X, 0.5, settings.Window[windowName].Position.Y)
 
     local Window = {}
     
@@ -549,26 +540,18 @@ function Rayfield:CreateWindow(options)
             tabButton.BackgroundColor3 = Color3.fromRGB(0, 80, 170)
             activeTab = contentFrame
 
-            -- Save the currently active tab
-            settings.Window[windowName].ActiveTab = tabName
-            SaveSettings()
+            -- Save the currently active tab (REMOVED)
+            -- settings.Window[windowName].ActiveTab = tabName
+            -- SaveSettings()
         end)
 
         tabs[name] = { Frame = contentFrame, Button = tabButton, Layout = contentLayout }
 
-        -- Load active tab
-        if settings.Window[windowName].ActiveTab == tabName then
+        -- Load active tab (REMOVED - now defaults to first tab)
+        if not activeTab then -- Default to first tab
             contentFrame.Visible = true
             tabButton.BackgroundColor3 = Color3.fromRGB(0, 80, 170)
             activeTab = contentFrame
-        elseif not activeTab then -- Default to first tab if none is saved as active
-            contentFrame.Visible = true
-            tabButton.BackgroundColor3 = Color3.fromRGB(0, 80, 170)
-            activeTab = contentFrame
-            if not settings.Window[windowName].ActiveTab then
-                settings.Window[windowName].ActiveTab = tabName
-                SaveSettings() -- Save default active tab
-            end
         end
         
         --// CreateSection function for categories
@@ -578,13 +561,13 @@ function Rayfield:CreateWindow(options)
             -- Initialize settings for this section
             if not settings.Window[windowName].Tabs[tabName].Sections[sectionName] then
                 settings.Window[windowName].Tabs[tabName].Sections[sectionName] = {
-                    Expanded = false, -- Default
+                    -- Expanded = false, (REMOVED)
                     Elements = {}
                 }
             end
             
-            -- Load expanded state
-            local isExpanded = settings.Window[windowName].Tabs[tabName].Sections[sectionName].Expanded
+            -- Load expanded state (REMOVED - now defaults to false)
+            local isExpanded = false
             
             -- Section Header Container
             local sectionContainer = Instance.new("Frame")
@@ -627,10 +610,10 @@ function Rayfield:CreateWindow(options)
             arrow.Position = UDim2.new(1, -30, 0, 0)
             arrow.BackgroundTransparency = 1
             arrow.Font = Enum.Font.SourceSansBold
-            arrow.Text = isExpanded and "▼" or "▶" -- Set based on loaded state
+            arrow.Text = isExpanded and "▼" or "▶" -- Set based on default state
             arrow.TextColor3 = Color3.fromRGB(0, 120, 255)
             arrow.TextSize = 14
-            arrow.Rotation = isExpanded and 0 or -90 -- Set based on loaded state
+            arrow.Rotation = isExpanded and 0 or -90 -- Set based on default state
             arrow.Parent = sectionHeader
             
             -- Section Content Container
@@ -640,7 +623,7 @@ function Rayfield:CreateWindow(options)
             sectionContent.Position = UDim2.new(0, 0, 0, 40)
             sectionContent.BackgroundTransparency = 1
             sectionContent.AutomaticSize = Enum.AutomaticSize.Y
-            sectionContent.Visible = isExpanded -- Set based on loaded state
+            sectionContent.Visible = isExpanded -- Set based on default state
             sectionContent.ClipsDescendants = false
             sectionContent.Parent = sectionContainer
             
@@ -658,9 +641,9 @@ function Rayfield:CreateWindow(options)
                 sectionContent.Visible = isExpanded
                 arrow.Text = isExpanded and "▼" or "▶"
                 
-                -- Save the state
-                settings.Window[windowName].Tabs[tabName].Sections[sectionName].Expanded = isExpanded
-                SaveSettings()
+                -- Save the state (REMOVED)
+                -- settings.Window[windowName].Tabs[tabName].Sections[sectionName].Expanded = isExpanded
+                -- SaveSettings()
 
                 -- Close all dropdowns in this section when collapsing
                 if not isExpanded then
@@ -2162,3 +2145,4 @@ function Rayfield:CreateWindow(options)
 end
 
 return Rayfield
+
