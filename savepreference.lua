@@ -200,8 +200,7 @@ local activeTab = nil
 local tabs = {}
 
 --// Settings Save/Load Functions
---// Call LoadSettings(jsonString) *before* CreateWindow()
---// Call SaveSettings() to get the JSON string to save (e.g., in a DataStore)
+--// These functions are kept for manual use or if you implement a server-side solution
 function Rayfield:LoadSettings(jsonString)
     if not HttpService then return end
     if not jsonString or jsonString == "" then return end
@@ -2096,5 +2095,3 @@ function Rayfield:CreateWindow(options)
     end
     return Window
 end
-
-return Rayfield
