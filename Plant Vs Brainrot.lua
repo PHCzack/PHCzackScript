@@ -15,7 +15,7 @@ local Window = PHCzack:CreateWindow({
 --// Show a startup notification
 Window:Notify({
     Title = "Welcome!",
-    Content = "Updated 10/23/25 - Bug Fixed✅",
+    Content = "Updated 10/26/25 - Art Event✅",
     Duration = 5
 })
 
