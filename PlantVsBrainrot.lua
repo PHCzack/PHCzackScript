@@ -1,5 +1,5 @@
 --// Load Library
-local PHCzack = loadstring(game:HttpGet("https://raw.githubusercontent.com/PHCzack/PHCzackScript/refs/heads/main/library.lua"))()
+local PHCzack = loadstring(game:HttpGet("https://raw.githubusercontent.com/PHCzack/PHCzackScript/refs/heads/main/savepreference.lua"))()
 
 --// Create Window
 local Window = PHCzack:CreateWindow({
