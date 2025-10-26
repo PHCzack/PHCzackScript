@@ -158,24 +158,62 @@ local HideButton = createControlButton("X")
 local ZoomButton = createControlButton("❐")
 local MinimizeButton = createControlButton("—")
 
--- Show UI Button
+-- Show UI Button (New Style)
 local ShowButton = Instance.new("TextButton")
 ShowButton.Name = "ShowButton"
-ShowButton.Size = UDim2.new(0, 100, 0, 30)
+ShowButton.Size = UDim2.new(0, 110, 0, 30) -- Adjusted size
 ShowButton.Position = UDim2.new(0, 10, 0, 10) -- Default
-ShowButton.Text = "Show UI"
-ShowButton.TextColor3 = Color3.fromRGB(220, 220, 220)
-ShowButton.Font = Enum.Font.SourceSans
+ShowButton.Text = "" -- Text will be handled by internal labels
+ShowButton.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+ShowButton.BackgroundTransparency = 0.1
 ShowButton.Visible = false
 ShowButton.ZIndex = 10
 ShowButton.Parent = MainGui
-local showButtonGradient = headerGradient:Clone()
-showButtonGradient.Parent = ShowButton
+-- local showButtonGradient = headerGradient:Clone() -- Removed background gradient
+-- showButtonGradient.Parent = ShowButton
 
+-- Pill shape corner
 local showCorner = Instance.new("UICorner")
-showCorner.CornerRadius = UDim.new(0, 6)
+showCorner.CornerRadius = UDim.new(1, 0)
 showCorner.Parent = ShowButton
 
+-- Gradient border
+local showStroke = Instance.new("UIStroke")
+showStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+showStroke.Thickness = 2
+showStroke.Transparency = 0
+showStroke.Parent = ShowButton
+
+local strokeGradient = Instance.new("UIGradient")
+strokeGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 180)), -- Pink
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 255, 200))  -- Cyan
+})
+strokeGradient.Rotation = 90
+strokeGradient.Parent = showStroke
+
+-- Layout for content
+local showLayout = Instance.new("UIListLayout")
+showLayout.FillDirection = Enum.FillDirection.Horizontal
+showLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+showLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+showLayout.Padding = UDim.new(0, 8)
+showLayout.Parent = ShowButton
+
+
+-- Text Label
+local showLabel = Instance.new("TextLabel")
+showLabel.Name = "Label"
+showLabel.Size = UDim2.new(0, 0, 1, 0) -- Auto-size width
+showLabel.AutomaticSize = Enum.AutomaticSize.X
+showLabel.BackgroundTransparency = 1
+showLabel.Font = Enum.Font.SourceSans
+showLabel.Text = "Show UI"
+showLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+showLabel.TextSize = 14
+showLabel.Parent = ShowButton
+
+-- Click logic (remains the same)
 ShowButton.MouseButton1Click:Connect(function()
     MainFrame.Visible = true
     ShowButton.Visible = false
