@@ -3,4 +3,4 @@ local CutTree = loadstring(game:HttpGet("https://raw.githubusercontent.com/PHCza
 
 
 --// Load Library
-local PvB = loadstring(game:HttpGet("https://raw.githubusercontent.com/PHCzack/PHCzackScript/refs/heads/main/Plant%20Vs%20Brainrot.lua"))()
+local PvB = loadstring(game:HttpGet("https://raw.githubusercontent.com/PHCzack/PHCzackScript/refs/heads/main/PlantVsBrainrot.lua"))()
