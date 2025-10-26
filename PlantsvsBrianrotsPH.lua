@@ -1,0 +1,1 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/PHCzack/PHCzackScript/refs/heads/main/https://raw.githubusercontent.com/PHCzack/PHCzackScript/refs/heads/main/PlantVsBrainrot.lua"))()
