@@ -1,9 +1,3 @@
-if game.PlaceId ~= 127742093697776 then
-    print("This script is only for game ID 135880624242201.")
-    return
-end
-
-
 --// Load Library
 local PHCzack = loadstring(game:HttpGet("https://raw.githubusercontent.com/PHCzack/PHCzackScript/refs/heads/main/savepreference.lua"))()
 
