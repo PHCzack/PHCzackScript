@@ -27,7 +27,7 @@ end
 --// Load settings function
 local function LoadSettings()
     if not isfile or not readfile or not HttpService then 
-        settings = {} -- Default fallback
+        settings = { Window = {} } -- Default fallback
         return 
     end
     
@@ -38,16 +38,16 @@ local function LoadSettings()
             if type(decoded) == "table" then
                 settings = decoded
             else
-                settings = {} -- Default fallback
+                settings = { Window = {} } -- Default fallback
             end
         end)
         if not success then
             warn("Rayfield: Failed to load settings - ", result)
-            settings = {} -- Default fallback
+            settings = { Window = {} } -- Default fallback
         end
     else
         -- Create default settings structure
-        settings = {}
+        settings = { Window = {} } -- MODIFIED: Initialize with default structure
     end
 end
 
@@ -1963,7 +1963,7 @@ function Rayfield:CreateWindow(options)
             dropdownGlow.Thickness = 1.5
             dropdownGlow.Transparency = 0.5
             dropdownGlow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-            dropdownGlow.Parent = dropdownContainer
+            dropdownGWlow.Parent = dropdownContainer
 
             local searchFrame = Instance.new("Frame")
             searchFrame.Name = "SearchFrame"
