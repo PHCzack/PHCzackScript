@@ -3,6 +3,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService") -- Added for JSON encoding
+local Players = game:GetService("Players") -- ADDED: For player info
 
 --// Main GUI Library Table
 local Rayfield = {}
@@ -47,7 +48,7 @@ local function LoadSettings()
         end
     else
         -- Create default settings structure
-        settings = { Window = {} } -- MODIFIED: Initialize with default structure
+        settings = { Window = {} }
     end
 end
 
@@ -263,10 +264,92 @@ TabContainer.BackgroundTransparency = 0.1
 TabContainer.BorderSizePixel = 0
 TabContainer.Parent = MainFrame
 
+--// Set PlayerGui
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+--// START: Add cleanup logic
+if _G.RayfieldMainGuiInstance then
+    pcall(function() _G.RayfieldMainGuiInstance:Destroy() end)
+end
+if _G.RayfieldDropdownGuiInstance then
+    pcall(function() _G.RayfieldDropdownGuiInstance:Destroy() end)
+end
+--// END: Add cleanup logic
+
+MainGui.Parent = playerGui
+_G.RayfieldMainGuiInstance = MainGui -- Store reference to new GUI
+
+--// START: Player Info Frame (at the bottom of TabContainer)
+local PlayerInfoFrame = Instance.new("Frame")
+PlayerInfoFrame.Name = "PlayerInfoFrame"
+PlayerInfoFrame.Size = UDim2.new(1, 0, 0, 50) -- 100% width, 50px height
+PlayerInfoFrame.Position = UDim2.new(0, 0, 1, -50) -- Anchored to bottom
+PlayerInfoFrame.BackgroundTransparency = 1
+PlayerInfoFrame.Parent = TabContainer
+
+-- Player Avatar Image
+local PlayerImage = Instance.new("ImageLabel")
+PlayerImage.Name = "PlayerImage"
+PlayerImage.Size = UDim2.new(0, 36, 0, 36) -- 36x36
+PlayerImage.Position = UDim2.new(0, 7, 0.5, -18) -- Centered vertically, 7px from left
+PlayerImage.BackgroundTransparency = 1
+PlayerImage.Parent = PlayerInfoFrame
+
+local imgCorner = Instance.new("UICorner")
+imgCorner.CornerRadius = UDim.new(1, 0) -- Make it a circle
+imgCorner.Parent = PlayerImage
+
+-- Player Name Label
+local PlayerName = Instance.new("TextLabel")
+PlayerName.Name = "PlayerName"
+PlayerName.Size = UDim2.new(1, -50, 1, 0) -- Fill remaining space
+PlayerName.Position = UDim2.new(0, 48, 0, 0) -- 7px + 36px + 5px padding
+PlayerName.BackgroundTransparency = 1
+PlayerName.Font = Enum.Font.SourceSansBold
+PlayerName.TextColor3 = Color3.fromRGB(220, 220, 220)
+PlayerName.TextSize = 14
+PlayerName.TextScaled = true
+PlayerName.TextXAlignment = Enum.TextXAlignment.Left
+PlayerName.Text = player.DisplayName
+PlayerName.Parent = PlayerInfoFrame
+
+-- Fetch and set the player's avatar
+local userId = player.UserId
+local thumbType = Enum.ThumbnailType.HeadShot
+local thumbSize = Enum.ThumbnailSize.Size48x48
+local success, content, isReady = pcall(Players.GetUserThumbnailAsync, Players, userId, thumbType, thumbSize)
+
+if success and isReady then
+    PlayerImage.Image = content
+else
+    warn("Rayfield: Failed to load player thumbnail for " .. player.DisplayName)
+end
+--// END: Player Info Frame
+
+--// START: Tab List Frame (Scrollable)
+local TabListFrame = Instance.new("ScrollingFrame")
+TabListFrame.Name = "TabListFrame"
+TabListFrame.Size = UDim2.new(1, 0, 1, -50) -- Fills space above PlayerInfoFrame
+TabListFrame.Position = UDim2.new(0, 0, 0, 0) -- At the top
+TabListFrame.BackgroundTransparency = 1
+TabListFrame.BorderSizePixel = 0
+TabListFrame.ScrollBarThickness = 4
+TabListFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 120, 255)
+TabListFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+TabListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+TabListFrame.Parent = TabContainer
+
 local tabLayout = Instance.new("UIListLayout")
 tabLayout.Padding = UDim.new(0, 5)
 tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
-tabLayout.Parent = TabContainer
+tabLayout.Parent = TabListFrame -- MODIFIED: Parented to the new TabListFrame
+
+-- Need to update canvas size when tabs are added
+tabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    TabListFrame.CanvasSize = UDim2.new(0, 0, 0, tabLayout.AbsoluteContentSize.Y)
+end)
+--// END: Tab List Frame
 
 -- Content container
 local ContentContainer = Instance.new("Frame")
@@ -458,17 +541,13 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
---// Set PlayerGui
-local player = game.Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-MainGui.Parent = playerGui
-
 --// Create a separate ScreenGui for dropdowns
 local DropdownGui = Instance.new("ScreenGui")
 DropdownGui.Name = "DropdownGui"
 DropdownGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 DropdownGui.ResetOnSpawn = false
 DropdownGui.Parent = playerGui
+_G.RayfieldDropdownGuiInstance = DropdownGui -- Store reference to new GUI
 
 --// Keep track of the currently open dropdown
 local currentOpenDropdown = nil
@@ -539,7 +618,7 @@ function Rayfield:CreateWindow(options)
         tabButton.Font = Enum.Font.SourceSans
         tabButton.TextColor3 = Color3.fromRGB(220, 220, 220)
         tabButton.TextSize = 14
-        tabButton.Parent = TabContainer
+        tabButton.Parent = TabListFrame -- MODIFIED: Parented to TabListFrame
 
         local btnCorner = Instance.new("UICorner")
         btnCorner.CornerRadius = UDim.new(0, 4)
@@ -1427,7 +1506,7 @@ function Rayfield:CreateWindow(options)
                             optionButton.Parent = dropdownFrame
                             
                             local optCorner = Instance.new("UICorner")
-                            optCorner.CornerRadius = UDim.new(0, 3)
+                            optCorner.CornerRadius = UDim2.new(0, 3)
                             optCorner.Parent = optionButton
 
                             table.insert(allOptionButtons, {button = optionButton, name = optionName})
@@ -1963,7 +2042,7 @@ function Rayfield:CreateWindow(options)
             dropdownGlow.Thickness = 1.5
             dropdownGlow.Transparency = 0.5
             dropdownGlow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-            dropdownGWlow.Parent = dropdownContainer
+            dropdownGlow.Parent = dropdownContainer
 
             local searchFrame = Instance.new("Frame")
             searchFrame.Name = "SearchFrame"
